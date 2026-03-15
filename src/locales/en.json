@@ -182,6 +182,7 @@
     "installPath": "Install path",
     "space": "Space",
     "noInstallPath": "No install path",
-    "sourceLinks": "Source links"
+    "sourceLinks": "Source links",
+    "refreshMetadata": "Refresh metadata"
   }
 }

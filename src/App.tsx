@@ -226,19 +226,29 @@ function App() {
   };
 
   const getGameContextMenuItems = (game: Game): ContextMenuItem[] => [
-    { label: t('actions.play'), icon: 'P', onClick: () => handlePlayGame(game), disabled: isGameRunning(game.id) },
-    { label: t('actions.editGame'), icon: 'E', onClick: () => handleEditGame(game) },
-    { label: t('actions.fetchMetadata'), icon: 'M', onClick: () => handleFetchMetadata(game) },
+    // Launch actions
+    { label: t('actions.play'), icon: '▶', onClick: () => handlePlayGame(game), disabled: isGameRunning(game.id) },
     { separator: true, label: '', onClick: () => {} },
-    { label: isSelectionMode ? 'Exit Selection' : 'Select Games', icon: 'S', onClick: () => setIsSelectionMode(!isSelectionMode) }, // Add selection toggle
+    
+    // Edit actions
+    { label: t('actions.editGame'), icon: '✏️', onClick: () => handleEditGame(game) },
+    { label: t('actions.fetchMetadata'), icon: '🔍', onClick: () => handleFetchMetadata(game) },
     { separator: true, label: '', onClick: () => {} },
+    
+    // Selection mode
+    { label: isSelectionMode ? 'Exit Selection' : 'Select Games', icon: '☑️', onClick: () => setIsSelectionMode(!isSelectionMode) },
+    { separator: true, label: '', onClick: () => {} },
+    
+    // Favorites
     {
       label: game.is_favorite ? t('actions.removeFromFavorites') : t('actions.addToFavorites'),
-      icon: game.is_favorite ? '*' : 'o',
+      icon: game.is_favorite ? '⭐' : '☆',
       onClick: () => handleToggleFavorite(game),
     },
     { separator: true, label: '', onClick: () => {} },
-    { label: t('actions.delete'), icon: 'X', onClick: () => handleDeleteGame(game), danger: true },
+    
+    // Danger zone
+    { label: t('actions.delete'), icon: '🗑️', onClick: () => handleDeleteGame(game), danger: true },
   ];
 
   return (

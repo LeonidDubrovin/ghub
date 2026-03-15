@@ -138,6 +138,9 @@ export default function GameDetailsView({ games, selectedGame, selectedGames = [
                       </button>
                     )}
                     <button onClick={() => onEdit(selectedGame)} className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg">{t('details.edit')}</button>
+                    <button onClick={() => onEdit(selectedGame)} className="px-6 py-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg flex items-center gap-2">
+                      🔄 {t('details.refreshMetadata')}
+                    </button>
                   </div>
                 </div>
               </div>
