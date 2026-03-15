@@ -339,11 +339,17 @@ impl Database {
     
     pub fn get_all_games(&self) -> Result<Vec<Game>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, title, sort_title, description, release_date, developer, publisher,
-                    cover_image, background_image, total_playtime_seconds, last_played_at,
-                    times_launched, is_favorite, is_hidden, completion_status, user_rating,
-                    added_at, updated_at, external_link
-             FROM games WHERE is_hidden = 0 ORDER BY title COLLATE NOCASE"
+            "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
+                    g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,
+                    g.times_launched, g.is_favorite, g.is_hidden, g.completion_status, g.user_rating,
+                    g.added_at, g.updated_at, g.external_link,
+                    i.space_id, s.name as space_name, s.type as space_type,
+                    i.install_path, i.executable_path
+             FROM games g
+             LEFT JOIN installs i ON g.id = i.game_id
+             LEFT JOIN spaces s ON i.space_id = s.id
+             WHERE g.is_hidden = 0
+             ORDER BY g.title COLLATE NOCASE"
         )?;
         
         let games = stmt.query_map([], |row| {
@@ -367,6 +373,11 @@ impl Database {
                 added_at: row.get(16)?,
                 updated_at: row.get(17)?,
                 external_link: row.get(18).ok(),
+                space_id: row.get(19).ok(),
+                space_name: row.get(20).ok(),
+                space_type: row.get(21).ok(),
+                install_path: row.get(22).ok(),
+                executable_path: row.get(23).ok(),
             })
         })?.collect::<Result<Vec<_>>>()?;
         
@@ -378,9 +389,12 @@ impl Database {
             "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
                     g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,
                     g.times_launched, g.is_favorite, g.is_hidden, g.completion_status, g.user_rating,
-                    g.added_at, g.updated_at, g.external_link
+                    g.added_at, g.updated_at, g.external_link,
+                    i.space_id, s.name as space_name, s.type as space_type,
+                    i.install_path, i.executable_path
              FROM games g
              JOIN installs i ON g.id = i.game_id
+             LEFT JOIN spaces s ON i.space_id = s.id
              WHERE i.space_id = ? AND g.is_hidden = 0
              ORDER BY g.title COLLATE NOCASE"
         )?;
@@ -406,6 +420,11 @@ impl Database {
                 added_at: row.get(16)?,
                 updated_at: row.get(17)?,
                 external_link: row.get(18).ok(),
+                space_id: row.get(19).ok(),
+                space_name: row.get(20).ok(),
+                space_type: row.get(21).ok(),
+                install_path: row.get(22).ok(),
+                executable_path: row.get(23).ok(),
             })
         })?.collect::<Result<Vec<_>>>()?;
         
@@ -425,11 +444,16 @@ impl Database {
     
     pub fn get_game_by_id(&self, id: &str) -> Result<Game> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, title, sort_title, description, release_date, developer, publisher,
-                    cover_image, background_image, total_playtime_seconds, last_played_at,
-                    times_launched, is_favorite, is_hidden, completion_status, user_rating,
-                    added_at, updated_at, external_link
-             FROM games WHERE id = ?"
+            "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
+                    g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,
+                    g.times_launched, g.is_favorite, g.is_hidden, g.completion_status, g.user_rating,
+                    g.added_at, g.updated_at, g.external_link,
+                    i.space_id, s.name as space_name, s.type as space_type,
+                    i.install_path, i.executable_path
+             FROM games g
+             LEFT JOIN installs i ON g.id = i.game_id
+             LEFT JOIN spaces s ON i.space_id = s.id
+             WHERE g.id = ?"
         )?;
         
         stmt.query_row([id], |row| {
@@ -453,6 +477,11 @@ impl Database {
                 added_at: row.get(16)?,
                 updated_at: row.get(17)?,
                 external_link: row.get(18).ok(),
+                space_id: row.get(19).ok(),
+                space_name: row.get(20).ok(),
+                space_type: row.get(21).ok(),
+                install_path: row.get(22).ok(),
+                executable_path: row.get(23).ok(),
             })
         })
     }

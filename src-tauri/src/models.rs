@@ -46,6 +46,17 @@ pub struct Game {
     pub added_at: String,
     pub updated_at: String,
     pub external_link: Option<String>,
+    // Optional fields for UI display (populated when joining with installs/spaces)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub space_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub space_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub space_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub executable_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

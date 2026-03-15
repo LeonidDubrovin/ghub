@@ -146,6 +146,40 @@ export default function GameDetailsView({ games, selectedGame, selectedGames = [
                 <div className="bg-black/30 rounded-lg px-4 py-3"><div className="text-gray-500 text-xs mb-1">{t('details.launches')}</div><div className="font-semibold text-lg text-white">{selectedGame.times_launched}</div></div>
                 <div className="bg-black/30 rounded-lg px-4 py-3"><div className="text-gray-500 text-xs mb-1">{t('details.lastPlayed')}</div><div className="font-semibold text-lg text-white">{fmtDate(selectedGame.last_played_at)}</div></div>
               </div>
+              
+              {/* Install location and source links */}
+              <div className="bg-black/30 rounded-xl p-5 mb-8">
+                <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">{t('details.location')}</h2>
+                {selectedGame.install_path ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 text-sm">{t('details.installPath')}:</span>
+                      <span className="text-white text-sm font-mono">{selectedGame.install_path}</span>
+                    </div>
+                    {selectedGame.space_name && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400 text-sm">{t('details.space')}:</span>
+                        <span className="text-white text-sm">{selectedGame.space_name}</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">{t('details.noInstallPath')}</p>
+                )}
+                
+                {selectedGame.external_link && (
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2">{t('details.sourceLinks')}</h3>
+                    <button 
+                      onClick={() => openExternalLink(selectedGame.external_link!)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm transition-colors"
+                    >
+                      <span>🔗</span>
+                      <span>{selectedGame.external_link}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
               {selectedGame.description && <div className="bg-black/30 rounded-xl p-5"><h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">{t('details.description')}</h2><p className="text-gray-300">{selectedGame.description}</p></div>}
             </div>
           ) : <div className="h-full flex items-center justify-center text-gray-500"><div className="text-center"><p>{t('details.selectGame')}</p><p className="text-sm mt-2">{t('details.useArrows')}</p></div></div>}

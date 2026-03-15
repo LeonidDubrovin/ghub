@@ -41,6 +41,12 @@ export interface Game {
   added_at: string;
   updated_at: string;
   external_link?: string;
+  // Optional fields for UI display (populated when joining with installs/spaces)
+  space_id?: string;
+  space_name?: string;
+  space_type?: string;
+  install_path?: string;
+  executable_path?: string;
 }
 
 export interface Install {

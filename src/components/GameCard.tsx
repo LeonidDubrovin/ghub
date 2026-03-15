@@ -113,6 +113,13 @@ export default function GameCard({
       <div className="p-3">
         <h3 className="font-medium text-sm truncate" title={game.title}>{game.title}</h3>
         {game.developer && <p className="text-xs text-gray-500 truncate">{game.developer}</p>}
+        {game.space_name && (
+          <div className="mt-1">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-300 text-gray-300">
+              {game.space_name}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

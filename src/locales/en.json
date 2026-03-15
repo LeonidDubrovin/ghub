@@ -177,6 +177,11 @@
     "favorite": "Favorite",
     "running": "Running",
     "play": "Play",
-    "edit": "Edit"
+    "edit": "Edit",
+    "location": "Location",
+    "installPath": "Install path",
+    "space": "Space",
+    "noInstallPath": "No install path",
+    "sourceLinks": "Source links"
   }
 }
