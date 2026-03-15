@@ -1113,11 +1113,35 @@ pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Resul
 pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id: String) -> Result<Game, String> {
     println!("🔍 fetch_and_update_game_metadata called for game_id: {}", game_id);
     
-    // Get game title first (need to drop lock before await)
-    let query = {
+    // Get game info first (need to drop lock before await)
+    let (original_title, install_path) = {
         let db = state.db.lock().map_err(|e| e.to_string())?;
         let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
-        game.title.clone()
+        let installs = db.get_installs_for_game(&game_id).map_err(|e| e.to_string())?;
+        let install_path = installs.first().map(|i| i.install_path.clone());
+        (game.title.clone(), install_path)
+    };
+    
+    // Use install path directory name as search query if available, otherwise use title
+    let query = if let Some(path) = &install_path {
+        let path = Path::new(path);
+        if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {
+            // Clean the directory name for better search results
+            let cleaned = clean_game_title(dir_name);
+            if !cleaned.is_empty() {
+                println!("   Using directory name for search: {}", cleaned);
+                cleaned
+            } else {
+                println!("   Using original title for search: {}", original_title);
+                original_title.clone()
+            }
+        } else {
+            println!("   Using original title for search: {}", original_title);
+            original_title.clone()
+        }
+    } else {
+        println!("   Using original title for search: {}", original_title);
+        original_title.clone()
     };
     
     println!("   Searching for: {}", query);
