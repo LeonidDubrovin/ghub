@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-surface-100;
+  }
+  
+  body {
+    @apply bg-surface-300 text-gray-100;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-surface-400;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-100 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+  }
+  
+  .btn-primary {
+    @apply bg-accent text-white hover:bg-accent-hover;
+  }
+  
+  .btn-secondary {
+    @apply bg-surface-100 text-gray-200 hover:bg-surface-50/10;
+  }
+  
+  .card {
+    @apply bg-surface-200 rounded-lg overflow-hidden;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors;
+    @apply hover:bg-surface-100 text-gray-300 hover:text-white;
+  }
+  
+  .sidebar-item.active {
+    @apply bg-accent/20 text-accent;
+  }
+}

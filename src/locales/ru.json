@@ -1,0 +1,170 @@
+{
+  "common": {
+    "loading": "Загрузка...",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "add": "Добавить",
+    "close": "Закрыть",
+    "search": "Поиск...",
+    "all": "Все игры",
+    "favorites": "Избранное",
+    "optional": "необязательно"
+  },
+  "sidebar": {
+    "spaces": "Пространства",
+    "addSpace": "Добавить пространство",
+    "allGames": "Все игры",
+    "favorites": "Избранное",
+    "recentlyPlayed": "Недавние",
+    "noSpaces": "Нет пространств",
+    "addLink": "Добавить ссылку",
+    "settings": "Настройки"
+  },
+  "games": {
+    "noGames": "Игр пока нет",
+    "noGamesHint": "Отсканируйте папку с играми",
+    "playtime": "Время в игре",
+    "hours": "ч",
+    "minutes": "м",
+    "lastPlayed": "Последний запуск",
+    "timesLaunched": "Запусков",
+    "running": "Запущена",
+    "count": "игр"
+  },
+  "errors": {
+    "gameAlreadyRunning": "{{title}} уже запущена"
+  },
+  "actions": {
+    "play": "Играть",
+    "scanFolder": "Сканировать",
+    "addGame": "Добавить игру",
+    "openFolder": "Открыть папку",
+    "editGame": "Редактировать",
+    "delete": "Удалить",
+    "addToFavorites": "В избранное",
+    "removeFromFavorites": "Убрать из избранного",
+    "fetchMetadata": "Получить метаданные",
+    "updateMetadata": "Обновить метаданные"
+  },
+  "space": {
+    "addTitle": "Добавить пространство",
+    "name": "Название",
+    "namePlaceholder": "Например: Инди-игры",
+    "description": "Группировка игр по категориям",
+    "icon": "Иконка",
+    "color": "Цвет",
+    "sourceDirectories": "Каталоги-источники",
+    "sourceDirectoriesDescription": "Укажите папки, где хранятся игры. При сканировании будут проверяться все эти каталоги.",
+    "addFolders": "Добавить папки",
+    "preview": "Предпросмотр",
+    "sourceCount": "{{count}} каталогов",
+    "noSources": "Нет каталогов-источников",
+    "noSourcesDescription": "Добавьте каталоги для автоматического поиска игр",
+    "lastScanned": "Последнее сканирование",
+    "recursive": "Рекурсивно: {{enabled}}",
+    "removeSource": "Удалить источник",
+    "confirmRemoveSource": "Удалить этот каталог-источник?",
+    "scanningSources": "Сканируемые каталоги:",
+    "selectFolder": "Выберите каталог",
+    "selectFolderHint": "Выберите папку с играми для добавления",
+    "browse": "Обзор",
+    "settingsTitle": "Настройки пространства",
+    "scanAll": "Сканировать все",
+    "folderAlreadyAdded": "Эта папка уже добавлена",
+    "activeSources": "активных источников"
+  },
+  "spaces": {
+    "confirmDeleteTitle": "Удалить пространство?",
+    "confirmDeleteMessage": "Пространство {{name}} будет удалено."
+  },
+  "scan": {
+    "title": "Сканирование папки",
+    "selectFolder": "Выберите папку",
+    "scanning": "Сканирование...",
+    "foundGames": "Найдено: {{count}}",
+    "noGamesFound": "Игры не найдены",
+    "targetSpace": "Пространство",
+    "fetchMetadata": "Автоматически искать метаданные",
+    "addSelected": "Добавить выбранные",
+    "customScan": "Ручное сканирование",
+    "spaceSourcesScan": "Каталоги: {{space}}",
+    "showDetails": "Показать детали",
+    "selectExecutable": "Исполняемый файл",
+    "selectCover": "Обложка",
+    "noCover": "Нет обложки",
+    "exeMetadata": "Метаданные exe-файла",
+    "productName": "Продукт",
+    "companyName": "Компания",
+    "fileDescription": "Описание",
+    "fileVersion": "Версия",
+    "editTitle": "Редактировать название",
+    "noSpacesWarning": "Сначала создайте пространство для добавления игр"
+  },
+  "edit": {
+    "title": "Редактирование",
+    "gameTitle": "Название",
+    "developer": "Разработчик",
+    "publisher": "Издатель",
+    "description": "Описание",
+    "searchMetadata": "Поиск метаданных",
+    "searchPlaceholder": "Введите название игры...",
+    "search": "Поиск",
+    "searchHint": "Поиск по Steam и itch.io",
+    "searching": "Поиск...",
+    "noResults": "Ничего не найдено",
+    "cover": "Обложка",
+    "coverUrl": "URL обложки",
+    "status": "Статус",
+    "rating": "Рейтинг",
+    "favorite": "Избранное",
+    "favoriteOn": "В избранном",
+    "favoriteOff": "Добавить",
+    "confirmDelete": "Удалить эту игру?",
+    "noDescription": "Нет описания"
+  },
+  "links": {
+    "title": "Загрузки / Ссылки",
+    "noLinks": "Нет сохраненных ссылок",
+    "confirmDelete": "Удалить эту ссылку?",
+    "noDescription": "Нет описания"
+  },
+  "dialog": {
+    "addLink": {
+      "title": "Добавить ссылку",
+      "url": "Ссылка на игру (Steam/Itch.io)",
+      "autoMetadataHint": "Метаданные будут загружены автоматически"
+    }
+  },
+  "batch": {
+    "title": "Массовое обновление метаданных",
+    "progress": "Игра {{current}} из {{total}}",
+    "source": "Источник",
+    "manual": "Вручную",
+    "searchGame": "Поиск игры",
+    "searchPlaceholder": "Введите название...",
+    "noResults": "Ничего не найдено",
+    "originalTitle": "Оригинальное название",
+    "saved": "Сохранено",
+    "saveAll": "Сохранить все"
+  },
+  "status": {
+    "notPlayed": "Не играл",
+    "playing": "Играю",
+    "completed": "Пройдено",
+    "abandoned": "Брошено",
+    "onHold": "Отложено"
+  },
+  "details": {
+    "playtime": "Время в игре",
+    "launches": "Запусков",
+    "lastPlayed": "Последний запуск",
+    "favorite": "Избранное",
+    "running": "Запущена",
+    "play": "Играть",
+    "edit": "Редактировать",
+    "description": "Описание",
+    "selectGame": "Выберите игру",
+    "useArrows": "Стрелки вверх/вниз"
+  }
+}
