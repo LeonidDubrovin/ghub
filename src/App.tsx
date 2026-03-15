@@ -75,6 +75,16 @@ function App() {
     return () => document.removeEventListener('contextmenu', handleContextMenu);
   }, []);
 
+  // Update selectedGameForDetails when games data changes (e.g., after metadata update)
+  useEffect(() => {
+    if (selectedGameForDetails) {
+      const updatedGame = games.find(g => g.id === selectedGameForDetails.id);
+      if (updatedGame && updatedGame !== selectedGameForDetails) {
+        setSelectedGameForDetails(updatedGame);
+      }
+    }
+  }, [games, selectedGameForDetails]);
+
   useEffect(() => {
     const checkActiveSessions = async () => {
       try {
