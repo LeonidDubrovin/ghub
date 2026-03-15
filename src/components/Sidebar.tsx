@@ -75,11 +75,6 @@ export default function Sidebar({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; space: Space } | null>(null);
   const [settingsSpace, setSettingsSpace] = useState<Space | null>(null);
 
-  const handleSpaceContextMenu = (e: React.MouseEvent, space: Space) => {
-    e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, space });
-  };
-
   const handleFilterClick = (filter: FilterType) => {
     onSelectFilter(filter);
     onSelectSpace(null);

@@ -570,6 +570,40 @@ impl Database {
         }
     }
     
+    pub fn get_installs_for_game(&self, game_id: &str) -> Result<Vec<Install>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments, 
+                    working_directory, status, version, install_size_bytes, installed_at
+             FROM installs WHERE game_id = ?"
+        )?;
+        
+        let installs = stmt.query_map([game_id], |row| {
+            Ok(Install {
+                id: row.get(0)?,
+                game_id: row.get(1)?,
+                space_id: row.get(2)?,
+                install_path: row.get(3)?,
+                executable_path: row.get(4)?,
+                launch_arguments: row.get(5)?,
+                working_directory: row.get(6)?,
+                status: row.get(7)?,
+                version: row.get(8)?,
+                install_size_bytes: row.get(9)?,
+                installed_at: row.get(10)?,
+            })
+        })?.collect::<Result<Vec<_>>>()?;
+        
+        Ok(installs)
+    }
+    
+    pub fn update_install_executable(&self, install_id: &str, executable_path: &str) -> Result<()> {
+        self.conn.execute(
+            "UPDATE installs SET executable_path = ? WHERE id = ?",
+            params![executable_path, install_id]
+        )?;
+        Ok(())
+    }
+    
     // ============ SETTINGS ============
     
     pub fn get_settings(&self) -> Result<Vec<Setting>> {

@@ -39,6 +39,7 @@ interface GameCardProps {
   onPlay?: (game: Game) => void;
   onContextMenu?: (e: React.MouseEvent, game: Game) => void;
   isRunning?: boolean;
+  updating?: boolean;
   // Make card pass clicks up if needed
   onClick?: (e: React.MouseEvent) => void;
 }
@@ -49,6 +50,7 @@ export default function GameCard({
   onPlay,
   onContextMenu,
   isRunning = false,
+  updating = false,
   onClick,
 }: GameCardProps) {
   const { t } = useTranslation();
@@ -57,7 +59,7 @@ export default function GameCard({
 
   return (
     <div
-      className={`card group cursor-pointer relative ${isRunning ? 'ring-2 ring-green-500/50' : ''}`}
+      className={`card group cursor-pointer relative ${isRunning ? 'ring-2 ring-green-500/50' : ''} ${updating ? 'ring-2 ring-yellow-500/50' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu?.(e, game); }}
@@ -85,7 +87,15 @@ export default function GameCard({
           </div>
         )}
 
-        <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent transition-opacity duration-200 ${isHovered && !isRunning ? 'opacity-100' : 'opacity-0'}`}>
+        {updating && (
+          <div className="absolute inset-0 bg-yellow-500/10 flex items-center justify-center">
+            <div className="bg-yellow-500/90 px-3 py-1 rounded-full text-white text-sm font-medium animate-pulse flex items-center gap-1">
+              ⏳ {t('details.updating')}
+            </div>
+          </div>
+        )}
+
+        <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent transition-opacity duration-200 ${isHovered && !isRunning && !updating ? 'opacity-100' : 'opacity-0'}`}>
           <div className="absolute bottom-0 left-0 right-0 p-3 space-y-2">
             <button
               onClick={(e) => { e.stopPropagation(); if (!isRunning) onPlay?.(game); }}
@@ -96,9 +106,10 @@ export default function GameCard({
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(game); }}
-              className="w-full btn btn-secondary text-sm flex items-center justify-center gap-1"
+              disabled={updating}
+              className={`w-full btn flex items-center justify-center gap-1 ${updating ? 'btn-secondary opacity-50 cursor-not-allowed' : 'btn-secondary'}`}
             >
-              <EditIcon /> {t('actions.editGame')}
+              <EditIcon /> {updating ? t('details.updating') : t('actions.editGame')}
             </button>
           </div>
         </div>

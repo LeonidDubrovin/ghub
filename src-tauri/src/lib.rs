@@ -72,6 +72,8 @@ pub fn run() {
             commands::get_settings,
             commands::update_setting,
             commands::search_game_metadata,
+            commands::refresh_game_from_local,
+            commands::fetch_and_update_game_metadata,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

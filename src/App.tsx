@@ -19,7 +19,7 @@ import DownloadLinksView from './components/DownloadLinksView';
 import BatchMetadataDialog from './components/BatchMetadataDialog';
 
 type ViewMode = 'grid' | 'list' | 'details' | 'links';
-type FilterType = 'all' | 'favorites' | 'recent' | 'links'; // Added links
+type FilterType = 'all' | 'favorites' | 'recent' | 'links';
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 400;
@@ -41,13 +41,12 @@ function App() {
   const [spaceToDelete, setSpaceToDelete] = useState<Space | null>(null);
   const [runningGames, setRunningGames] = useState<Set<string>>(new Set());
   const [launchError, setLaunchError] = useState<string | null>(null);
+  const [updatingGameIds, setUpdatingGameIds] = useState<Set<string>>(new Set());
   
-  // Batch selection
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedGameIds, setSelectedGameIds] = useState<Set<string>>(new Set());
   const [showBatchMetadata, setShowBatchMetadata] = useState(false);
 
-  // Resizable sidebar widths
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [gameListWidth, setGameListWidth] = useState(280);
 
@@ -75,7 +74,6 @@ function App() {
     return () => document.removeEventListener('contextmenu', handleContextMenu);
   }, []);
 
-  // Update selectedGameForDetails when games data changes (e.g., after metadata update)
   useEffect(() => {
     if (selectedGameForDetails) {
       const updatedGame = games.find(g => g.id === selectedGameForDetails.id);
@@ -158,13 +156,12 @@ function App() {
     setGameListWidth(w => Math.min(GAME_LIST_MAX, Math.max(GAME_LIST_MIN, w + delta)));
   }, []);
 
-  // Handle sidebar navigation
   const handleSelectFilter = (filter: FilterType) => {
     setSelectedFilter(filter);
     if (filter === 'links') {
       setViewMode('links');
     } else if (viewMode === 'links') {
-      setViewMode('details'); // Revert to details or grid
+      setViewMode('details');
     }
   };
 
@@ -230,34 +227,44 @@ function App() {
   const handleGameSaved = () => refetchGames();
   const isGameRunning = (gameId: string) => runningGames.has(gameId);
 
+  const handleRefreshMetadata = async (game: Game) => {
+    if (updatingGameIds.has(game.id)) return;
+    
+    setUpdatingGameIds(prev => new Set([...prev, game.id]));
+    try {
+      await invoke('fetch_and_update_game_metadata', { gameId: game.id });
+      refetchGames();
+    } catch (err) {
+      console.error('Failed to refresh metadata:', err);
+    } finally {
+      setUpdatingGameIds(prev => {
+        const next = new Set(prev);
+        next.delete(game.id);
+        return next;
+      });
+    }
+  };
+
   const handleGameContextMenu = (e: React.MouseEvent, game: Game) => {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, game });
   };
 
   const getGameContextMenuItems = (game: Game): ContextMenuItem[] => [
-    // Launch actions
     { label: t('actions.play'), icon: '▶', onClick: () => handlePlayGame(game), disabled: isGameRunning(game.id) },
     { separator: true, label: '', onClick: () => {} },
-    
-    // Edit actions
     { label: t('actions.editGame'), icon: '✏️', onClick: () => handleEditGame(game) },
     { label: t('actions.fetchMetadata'), icon: '🔍', onClick: () => handleFetchMetadata(game) },
+    { label: t('actions.refreshFromLocal'), icon: '🔄', onClick: () => handleRefreshMetadata(game) },
     { separator: true, label: '', onClick: () => {} },
-    
-    // Selection mode
     { label: isSelectionMode ? 'Exit Selection' : 'Select Games', icon: '☑️', onClick: () => setIsSelectionMode(!isSelectionMode) },
     { separator: true, label: '', onClick: () => {} },
-    
-    // Favorites
     {
       label: game.is_favorite ? t('actions.removeFromFavorites') : t('actions.addToFavorites'),
       icon: game.is_favorite ? '⭐' : '☆',
       onClick: () => handleToggleFavorite(game),
     },
     { separator: true, label: '', onClick: () => {} },
-    
-    // Danger zone
     { label: t('actions.delete'), icon: '🗑️', onClick: () => handleDeleteGame(game), danger: true },
   ];
 
@@ -296,7 +303,6 @@ function App() {
           onToggleSelectionMode={() => setIsSelectionMode(!isSelectionMode)}
         />
 
-        {/* Batch Selection Toolbar */}
         {isSelectionMode && (
           <div className="bg-surface-300 p-2 flex items-center justify-between border-b border-surface-100 px-6">
             <div className="flex items-center gap-4">
@@ -361,6 +367,8 @@ function App() {
               gameListWidth={gameListWidth}
               onGameListResize={handleGameListResize}
               isSelectionMode={isSelectionMode}
+              onRefreshFromLocal={handleRefreshMetadata}
+              updatingGameIds={updatingGameIds}
             />
           ) : (
             <div className="h-full overflow-auto p-6">
@@ -374,6 +382,7 @@ function App() {
                 isSelectionMode={isSelectionMode}
                 selectedGameIds={selectedGameIds}
                 onToggleSelection={handleToggleSelection}
+                updatingGameIds={updatingGameIds}
               />
             </div>
           )}

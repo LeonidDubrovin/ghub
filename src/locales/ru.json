@@ -45,7 +45,8 @@
     "addToFavorites": "В избранное",
     "removeFromFavorites": "Убрать из избранного",
     "fetchMetadata": "Получить метаданные",
-    "updateMetadata": "Обновить метаданные"
+    "updateMetadata": "Обновить метаданные",
+    "refreshFromLocal": "Обновить из локальной папки"
   },
   "space": {
     "addTitle": "Добавить пространство",
@@ -171,6 +172,7 @@
     "space": "Пространство",
     "noInstallPath": "Путь установки не указан",
     "sourceLinks": "Ссылки на источники",
-    "refreshMetadata": "Обновить метаданные"
+    "refreshMetadata": "Обновить метаданные",
+    "refreshFromLocal": "Обновить из локальной папки"
   }
 }

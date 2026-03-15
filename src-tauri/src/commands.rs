@@ -149,7 +149,7 @@ fn scan_directory_internal(base_path: &Path) -> Result<Vec<ScannedGame>, String>
     let entries = std::fs::read_dir(base_path).map_err(|e| format!("Failed to read dir: {}", e))?;
     let dirs: Vec<_> = entries
         .filter_map(|entry| {
-            let e = entry.ok()?;  // Fixed: was map_err(...)? - now using ok()?
+            let e = entry.ok()?;
             let path = e.path();
             if path.is_dir() {
                 Some(path)
@@ -218,10 +218,46 @@ fn scan_directory_internal(base_path: &Path) -> Result<Vec<ScannedGame>, String>
                 meta.company_name.as_deref().unwrap_or("n/a"));
         }
 
-        // Use metadata for title if available
-        let title = exe_metadata.as_ref()
-            .and_then(|m| m.product_name.clone())
-            .unwrap_or_else(|| clean_game_title(&dir_name));
+        // Enhanced title extraction with multi-level fallback
+        let title = {
+            // Level 1: Try metadata product name (if not generic)
+            if let Some(meta_name) = exe_metadata.as_ref()
+                .and_then(|m| m.product_name.clone())
+                .filter(|name| !is_generic_exe_name(name))
+            {
+                println!("      [title] Using metadata product name: '{}'", meta_name);
+                meta_name
+            } 
+            // Level 2: Try cleaned directory name
+            else if let Some(cleaned) = get_non_empty_title(clean_game_title(&dir_name)) {
+                println!("      [title] Using cleaned dir name: '{}'", cleaned);
+                cleaned
+            }
+            // Level 3: Try parent directory (up to 3 levels up)
+            else if let Some(parent_title) = find_title_in_parents(&game_path, 3) {
+                println!("      [title] Using parent dir: '{}'", parent_title);
+                parent_title
+            }
+            // Level 4: Try to extract from best executable name
+            else if let Some(exe_name) = extract_title_from_executable(&executable) {
+                println!("      [title] Using executable name: '{}'", exe_name);
+                exe_name
+            }
+            // Level 5: Try metadata company name as last resort
+            else if let Some(company) = exe_metadata.as_ref()
+                .and_then(|m| m.company_name.clone())
+                .filter(|name| !is_generic_exe_name(name))
+            {
+                println!("      [title] Using company name: '{}'", company);
+                company
+            }
+            // Final fallback: use original dir name or "Unknown Game"
+            else {
+                let fallback = if dir_name != "Unknown" { dir_name.clone() } else { "Unknown Game".to_string() };
+                println!("      [title] Using fallback: '{}'", fallback);
+                fallback
+            }
+        };
         println!("      [scan] Final title: '{}'", title);
 
         games.push(ScannedGame {
@@ -776,22 +812,111 @@ fn calculate_dir_size(dir: &Path) -> u64 {
         .sum()
 }
 
+/// Check if an exe product name is generic and shouldn't be used as game title
+fn is_generic_exe_name(name: &str) -> bool {
+    let generic_names = [
+        "Godot Engine", "BootstrapPackagedGame", "Unity", "Unreal Engine",
+        "Game", "Windows", "Launcher", "Setup", "Installer", "Updater",
+        "CrashReport", "Crash Handler", "Unity Player", "UE4 Game",
+        "Game Launcher", "Application", "App"
+    ];
+    
+    let name_lower = name.to_lowercase();
+    for generic in &generic_names {
+        if name_lower == generic.to_lowercase() {
+            return true;
+        }
+    }
+    
+    // Check if name is too short or just version numbers
+    if name.len() < 3 || name.chars().all(|c| c.is_numeric() || c == '.' || c == '_') {
+        return true;
+    }
+    
+    false
+}
+
 fn clean_game_title(name: &str) -> String {
     // Remove common suffixes/prefixes
     let mut title = name.to_string();
 
-    // Remove version numbers like v1.0, 1.0.0, etc.
-    let re_version = regex_lite::Regex::new(r"\s*[vV]?\d+\.\d+(\.\d+)?.*$").ok();
+    // Remove version numbers like v1.0, 1.0.0, V1.1_NEW, v012, etc.
+    let re_version = regex_lite::Regex::new(r"[\s_]*(?:[vV]\d+(?:[\._]\d+)*|\d+(?:[\._]\d+)+).*$").ok();
     if let Some(re) = re_version {
         title = re.replace(&title, "").to_string();
     }
 
     // Remove platform tags
-    for tag in &["(Windows)", "(PC)", "(GOG)", "(Steam)", "[GOG]", "[Steam]"] {
+    for tag in &["(Windows)", "(PC)", "(GOG)", "(Steam)", "[GOG]", "[Steam]", "(Mac)", "(Linux)"] {
         title = title.replace(tag, "");
     }
 
+    // Remove common generic folder names that shouldn't be game titles
+    let generic_names = [
+        "Windows", "BootstrapPackagedGame", "Godot Engine", "Unity", "Unreal",
+        "Game", "Build", "Release", "Bin", "Binary", "Executable", "App",
+        "win64", "win32", "linux", "macos", "x64", "x86"
+    ];
+    
+    let trimmed = title.trim();
+    for generic in &generic_names {
+        if trimmed.eq_ignore_ascii_case(generic) {
+            return String::new(); // Return empty to signal we should use parent dir
+        }
+    }
+
+    // Clean up trailing/leading underscores and dashes
+    title = title.trim_matches(|c: char| c == '_' || c == '-' || c == ' ').to_string();
+    
+    // Replace underscores with spaces for better readability
+    title = title.replace('_', " ");
+    
+    // Remove multiple spaces
+    let re_spaces = regex_lite::Regex::new(r"\s+").ok();
+    if let Some(re) = re_spaces {
+        title = re.replace_all(&title, " ").to_string();
+    }
+
     title.trim().to_string()
+}
+
+/// Helper: Check if title is non-empty after trimming
+fn get_non_empty_title(title: String) -> Option<String> {
+    let trimmed = title.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+/// Helper: Search for a valid title in parent directories up to max_levels up
+fn find_title_in_parents(path: &Path, max_levels: u32) -> Option<String> {
+    let mut current = path;
+    for _ in 0..max_levels {
+        if let Some(parent) = current.parent() {
+            if let Some(dir_name) = parent.file_name().and_then(|n| n.to_str()) {
+                let cleaned = clean_game_title(dir_name);
+                if let Some(title) = get_non_empty_title(cleaned) {
+                    return Some(title);
+                }
+            }
+            current = parent;
+        } else {
+            break;
+        }
+    }
+    None
+}
+
+/// Helper: Extract a title from an executable filename
+fn extract_title_from_executable(executable: &Option<String>) -> Option<String> {
+    executable.as_ref().and_then(|exe| {
+        let stem = Path::new(exe).file_stem()?.to_str()?;
+        // Remove .exe extension if present and clean it
+        let cleaned = clean_game_title(stem);
+        get_non_empty_title(cleaned)
+    })
 }
 
 #[tauri::command]
@@ -905,4 +1030,143 @@ pub async fn search_game_metadata(state: State<'_, AppState>, query: String, sou
     }
 
     Ok(results)
+}
+
+/// Refresh game data from local directory
+#[tauri::command]
+pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Result<Game, String> {
+    println!("🔄 refresh_game_from_local called for game_id: {}", game_id);
+    
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    
+    // Get the game and its install info
+    let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
+    
+    // Get the install path for this game
+    let installs = db.get_installs_for_game(&game_id).map_err(|e| e.to_string())?;
+    
+    if installs.is_empty() {
+        return Err("No install found for this game".to_string());
+    }
+    
+    // Use the first install path
+    let install = &installs[0];
+    let game_path = Path::new(&install.install_path);
+    
+    if !game_path.exists() {
+        return Err(format!("Game directory does not exist: {}", install.install_path));
+    }
+    
+    println!("   Scanning directory: {}", game_path.display());
+    
+    // Scan the directory to get fresh data
+    let scanned_games = scan_directory_internal(game_path).map_err(|e| e.to_string())?;
+    
+    if scanned_games.is_empty() {
+        return Err("No game found in directory".to_string());
+    }
+    
+    let scanned = &scanned_games[0];
+    
+    // Update the game with fresh data from local directory
+    let title = if !scanned.title.is_empty() {
+        Some(scanned.title.as_str())
+    } else {
+        None
+    };
+    
+    let developer = scanned.exe_metadata.as_ref()
+        .and_then(|m| m.company_name.as_deref());
+    
+    let description = scanned.exe_metadata.as_ref()
+        .and_then(|m| m.file_description.as_deref());
+    
+    // Update executable path if found
+    let executable_path = scanned.executable.as_deref();
+    
+    // Update the game in database
+    db.update_game(
+        &game_id,
+        title,
+        description,
+        developer,
+        None, // publisher
+        None, // cover_image - keep existing
+        None, // is_favorite - keep existing
+        None, // completion_status - keep existing
+        None, // user_rating - keep existing
+    ).map_err(|e| e.to_string())?;
+    
+    // Update install with new executable path if found
+    if let Some(exe_path) = executable_path {
+        db.update_install_executable(&install.id, exe_path).map_err(|e| e.to_string())?;
+    }
+    
+    println!("   ✅ Game refreshed successfully");
+    
+    // Return updated game
+    db.get_game_by_id(&game_id).map_err(|e| e.to_string())
+}
+
+/// Fetch and update game metadata from external sources (Steam, itch.io)
+#[tauri::command]
+pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id: String) -> Result<Game, String> {
+    println!("🔍 fetch_and_update_game_metadata called for game_id: {}", game_id);
+    
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
+    
+    let query = game.title.clone();
+    println!("   Searching for: {}", query);
+    
+    // Search for metadata from external sources
+    let client = &state.http_client;
+    let mut best_match: Option<MetadataSearchResult> = None;
+    
+    // Try Steam first
+    if let Ok(results) = meta_service::search_steam(client, &query).await {
+        if let Some(first) = results.into_iter().next() {
+            println!("   Found Steam result: {}", first.name);
+            best_match = Some(first);
+        }
+    }
+    
+    // If no steam result, try Itch
+    if best_match.is_none() {
+        if let Ok(results) = meta_service::search_itch(client, &query).await {
+            if let Some(first) = results.into_iter().next() {
+                println!("   Found Itch result: {}", first.name);
+                best_match = Some(first);
+            }
+        }
+    }
+    
+    // Apply metadata if found
+    if let Some(meta) = best_match {
+        println!("   Applying metadata: {}", meta.name);
+        
+        let new_desc = if game.description.is_none() { meta.description.as_deref() } else { None };
+        let new_dev = if game.developer.is_none() { meta.developer.as_deref() } else { None };
+        let new_pub = if game.publisher.is_none() { meta.publisher.as_deref() } else { None };
+        let new_cover = if game.cover_image.is_none() { meta.cover_url.as_deref() } else { None };
+        
+        db.update_game(
+            &game_id,
+            Some(&meta.name),
+            new_desc,
+            new_dev,
+            new_pub,
+            new_cover,
+            None, // is_favorite - keep existing
+            None, // completion_status - keep existing
+            None, // user_rating - keep existing
+        ).map_err(|e| e.to_string())?;
+        
+        println!("   ✅ Metadata updated successfully");
+    } else {
+        println!("   ⚠️ No metadata found");
+    }
+    
+    // Return updated game
+    db.get_game_by_id(&game_id).map_err(|e| e.to_string())
 }

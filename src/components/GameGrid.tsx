@@ -43,6 +43,7 @@ interface GameGridProps {
   isSelectionMode?: boolean;
   selectedGameIds?: Set<string>;
   onToggleSelection?: (gameId: string) => void;
+  updatingGameIds?: Set<string>;
 }
 
 export default function GameGrid({
@@ -55,16 +56,9 @@ export default function GameGrid({
   isSelectionMode,
   selectedGameIds,
   onToggleSelection,
+  updatingGameIds,
 }: GameGridProps) {
   const { t } = useTranslation();
-
-  // const handleInteraction = (game: Game, e: React.MouseEvent) => {
-  //   if (isSelectionMode && onToggleSelection) {
-  //     e.preventDefault();
-  //     e.stopPropagation();
-  //     onToggleSelection(game.id);
-  //   }
-  // };
 
   if (viewMode === 'list') {
     return (
@@ -72,6 +66,7 @@ export default function GameGrid({
         {games.map(game => {
           const running = isGameRunning?.(game.id) ?? false;
           const selected = selectedGameIds?.has(game.id) ?? false;
+          const updating = updatingGameIds?.has(game.id) ?? false;
           const coverUrl = getCoverUrl(game.cover_image);
           return (
             <div
@@ -82,6 +77,7 @@ export default function GameGrid({
               className={`flex items-center gap-4 p-3 bg-surface-200 rounded-lg hover:bg-surface-100 transition-colors cursor-pointer group 
                 ${running ? 'ring-2 ring-green-500/50' : ''}
                 ${selected ? 'ring-2 ring-accent bg-surface-100' : ''}
+                ${updating ? 'bg-yellow-500/20 animate-pulse' : ''}
               `}
             >
               {isSelectionMode && (
@@ -97,12 +93,20 @@ export default function GameGrid({
                     <GamepadIcon />
                   </div>
                 )}
+                {updating && (
+                  <div className="absolute inset-0 bg-yellow-500/40 flex items-center justify-center">
+                    <div className="bg-black/70 px-2 py-1 rounded text-yellow-300 text-xs font-medium animate-pulse">
+                      ⏳
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium truncate">{game.title}</h3>
                   {game.is_favorite && <span className="text-yellow-400"><StarIcon /></span>}
                   {running && <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded">{t('details.running')}</span>}
+                  {updating && <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded animate-pulse">{t('details.updating')}</span>}
                 </div>
                 <p className="text-sm text-gray-500 truncate">{game.developer || 'Unknown'}</p>
               </div>
@@ -127,29 +131,37 @@ export default function GameGrid({
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      {games.map(game => (
-        <div key={game.id} className="relative group" onClick={() => isSelectionMode && onToggleSelection?.(game.id)}>
-           {/* Selection Overlay for Grid */}
-           {isSelectionMode && (
-             <div className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer
-               ${selectedGameIds?.has(game.id) ? 'bg-accent border-accent' : 'bg-black/50 border-white/50 hover:border-white'}`}
-             >
-               {selectedGameIds?.has(game.id) && <span className="text-white text-xs font-bold">✓</span>}
-             </div>
-           )}
-           <GameCard
-             game={game}
-             onEdit={onEdit}
-             onPlay={onPlay}
-             onContextMenu={onContextMenu}
-             isRunning={isGameRunning?.(game.id) ?? false}
-             onClick={isSelectionMode ? () => {
-               // Click handled by overlay
-             } : undefined}
-           />
-           {isSelectionMode && <div className="absolute inset-0 z-30 cursor-pointer" />} 
-        </div>
-      ))}
+      {games.map(game => {
+        const updating = updatingGameIds?.has(game.id) ?? false;
+        return (
+          <div key={game.id} className="relative group" onClick={() => isSelectionMode && onToggleSelection?.(game.id)}>
+            {/* Selection Overlay for Grid */}
+            {isSelectionMode && (
+              <div className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer
+                ${selectedGameIds?.has(game.id) ? 'bg-accent border-accent' : 'bg-black/50 border-white/50 hover:border-white'}`}
+              >
+                {selectedGameIds?.has(game.id) && <span className="text-white text-xs font-bold">✓</span>}
+              </div>
+            )}
+            {updating && (
+              <div className="absolute top-2 left-2 z-20 bg-yellow-500/80 px-2 py-1 rounded text-white text-xs font-medium animate-pulse">
+                ⏳ {t('details.updating')}
+              </div>
+            )}
+            <GameCard
+              game={game}
+              onEdit={onEdit}
+              onPlay={onPlay}
+              onContextMenu={onContextMenu}
+              isRunning={isGameRunning?.(game.id) ?? false}
+              onClick={isSelectionMode ? () => {
+                // Click handled by overlay
+              } : undefined}
+            />
+            {isSelectionMode && <div className="absolute inset-0 z-30 cursor-pointer" />} 
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -30,6 +30,7 @@
     "lastPlayed": "Last played",
     "timesLaunched": "Times launched",
     "running": "Running",
+    "updating": "Updating...",
     "count_one": "game",
     "count_other": "games"
   },
@@ -46,7 +47,8 @@
     "addToFavorites": "Add to favorites",
     "removeFromFavorites": "Remove from favorites",
     "fetchMetadata": "Fetch metadata",
-    "updateMetadata": "Update metadata"
+    "updateMetadata": "Update metadata",
+    "refreshFromLocal": "Refresh from local"
   },
   "space": {
     "addTitle": "Add space",
@@ -176,6 +178,7 @@
     "useArrows": "Use arrow keys ↑↓ to navigate",
     "favorite": "Favorite",
     "running": "Running",
+    "updating": "Updating...",
     "play": "Play",
     "edit": "Edit",
     "location": "Location",
@@ -183,6 +186,7 @@
     "space": "Space",
     "noInstallPath": "No install path",
     "sourceLinks": "Source links",
-    "refreshMetadata": "Refresh metadata"
+    "refreshMetadata": "Refresh metadata",
+    "refreshFromLocal": "Refresh from local"
   }
 }
