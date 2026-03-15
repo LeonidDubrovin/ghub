@@ -1113,10 +1113,13 @@ pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Resul
 pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id: String) -> Result<Game, String> {
     println!("🔍 fetch_and_update_game_metadata called for game_id: {}", game_id);
     
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
+    // Get game title first (need to drop lock before await)
+    let query = {
+        let db = state.db.lock().map_err(|e| e.to_string())?;
+        let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
+        game.title.clone()
+    };
     
-    let query = game.title.clone();
     println!("   Searching for: {}", query);
     
     // Search for metadata from external sources
@@ -1145,6 +1148,9 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
     if let Some(meta) = best_match {
         println!("   Applying metadata: {}", meta.name);
         
+        let db = state.db.lock().map_err(|e| e.to_string())?;
+        let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
+        
         let new_desc = if game.description.is_none() { meta.description.as_deref() } else { None };
         let new_dev = if game.developer.is_none() { meta.developer.as_deref() } else { None };
         let new_pub = if game.publisher.is_none() { meta.publisher.as_deref() } else { None };
@@ -1168,5 +1174,6 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
     }
     
     // Return updated game
+    let db = state.db.lock().map_err(|e| e.to_string())?;
     db.get_game_by_id(&game_id).map_err(|e| e.to_string())
 }
