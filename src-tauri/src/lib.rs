@@ -3,17 +3,20 @@ mod commands;
 mod models;
 mod playtime;
 pub mod meta_service;
+pub mod metadata;
 
 use tauri::Manager;
 use std::sync::{Arc, Mutex};
 
 pub use database::Database;
 pub use playtime::PlaytimeTracker;
+pub use metadata::MetadataAggregator;
 
 pub struct AppState {
     pub db: Arc<Mutex<Database>>,
     pub playtime: Mutex<PlaytimeTracker>,
     pub http_client: reqwest::Client,
+    pub metadata_aggregator: MetadataAggregator,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -43,6 +46,7 @@ pub fn run() {
                 db,
                 playtime: Mutex::new(playtime),
                 http_client,
+                metadata_aggregator: MetadataAggregator::new(),
             });
             
             println!("✅ GHub initialized successfully");

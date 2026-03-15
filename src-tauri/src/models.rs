@@ -75,13 +75,6 @@ pub struct Install {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GameWithInstalls {
-    #[serde(flatten)]
-    pub game: Game,
-    pub installs: Vec<Install>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScannedGame {
     pub path: String,
     pub title: String,

@@ -46,7 +46,7 @@ pub async fn search_steam(client: &Client, query: &str) -> Result<Vec<MetadataSe
             // src="..." inside img
             let cover_url = row.select(&img_selector).next()
                 .and_then(|el| el.value().attr("src"))
-                .map(|s| {
+                .map(|_s| {
                     // Convert header.jpg to header_292x136.jpg or library_600x900.jpg if possible
                     // Default search is small. Let's assume standard steam logic:
                     // https://cdn.akamai.steamstatic.com/steam/apps/{id}/capsule_sm_120.jpg

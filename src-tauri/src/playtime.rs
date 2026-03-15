@@ -12,6 +12,7 @@ const CHECKPOINT_INTERVAL_SECS: u64 = 60;
 pub struct ActiveSession {
     pub session_id: String,
     pub game_id: String,
+    #[allow(dead_code)]
     pub install_id: Option<String>,
     pub process_pid: u32,
     pub accumulated_seconds: i64,

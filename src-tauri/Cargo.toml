@@ -29,6 +29,7 @@ regex-lite = "0.1"
 urlencoding = "2"
 reqwest = { version = "0.12", features = ["json"] }
 scraper = "0.22"
+async-trait = "0.1"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [
