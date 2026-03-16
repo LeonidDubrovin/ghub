@@ -31,7 +31,7 @@ export default function ScanDialog({
   
   const [scanPath, setScanPath] = useState('');
   const [targetSpaceId, setTargetSpaceId] = useState(initialSpaceId || spaces[0]?.id || '');
-  const [fetchMetadata, setFetchMetadata] = useState(true);
+  const [fetchMetadata, setFetchMetadata] = useState(false);
   const [scannedGames, setScannedGames] = useState<EditableGame[]>([]);
   const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set());
   const [isAdding, setIsAdding] = useState(false);
