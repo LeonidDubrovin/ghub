@@ -67,18 +67,23 @@ pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Resul
     
     let scanned = &scanned_games[0];
     
-    // Update the game with fresh data from local directory
+    // Update the game with fresh data from local directory ONLY
+    // IMPORTANT: Do NOT use exe metadata product name if it's generic
     let title = if !scanned.title.is_empty() {
         Some(scanned.title.as_str())
     } else {
         None
     };
     
+    // Only use developer from exe metadata if it's not generic
     let developer = scanned.exe_metadata.as_ref()
-        .and_then(|m| m.company_name.as_deref());
+        .and_then(|m| m.company_name.as_deref())
+        .filter(|name| !is_generic_company_name(name));
     
+    // Only use description from exe metadata if it's not generic
     let description = scanned.exe_metadata.as_ref()
-        .and_then(|m| m.file_description.as_deref());
+        .and_then(|m| m.file_description.as_deref())
+        .filter(|desc| !is_generic_description(desc));
     
     // Update executable path if found
     let executable_path = scanned.executable.as_deref();
@@ -107,6 +112,30 @@ pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Resul
     db.get_game_by_id(&game_id).map_err(|e| e.to_string())
 }
 
+/// Helper function to check if a company name is generic
+fn is_generic_company_name(name: &str) -> bool {
+    let lower = name.to_lowercase().trim().to_string();
+    
+    // Generic company names that shouldn't be used
+    matches!(lower.as_str(),
+        "godot engine" | "unity technologies" | "epic games" | "unreal engine" |
+        "microsoft" | "apple" | "google" | "valve" | "steam" |
+        "unknown" | "n/a" | "none" | "test" | "demo"
+    )
+}
+
+/// Helper function to check if a description is generic
+fn is_generic_description(desc: &str) -> bool {
+    let lower = desc.to_lowercase().trim().to_string();
+    
+    // Generic descriptions that shouldn't be used
+    lower.contains("godot engine") || 
+    lower.contains("unity") ||
+    lower.contains("unreal") ||
+    lower.contains("bootstrap") ||
+    lower.len() < 10 // Too short to be useful
+}
+
 /// Fetch and update game metadata from external sources (Steam, itch.io)
 #[tauri::command]
 pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id: String) -> Result<Game, String> {
@@ -121,15 +150,67 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
         (game.title.clone(), install_path)
     };
     
-    // Use install path directory name as search query if available, otherwise use title
-    let query = if let Some(path) = &install_path {
-        let path = Path::new(path);
-        if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {
-            // Clean the directory name for better search results
-            let cleaned = clean_game_title(dir_name);
-            if !cleaned.is_empty() {
-                println!("   Using directory name for search: {}", cleaned);
-                cleaned
+    // Determine search query with priority: exe metadata > game title > directory name
+    let query = {
+        // Priority 1: Try to get title from exe metadata (most reliable)
+        if let Some(path) = &install_path {
+            let game_path = Path::new(path);
+            if game_path.exists() {
+                // Scan directory to get exe metadata
+                if let Ok(scanned_games) = scan_directory_internal(game_path) {
+                    if let Some(scanned) = scanned_games.first() {
+                        // Use exe product name if available and not generic
+                        if let Some(exe_meta) = &scanned.exe_metadata {
+                            if let Some(product_name) = &exe_meta.product_name {
+                                let cleaned = clean_game_title(product_name);
+                                if !cleaned.is_empty() && !is_generic_title(&cleaned) {
+                                    println!("   Using exe metadata product name for search: {}", cleaned);
+                                    cleaned
+                                } else {
+                                    // Fall through to next priority
+                                    String::new()
+                                }
+                            } else {
+                                String::new()
+                            }
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
+                }
+            } else {
+                String::new()
+            }
+        } else {
+            String::new()
+        }
+    };
+    
+    // If we got a query from exe metadata, use it
+    let query = if !query.is_empty() {
+        query
+    } else {
+        // Priority 2: Use game's existing title from database
+        let cleaned_title = clean_game_title(&original_title);
+        if !cleaned_title.is_empty() && !is_generic_title(&cleaned_title) {
+            println!("   Using game title for search: {}", cleaned_title);
+            cleaned_title
+        } else if let Some(path) = &install_path {
+            // Priority 3: Fall back to directory name (least reliable)
+            let path = Path::new(path);
+            if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {
+                let cleaned = clean_game_title(dir_name);
+                if !cleaned.is_empty() && !is_generic_title(&cleaned) {
+                    println!("   Using directory name for search: {}", cleaned);
+                    cleaned
+                } else {
+                    println!("   Using original title for search: {}", original_title);
+                    original_title.clone()
+                }
             } else {
                 println!("   Using original title for search: {}", original_title);
                 original_title.clone()
@@ -138,9 +219,6 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
             println!("   Using original title for search: {}", original_title);
             original_title.clone()
         }
-    } else {
-        println!("   Using original title for search: {}", original_title);
-        original_title.clone()
     };
     
     println!("   Searching for: {}", query);
@@ -199,6 +277,20 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
     // Return updated game
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.get_game_by_id(&game_id).map_err(|e| e.to_string())
+}
+
+/// Helper function to check if a title is generic and shouldn't be used for search
+/// Only truly generic titles that don't identify a specific game
+fn is_generic_title(title: &str) -> bool {
+    let lower = title.to_lowercase().trim().to_string();
+    
+    // Only truly generic titles that don't identify a specific game
+    matches!(lower.as_str(), 
+        "game" | "games" | "demo" | "test" | "sample" | 
+        "app" | "application" | "program" | "software" |
+        "build" | "release" | "version" | "prototype" |
+        "alpha" | "beta" | "preview" | "trial"
+    )
 }
 
 /// Helper function to clean game title (used by fetch_and_update_game_metadata)

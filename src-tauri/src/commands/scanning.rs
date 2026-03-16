@@ -164,34 +164,35 @@ pub fn scan_directory_internal(base_path: &Path) -> Result<Vec<ScannedGame>, Str
         }
 
         // Enhanced title extraction with multi-level fallback
+        // Priority: Folder name > Parent folder > EXE metadata > Executable name
         let title = {
-            // Level 1: Try metadata product name (if not generic)
-            if let Some(meta_name) = exe_metadata.as_ref()
-                .and_then(|m| m.product_name.clone())
-                .filter(|name| !is_generic_exe_name(name))
-            {
-                println!("      [title] Using metadata product name: '{}'", meta_name);
-                meta_name
-            } 
-            // Level 2: Try cleaned directory name
-            else if let Some(cleaned) = get_non_empty_title(clean_game_title(&dir_name)) {
+            // Level 1: Try cleaned directory name (most reliable for local games)
+            if let Some(cleaned) = get_non_empty_title(clean_game_title(&dir_name)) {
                 println!("      [title] Using cleaned dir name: '{}'", cleaned);
                 cleaned
             }
-            // Level 3: Try parent directory (up to 3 levels up)
+            // Level 2: Try parent directory (up to 3 levels up)
             else if let Some(parent_title) = find_title_in_parents(&game_path, 3) {
                 println!("      [title] Using parent dir: '{}'", parent_title);
                 parent_title
+            }
+            // Level 3: Try metadata product name (only if not generic AND not in our blacklist)
+            else if let Some(meta_name) = exe_metadata.as_ref()
+                .and_then(|m| m.product_name.clone())
+                .filter(|name| !is_generic_exe_name(name) && !is_problematic_game_name(name))
+            {
+                println!("      [title] Using metadata product name: '{}'", meta_name);
+                meta_name
             }
             // Level 4: Try to extract from best executable name
             else if let Some(exe_name) = extract_title_from_executable(&executable) {
                 println!("      [title] Using executable name: '{}'", exe_name);
                 exe_name
             }
-            // Level 5: Try metadata company name as last resort
+            // Level 5: Try metadata company name as last resort (only if not generic)
             else if let Some(company) = exe_metadata.as_ref()
                 .and_then(|m| m.company_name.clone())
-                .filter(|name| !is_generic_exe_name(name))
+                .filter(|name| !is_generic_exe_name(name) && !is_problematic_game_name(name))
             {
                 println!("      [title] Using company name: '{}'", company);
                 company
@@ -572,7 +573,9 @@ fn is_generic_exe_name(name: &str) -> bool {
         "Godot Engine", "BootstrapPackagedGame", "Unity", "Unreal Engine",
         "Game", "Windows", "Launcher", "Setup", "Installer", "Updater",
         "CrashReport", "Crash Handler", "Unity Player", "UE4 Game",
-        "Game Launcher", "Application", "App"
+        "Game Launcher", "Application", "App", "ICARUS", "Life Makeover",
+        "Microphage", "WindowsNoEditor", "Win64", "Win32", "Shipping",
+        "Development", "Debug", "Release"
     ];
     
     let name_lower = name.to_lowercase();
@@ -590,6 +593,24 @@ fn is_generic_exe_name(name: &str) -> bool {
     false
 }
 
+/// Check if a game name is problematic (known to cause wrong metadata matches)
+fn is_problematic_game_name(name: &str) -> bool {
+    let problematic_names = [
+        "ICARUS", "Life Makeover", "Microphage", "Godot Engine",
+        "BootstrapPackagedGame", "WindowsNoEditor", "Win64", "Win32",
+        "Shipping", "Development", "Debug", "Release"
+    ];
+    
+    let name_lower = name.to_lowercase();
+    for problematic in &problematic_names {
+        if name_lower == problematic.to_lowercase() {
+            return true;
+        }
+    }
+    
+    false
+}
+
 fn clean_game_title(name: &str) -> String {
     // Remove common suffixes/prefixes
     let mut title = name.to_string();
@@ -601,7 +622,7 @@ fn clean_game_title(name: &str) -> String {
     }
 
     // Remove platform tags
-    for tag in &["(Windows)", "(PC)", "(GOG)", "(Steam)", "[GOG]", "[Steam]", "(Mac)", "(Linux)"] {
+    for tag in &["(Windows)", "(PC)", "(GOG)", "(Steam)", "[GOG]", "[Steam]", "(Mac)", "(Linux)", "_Windows", "_PC"] {
         title = title.replace(tag, "");
     }
 
@@ -609,7 +630,8 @@ fn clean_game_title(name: &str) -> String {
     let generic_names = [
         "Windows", "BootstrapPackagedGame", "Godot Engine", "Unity", "Unreal",
         "Game", "Build", "Release", "Bin", "Binary", "Executable", "App",
-        "win64", "win32", "linux", "macos", "x64", "x86"
+        "win64", "win32", "linux", "macos", "x64", "x86", "WindowsNoEditor",
+        "Win64", "Win32", "Shipping", "Development", "Debug"
     ];
     
     let trimmed = title.trim();

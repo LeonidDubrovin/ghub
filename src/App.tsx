@@ -232,7 +232,7 @@ function App() {
     
     setUpdatingGameIds(prev => new Set([...prev, game.id]));
     try {
-      await invoke('fetch_and_update_game_metadata', { gameId: game.id });
+      await invoke('refresh_game_from_local', { gameId: game.id });
       refetchGames();
     } catch (err) {
       console.error('Failed to refresh metadata:', err);
