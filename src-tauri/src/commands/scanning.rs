@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 use std::fs;
 use regex::Regex;
+use lazy_static::lazy_static;
 use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use log::{debug, info, warn, error};
@@ -971,7 +972,7 @@ fn is_generic_exe_name(name: &str) -> bool {
         ];
     }
 
-    for pattern in &GENERIC_PATTERNS {
+    for pattern in &*GENERIC_PATTERNS {
         if pattern.is_match(&name_lower) {
             return true;
         }
