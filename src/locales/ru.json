@@ -73,7 +73,9 @@
     "settingsTitle": "Настройки пространства",
     "scanAll": "Сканировать все",
     "folderAlreadyAdded": "Эта папка уже добавлена",
-    "activeSources": "активных источников"
+    "activeSources": "активных источников",
+    "expandSources": "Показать источники",
+    "collapseSources": "Скрыть источники"
   },
   "spaces": {
     "confirmDeleteTitle": "Удалить пространство?",

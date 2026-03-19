@@ -75,7 +75,9 @@
     "settingsTitle": "Space settings",
     "scanAll": "Scan all",
     "folderAlreadyAdded": "This folder is already added",
-    "activeSources": "active sources"
+    "activeSources": "active sources",
+    "expandSources": "Expand sources",
+    "collapseSources": "Collapse sources"
   },
   "spaces": {
     "confirmDeleteTitle": "Delete space?",

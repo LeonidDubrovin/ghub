@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Space } from '../types';
+import type { Space, SpaceSource } from '../types';
 import clsx from 'clsx';
 import { useSpaceSources } from '../hooks/useSpaces';
 
@@ -8,6 +8,24 @@ import { useSpaceSources } from '../hooks/useSpaces';
 const FolderIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
   </svg>
 );
 
@@ -40,7 +58,8 @@ interface SpaceItemProps {
 export default function SpaceItem({ space, isSelected, onSelect, onSettings }: SpaceItemProps) {
   const { t } = useTranslation();
   const { data: sources = [] } = useSpaceSources(space.id);
-  
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const activeSourceCount = useMemo(() => 
     sources.filter(s => s.is_active).length,
     [sources]
@@ -54,34 +73,84 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
     }
   };
 
+  const toggleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded(prev => !prev);
+  };
+
+  const truncatePath = (path: string, maxLength: number = 30): string => {
+    if (path.length <= maxLength) return path;
+    const parts = path.split(/[\\/]/);
+    if (parts.length <= 2) {
+      return '...' + path.slice(-maxLength);
+    }
+    return '.../' + parts.slice(-2).join('/');
+  };
+
   return (
-    <button
-      onClick={() => onSelect(space.id)}
-      className={clsx('sidebar-item w-full group relative', isSelected && 'active')}
-    >
-      <span
-        className="w-6 h-6 flex items-center justify-center rounded"
-        style={{ backgroundColor: space.color || undefined }}
-      >
-        {space.icon || getSpaceIcon(space.type)}
-      </span>
-      <span className="truncate flex-1 text-left">{space.name}</span>
-      
-      {/* Source count badge */}
-      {activeSourceCount > 0 && (
-        <span className="text-xs bg-accent/20 text-accent px-1.5 py-0.5 rounded ml-1">
-          {activeSourceCount}
-        </span>
-      )}
-      
-      {/* Settings button */}
+    <div className="space-item-container">
       <button
-        onClick={(e) => onSettings(space, e)}
-        className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        title={t('space.settings')}
+        onClick={() => onSelect(space.id)}
+        className={clsx('sidebar-item w-full group relative', isSelected && 'active')}
       >
-        <SettingsIcon />
+        <span
+          className="w-6 h-6 flex items-center justify-center rounded"
+          style={{ backgroundColor: space.color || undefined }}
+        >
+          {space.icon || getSpaceIcon(space.type)}
+        </span>
+        <span className="truncate flex-1 text-left">{space.name}</span>
+        
+        {/* Source count badge */}
+        {activeSourceCount > 0 && (
+          <span className="text-xs bg-accent/20 text-accent px-1.5 py-0.5 rounded ml-1">
+            {activeSourceCount}
+          </span>
+        )}
+        
+        {/* Expand button */}
+        {sources.length > 0 && (
+          <button
+            onClick={toggleExpand}
+            className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            title={isExpanded ? t('space.collapseSources') : t('space.expandSources')}
+          >
+            {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+          </button>
+        )}
+        
+        {/* Settings button */}
+        <button
+          onClick={(e) => onSettings(space, e)}
+          className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          title={t('space.settings')}
+        >
+          <SettingsIcon />
+        </button>
       </button>
-    </button>
+
+      {/* Sources list (expanded) */}
+      {isExpanded && sources.length > 0 && (
+        <div className="ml-8 mt-1 space-y-1 border-l-2 border-surface-100 pl-2">
+          {sources.map(source => (
+            <div
+              key={source.source_path}
+              className={clsx(
+                'flex items-center gap-2 text-xs p-1.5 rounded transition-colors',
+                source.is_active ? 'bg-surface-200' : 'bg-surface-400 opacity-60'
+              )}
+              title={source.source_path}
+            >
+              <span className={clsx('flex-shrink-0', source.is_active ? 'text-green-500' : 'text-gray-500')}>
+                {source.is_active ? <CheckIcon /> : <FolderIcon />}
+              </span>
+              <span className="truncate flex-1 text-gray-300">
+                {truncatePath(source.source_path)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

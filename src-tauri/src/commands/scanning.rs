@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 use std::fs;
 use regex::Regex;
-use lazy_static::lazy_static;
 use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use log::{debug, info, warn, error};
@@ -22,23 +21,41 @@ pub struct ScanConfig {
     /// Maximum number of cover candidates to return
     pub max_cover_candidates: usize,
     
+    /// Maximum depth for searching cover images
+    pub max_cover_search_depth: usize,
+    
     /// Whether to scan for local metadata files
     pub scan_local_metadata: bool,
     
     /// Whether to extract exe metadata (Windows only)
     pub extract_exe_metadata: bool,
     
+    /// Base exe exclusion patterns (regex strings)
+    pub base_exe_exclusions: Vec<String>,
+    
     /// Additional exe exclusion patterns (regex)
     pub extra_exe_exclusions: Vec<String>,
+    
+    /// Base folder exclusion patterns (regex strings)
+    pub base_folder_exclusions: Vec<String>,
     
     /// Additional folder exclusion patterns (regex)
     pub extra_folder_exclusions: Vec<String>,
     
+    /// Base image extensions to search for
+    pub base_image_extensions: Vec<String>,
+    
     /// Additional image extensions to search for
     pub extra_image_extensions: Vec<String>,
     
+    /// Base metadata file names to search for
+    pub base_metadata_files: Vec<String>,
+    
     /// Additional metadata file names to search for
     pub extra_metadata_files: Vec<String>,
+    
+    /// Cover search paths (subdirectories to search for covers)
+    pub cover_search_paths: Vec<String>,
 }
 
 impl Default for ScanConfig {
@@ -47,73 +64,110 @@ impl Default for ScanConfig {
             max_scan_depth: 5,
             max_exe_search_depth: 4,
             max_cover_candidates: 15,
+            max_cover_search_depth: 3,
             scan_local_metadata: true,
             extract_exe_metadata: true,
+            base_exe_exclusions: vec![
+                r"(?i)unins\d*".to_string(),
+                r"(?i)^setup".to_string(),
+                r"(?i)^install".to_string(),
+                r"(?i)vc_redist\.(x64|x86)".to_string(),
+                r"(?i)dxsetup".to_string(),
+                r"(?i)directx".to_string(),
+                r"(?i)dotnet".to_string(),
+                r"(?i)crashreport".to_string(),
+                r"(?i)crash\s*handler".to_string(),
+                r"(?i)launcher$".to_string(),
+                r"(?i)updater$".to_string(),
+                r"(?i)ue4prereq".to_string(),
+                r"(?i)physx".to_string(),
+                r"(?i)steamcmd".to_string(),
+                r"(?i)easyanticheat".to_string(),
+                r"(?i)battleye".to_string(),
+                r"(?i)^notification_helper\.exe$".to_string(),
+                r"(?i)^unitycrashhandler(32|64)\.exe$".to_string(),
+                r"(?i)^python(w)?\.exe$".to_string(),
+                r"(?i)^zsync(make)?\.exe$".to_string(),
+            ],
             extra_exe_exclusions: Vec::new(),
+            base_folder_exclusions: vec![
+                r"(?i)^(engine|redist|redistributables)$".to_string(),
+                r"(?i)^(directx|dotnet|vcredist|physx)$".to_string(),
+                r"(?i)^(prereqs?|prerequisites|support)$".to_string(),
+                r"(?i)^(commonredist|installer|install|setup)$".to_string(),
+                r"(?i)^(update|patch(es)?|backup)$".to_string(),
+                r"(?i)^(temp|tmp|cache|logs)$".to_string(),
+                r"(?i)^(saves?|screenshots?|mods?|plugins?)$".to_string(),
+                r"(?i)^binaries$".to_string(),
+                r"(?i)^__pycache__$".to_string(),
+                r"(?i)^\.git$".to_string(),
+            ],
             extra_folder_exclusions: Vec::new(),
+            base_image_extensions: vec![
+                "png".to_string(),
+                "jpg".to_string(),
+                "jpeg".to_string(),
+                "ico".to_string(),
+                "bmp".to_string(),
+                "webp".to_string(),
+                "gif".to_string(),
+            ],
             extra_image_extensions: Vec::new(),
+            base_metadata_files: vec![
+                "game.json".to_string(),
+                "info.json".to_string(),
+                "metadata.json".to_string(),
+                "gameinfo.json".to_string(),
+                "game.yaml".to_string(),
+                "game.yml".to_string(),
+                "info.yaml".to_string(),
+                "info.yml".to_string(),
+                "metadata.yaml".to_string(),
+                "metadata.yml".to_string(),
+                "game.toml".to_string(),
+                "info.toml".to_string(),
+                "metadata.toml".to_string(),
+                "game.xml".to_string(),
+                "info.xml".to_string(),
+                "metadata.xml".to_string(),
+                "info.txt".to_string(),
+                "readme.txt".to_string(),
+                "README.md".to_string(),
+                "README.txt".to_string(),
+                "about.txt".to_string(),
+                "description.txt".to_string(),
+                "game_info.txt".to_string(),
+                "manifest.json".to_string(),
+                "package.json".to_string(),
+                "config.json".to_string(),
+                "UnityManifest.json".to_string(),
+                "ProjectSettings.asset".to_string(),
+                "DefaultGame.ini".to_string(),
+                "Game.ini".to_string(),
+                "config.ini".to_string(),
+            ],
             extra_metadata_files: Vec::new(),
+            cover_search_paths: vec![
+                "images".to_string(),
+                "image".to_string(),
+                "img".to_string(),
+                "art".to_string(),
+                "assets".to_string(),
+                "media".to_string(),
+                "resources".to_string(),
+                "gfx".to_string(),
+                "graphics".to_string(),
+                "covers".to_string(),
+                "cover".to_string(),
+                "box".to_string(),
+                "boxart".to_string(),
+                "screenshots".to_string(),
+                "screenshot".to_string(),
+                "promo".to_string(),
+            ],
         }
     }
 }
-
-// Image extensions to look for covers/icons
-const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "ico", "bmp", "webp", "gif"];
-
-// Maximum depth for recursive scanning
-const MAX_SCAN_DEPTH: usize = 5;
-
-// Regex patterns for exe exclusion (more maintainable than string lists)
-lazy_static! {
-    static ref EXE_EXCLUSION_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)unins\d*").unwrap(),
-        Regex::new(r"(?i)^setup").unwrap(),
-        Regex::new(r"(?i)^install").unwrap(),
-        Regex::new(r"(?i)vc_redist\.(x64|x86)").unwrap(),
-        Regex::new(r"(?i)dxsetup").unwrap(),
-        Regex::new(r"(?i)directx").unwrap(),
-        Regex::new(r"(?i)dotnet").unwrap(),
-        Regex::new(r"(?i)crashreport").unwrap(),
-        Regex::new(r"(?i)crash\s*handler").unwrap(),
-        Regex::new(r"(?i)launcher$").unwrap(),
-        Regex::new(r"(?i)updater$").unwrap(),
-        Regex::new(r"(?i)ue4prereq").unwrap(),
-        Regex::new(r"(?i)physx").unwrap(),
-        Regex::new(r"(?i)steamcmd").unwrap(),
-        Regex::new(r"(?i)easyanticheat").unwrap(),
-        Regex::new(r"(?i)battleye").unwrap(),
-        Regex::new(r"(?i)^notification_helper\.exe$").unwrap(),
-        Regex::new(r"(?i)^unitycrashhandler(32|64)\.exe$").unwrap(),
-        Regex::new(r"(?i)^python(w)?\.exe$").unwrap(),
-        Regex::new(r"(?i)^zsync(make)?\.exe$").unwrap(),
-    ];
-    
-    static ref FOLDER_EXCLUSION_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)^(engine|redist|redistributables)$").unwrap(),
-        Regex::new(r"(?i)^(directx|dotnet|vcredist|physx)$").unwrap(),
-        Regex::new(r"(?i)^(prereqs?|prerequisites|support)$").unwrap(),
-        Regex::new(r"(?i)^(commonredist|installer|install|setup)$").unwrap(),
-        Regex::new(r"(?i)^(update|patch(es)?|backup)$").unwrap(),
-        Regex::new(r"(?i)^(temp|tmp|cache|logs)$").unwrap(),
-        Regex::new(r"(?i)^(saves?|screenshots?|mods?|plugins?)$").unwrap(),
-        Regex::new(r"(?i)^binaries$").unwrap(),
-        Regex::new(r"(?i)^__pycache__$").unwrap(),
-        Regex::new(r"(?i)^\.git$").unwrap(),
-    ];
-}
-
-// Local metadata files to look for
-const METADATA_FILES: &[&str] = &[
-    "game.json", "info.json", "metadata.json", "gameinfo.json",
-    "game.yaml", "game.yml", "info.yaml", "info.yml", "metadata.yaml", "metadata.yml",
-    "game.toml", "info.toml", "metadata.toml",
-    "game.xml", "info.xml", "metadata.xml",
-    "info.txt", "readme.txt", "README.md", "README.txt",
-    "about.txt", "description.txt", "game_info.txt",
-    "manifest.json", "package.json", "config.json",
-    "UnityManifest.json", "ProjectSettings.asset",
-    "DefaultGame.ini", "Game.ini", "config.ini"
-];
 
 #[tauri::command]
 pub fn scan_space_sources(state: State<AppState>, space_id: String) -> Result<Vec<ScannedGame>, String> {
@@ -162,9 +216,17 @@ pub fn scan_space_sources(state: State<AppState>, space_id: String) -> Result<Ve
         }
     }
 
-    // Deduplicate by path
-    all_games.sort_by(|a, b| a.path.cmp(&b.path));
-    all_games.dedup_by(|a, b| a.path == b.path);
+    // Deduplicate by normalized path
+    all_games.sort_by(|a, b| {
+        let norm_a = normalize_path(Path::new(&a.path));
+        let norm_b = normalize_path(Path::new(&b.path));
+        norm_a.cmp(&norm_b)
+    });
+    all_games.dedup_by(|a, b| {
+        let norm_a = normalize_path(Path::new(&a.path));
+        let norm_b = normalize_path(Path::new(&b.path));
+        norm_a == norm_b
+    });
 
     info!("Total unique games found: {}", all_games.len());
     Ok(all_games)
@@ -227,12 +289,62 @@ pub fn scan_directory_internal(base_path: &Path) -> Result<Vec<ScannedGame>, Str
     scan_directory_internal_with_config(base_path, &ScanConfig::default())
 }
 
+/// Normalize a path string for consistent comparison
+fn normalize_path(path: &Path) -> String {
+    // Convert to canonical path if possible, otherwise use string representation
+    path.canonicalize()
+        .as_ref()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|_| path.to_string_lossy().to_string())
+        .trim_end_matches(['\\', '/'])
+        .to_string()
+}
+
+/// Compile regex patterns from string slices
+fn compile_patterns<'a>(base: &[String], extra: &[String]) -> Vec<Regex> {
+    let mut patterns = Vec::new();
+    
+    // Add base patterns
+    for pattern_str in base {
+        if let Ok(re) = Regex::new(pattern_str) {
+            patterns.push(re);
+        } else {
+            warn!("Invalid regex pattern: {}", pattern_str);
+        }
+    }
+    
+    // Add extra patterns
+    for pattern_str in extra {
+        if let Ok(re) = Regex::new(pattern_str) {
+            patterns.push(re);
+        } else {
+            warn!("Invalid regex pattern: {}", pattern_str);
+        }
+    }
+    
+    patterns
+}
+
 /// Internal scan function with custom configuration
 pub fn scan_directory_internal_with_config(base_path: &Path, config: &ScanConfig) -> Result<Vec<ScannedGame>, String> {
     debug!("[scan_directory_internal] base_path: {}", base_path.display());
+
+    // Compile regex patterns from config (base + extra)
+    let exe_patterns = compile_patterns(&config.base_exe_exclusions, &config.extra_exe_exclusions);
+    let folder_patterns = compile_patterns(&config.base_folder_exclusions, &config.extra_folder_exclusions);
     
+    // Combine metadata files and image extensions
+    let all_metadata_files: Vec<String> = config.base_metadata_files.iter()
+        .chain(&config.extra_metadata_files)
+        .cloned()
+        .collect();
+    let all_image_extensions: Vec<String> = config.base_image_extensions.iter()
+        .chain(&config.extra_image_extensions)
+        .cloned()
+        .collect();
+
     let mut games: Vec<ScannedGame> = Vec::new();
-    // Use String paths for deduplication to avoid PathBuf normalization issues
+    // Use normalized paths for deduplication
     let mut scanned_paths = std::collections::HashSet::new();
 
     // Use recursive scanning with depth limit (similar to Playnite approach)
@@ -242,15 +354,15 @@ pub fn scan_directory_internal_with_config(base_path: &Path, config: &ScanConfig
         .filter_map(|e| e.ok())
     {
         let path = entry.path();
-        
+
         // Only process directories
         if !path.is_dir() {
             continue;
         }
-        
-        // Skip if already scanned (use string representation for consistent comparison)
-        let path_str = path.to_string_lossy().to_string();
-        if scanned_paths.contains(&path_str) {
+
+        // Normalize path for consistent comparison
+        let normalized_path = normalize_path(path);
+        if scanned_paths.contains(&normalized_path) {
             continue;
         }
         
@@ -260,7 +372,7 @@ pub fn scan_directory_internal_with_config(base_path: &Path, config: &ScanConfig
             .unwrap_or("")
             .to_lowercase();
         
-        if is_folder_excluded(&dir_name) {
+        if is_folder_excluded(&dir_name, &folder_patterns) {
             debug!("[scan] Skipping excluded folder: {}", path.display());
             continue;
         }
@@ -271,10 +383,10 @@ pub fn scan_directory_internal_with_config(base_path: &Path, config: &ScanConfig
         }
         
         debug!("[scan] Found game folder: {}", path.display());
-        scanned_paths.insert(path_str);
+        scanned_paths.insert(normalized_path);
         
         // Check if folder has only one subfolder and no exe - dive deeper
-        let game_path = find_actual_game_folder(&path);
+        let game_path = find_actual_game_folder(&path, &folder_patterns);
         debug!("[scan] Game folder resolved to: {}", game_path.display());
 
         let dir_name = game_path.file_name()
@@ -286,7 +398,7 @@ pub fn scan_directory_internal_with_config(base_path: &Path, config: &ScanConfig
         let title = extract_game_title(&dir_name);
         
         // Find ALL executables
-        let all_executables = find_all_executables_with_config(&game_path, config);
+        let all_executables = find_all_executables_with_config(&game_path, config, &exe_patterns);
         debug!("[scan] Found {} executables", all_executables.len());
         for exe in &all_executables {
             debug!("   - {}", exe);
@@ -301,7 +413,7 @@ pub fn scan_directory_internal_with_config(base_path: &Path, config: &ScanConfig
         }
 
         // Find cover/icon candidates
-        let cover_candidates = find_cover_candidates_with_config(&game_path, config);
+        let cover_candidates = find_cover_candidates_with_config(&game_path, config, &all_image_extensions);
         if !cover_candidates.is_empty() {
             debug!("[scan] Found {} cover candidates", cover_candidates.len());
         }
@@ -326,98 +438,18 @@ pub fn scan_directory_internal_with_config(base_path: &Path, config: &ScanConfig
         }
 
         // Try to read local metadata files
-        let local_metadata = read_local_metadata(&game_path);
-        
+        let local_metadata = read_local_metadata(&game_path, &all_metadata_files);
+
         // Enhanced title extraction with multi-level fallback
         // Priority: Local metadata > Folder name > EXE metadata (if not generic) > Parent folder > Executable name
         // This matches Playnite's approach: folder/shortcut name is primary, exe metadata is secondary
-        let title = {
-            // Level 0: Try local metadata file (game.json, info.txt, etc.)
-            if let Some(ref meta) = local_metadata {
-                if let Some(ref name) = meta.name {
-                    if !name.is_empty() && !is_generic_exe_name(name) && !is_problematic_game_name(name) {
-                        debug!("[title] Using local metadata name: '{}'", name);
-                        name.clone()
-                    } else {
-                        // Continue to next level
-                        String::new()
-                    }
-                } else {
-                    String::new()
-                }
-            } else {
-                String::new()
-            }
-        };
-        
-        let title = if title.is_empty() {
-            // Level 1: Try cleaned directory name (PRIMARY - like Playnite uses shortcut/folder names)
-            if let Some(cleaned) = get_non_empty_title(clean_game_title(&dir_name)) {
-                debug!("[title] Using cleaned dir name: '{}'", cleaned);
-                cleaned
-            } else {
-                String::new()
-            }
-        } else {
-            title
-        };
-        
-        let title = if title.is_empty() {
-            // Level 2: Try metadata product name (SECONDARY - only if not generic and exe is in reasonable location)
-            let game_path_str = game_path.to_string_lossy();
-            let exe_in_deep_subfolder = game_path_str.contains("Engine\\Binaries") ||
-                                        game_path_str.contains("Engine/Binaries") ||
-                                        game_path_str.contains("Plugins") ||
-                                        game_path_str.contains("Binaries\\Win64") ||
-                                        game_path_str.contains("Binaries/Win64");
-            
-            if let Some(meta_name) = exe_metadata.as_ref()
-                .and_then(|m| m.product_name.clone())
-                .filter(|name| !is_generic_exe_name(name) && !is_problematic_game_name(name))
-            {
-                if exe_in_deep_subfolder {
-                    debug!("[title] Skipping metadata product name '{}' (exe in deep subfolder)", meta_name);
-                    // Skip to next level
-                    String::new()
-                } else {
-                    debug!("[title] Using metadata product name: '{}'", meta_name);
-                    meta_name
-                }
-            } else {
-                String::new()
-            }
-        } else {
-            title
-        };
-        
-        let title = if title.is_empty() {
-            // Level 3: Try parent directory (up to 3 levels up)
-            if let Some(parent_title) = find_title_in_parents(&game_path, 3) {
-                debug!("[title] Using parent dir: '{}'", parent_title);
-                parent_title
-            }
-            // Level 4: Try to extract from best executable name
-            else if let Some(exe_name) = extract_title_from_executable(&executable) {
-                debug!("[title] Using executable name: '{}'", exe_name);
-                exe_name
-            }
-            // Level 5: Try metadata company name as last resort (only if not generic)
-            else if let Some(company) = exe_metadata.as_ref()
-                .and_then(|m| m.company_name.clone())
-                .filter(|name| !is_generic_exe_name(name) && !is_problematic_game_name(name))
-            {
-                debug!("[title] Using company name: '{}'", company);
-                company
-            }
-            // Final fallback: use original dir name or "Unknown Game"
-            else {
-                let fallback = if dir_name != "Unknown" { dir_name.clone() } else { "Unknown Game".to_string() };
-                debug!("[title] Using fallback: '{}'", fallback);
-                fallback
-            }
-        } else {
-            title
-        };
+        let title = extract_title_with_fallback(
+            &game_path,
+            &dir_name,
+            &local_metadata,
+            &exe_metadata,
+            &executable,
+        );
         debug!("[scan] Final title: '{}'", title);
 
         games.push(ScannedGame {
@@ -436,7 +468,7 @@ pub fn scan_directory_internal_with_config(base_path: &Path, config: &ScanConfig
 }
 
 /// Find the actual game folder - if no exe in current folder, search subdirectories
-fn find_actual_game_folder(dir: &Path) -> PathBuf {
+fn find_actual_game_folder(dir: &Path, folder_patterns: &[Regex]) -> PathBuf {
     // First check if current directory has exe files
     if has_exe_files(dir) {
         debug!("[find_actual_game_folder] {} has exe directly, using it", dir.display());
@@ -445,7 +477,7 @@ fn find_actual_game_folder(dir: &Path) -> PathBuf {
 
     // No exe in current folder - search in subdirectories (up to 2 levels deep)
     // But avoid diving into Engine, Redist, and other non-game folders
-    if let Some(found) = find_folder_with_exe(dir, 2) {
+    if let Some(found) = find_folder_with_exe(dir, 2, folder_patterns) {
         debug!("[find_actual_game_folder] Found exe in subfolder: {}", found.display());
         return found;
     }
@@ -455,13 +487,13 @@ fn find_actual_game_folder(dir: &Path) -> PathBuf {
 }
 
 /// Check if folder name matches exclusion patterns
-fn is_folder_excluded(dir_name: &str) -> bool {
-    FOLDER_EXCLUSION_PATTERNS.iter().any(|pattern| pattern.is_match(dir_name))
+fn is_folder_excluded(dir_name: &str, patterns: &[Regex]) -> bool {
+    patterns.iter().any(|pattern| pattern.is_match(dir_name))
 }
 
 /// Check if exe name matches exclusion patterns
-fn is_exe_excluded(exe_name: &str) -> bool {
-    EXE_EXCLUSION_PATTERNS.iter().any(|pattern| pattern.is_match(exe_name))
+fn is_exe_excluded(exe_name: &str, patterns: &[Regex]) -> bool {
+    patterns.iter().any(|pattern| pattern.is_match(exe_name))
 }
 
 /// Check if directory contains any executable files (.exe or .lnk)
@@ -500,7 +532,7 @@ fn has_exe_files(dir: &Path) -> bool {
 }
 
 /// Recursively find a subfolder that contains exe files
-fn find_folder_with_exe(dir: &Path, max_depth: u32) -> Option<PathBuf> {
+fn find_folder_with_exe(dir: &Path, max_depth: u32, folder_patterns: &[Regex]) -> Option<PathBuf> {
     if max_depth == 0 {
         return None;
     }
@@ -521,7 +553,7 @@ fn find_folder_with_exe(dir: &Path, max_depth: u32) -> Option<PathBuf> {
             .unwrap_or("")
             .to_lowercase();
         
-        if is_folder_excluded(&dir_name) {
+        if is_folder_excluded(&dir_name, folder_patterns) {
             debug!("[find_folder_with_exe] Skipping non-game folder: {}", subdir.display());
             continue;
         }
@@ -541,12 +573,12 @@ fn find_folder_with_exe(dir: &Path, max_depth: u32) -> Option<PathBuf> {
             .unwrap_or("")
             .to_lowercase();
         
-        if is_folder_excluded(&dir_name) {
+        if is_folder_excluded(&dir_name, folder_patterns) {
             debug!("[find_folder_with_exe] Skipping non-game folder: {}", subdir.display());
             continue;
         }
         
-        if let Some(found) = find_folder_with_exe(&subdir, max_depth - 1) {
+        if let Some(found) = find_folder_with_exe(&subdir, max_depth - 1, folder_patterns) {
             return Some(found);
         }
     }
@@ -556,11 +588,13 @@ fn find_folder_with_exe(dir: &Path, max_depth: u32) -> Option<PathBuf> {
 
 /// Find all executable files in directory (including subdirs up to configured depth)
 fn find_all_executables(dir: &Path) -> Vec<String> {
-    find_all_executables_with_config(dir, &ScanConfig::default())
+    let config = ScanConfig::default();
+    let exe_patterns = compile_patterns(&config.base_exe_exclusions, &config.extra_exe_exclusions);
+    find_all_executables_with_config(dir, &config, &exe_patterns)
 }
 
 /// Find all executable files in directory (including subdirs up to configured depth)
-fn find_all_executables_with_config(dir: &Path, config: &ScanConfig) -> Vec<String> {
+fn find_all_executables_with_config(dir: &Path, config: &ScanConfig, exe_patterns: &[Regex]) -> Vec<String> {
     let mut executables = Vec::new();
 
     for entry in WalkDir::new(dir).max_depth(config.max_exe_search_depth).into_iter().filter_map(|e| e.ok()) {
@@ -580,7 +614,7 @@ fn find_all_executables_with_config(dir: &Path, config: &ScanConfig) -> Vec<Stri
                     let name_lower = name.to_lowercase();
 
                     // Skip known non-game executables using regex patterns
-                    let should_skip = is_exe_excluded(&name_lower);
+                    let should_skip = is_exe_excluded(&name_lower, exe_patterns);
 
                     if !should_skip && !name.is_empty() {
                         // Store relative path from game dir
@@ -649,42 +683,32 @@ fn pick_best_executable(dir: &Path, executables: &[String]) -> Option<String> {
 
 /// Find potential cover/icon images
 fn find_cover_candidates(dir: &Path) -> Vec<String> {
-    find_cover_candidates_with_config(dir, &ScanConfig::default())
+    let config = ScanConfig::default();
+    let image_extensions: Vec<String> = config.base_image_extensions.iter()
+        .chain(&config.extra_image_extensions)
+        .cloned()
+        .collect();
+    find_cover_candidates_with_config(dir, &config, &image_extensions)
 }
 
 /// Find potential cover/icon images with custom configuration
-fn find_cover_candidates_with_config(dir: &Path, config: &ScanConfig) -> Vec<String> {
+fn find_cover_candidates_with_config(dir: &Path, config: &ScanConfig, image_extensions: &[String]) -> Vec<String> {
     let mut candidates = Vec::new();
     let mut seen = std::collections::HashSet::new();
 
-    // Search in root and common subdirs
-    let search_paths = [
-        dir.to_path_buf(),
-        dir.join("images"),
-        dir.join("image"),
-        dir.join("img"),
-        dir.join("art"),
-        dir.join("assets"),
-        dir.join("media"),
-        dir.join("resources"),
-        dir.join("gfx"),
-        dir.join("graphics"),
-        dir.join("covers"),
-        dir.join("cover"),
-        dir.join("box"),
-        dir.join("boxart"),
-        dir.join("screenshots"),
-        dir.join("screenshot"),
-        dir.join("promo"),
-    ];
+    // Build search paths from config (always include root dir)
+    let mut search_paths = vec![dir.to_path_buf()];
+    for subdir in &config.cover_search_paths {
+        search_paths.push(dir.join(subdir));
+    }
 
     for search_path in &search_paths {
         if !search_path.exists() {
             continue;
         }
 
-        // Search recursively up to 3 levels deep for images
-        for entry in WalkDir::new(search_path).max_depth(3).into_iter().filter_map(|e| e.ok()) {
+        // Search recursively up to configured depth for images
+        for entry in WalkDir::new(search_path).max_depth(config.max_cover_search_depth).into_iter().filter_map(|e| e.ok()) {
             let path = entry.path();
             if !path.is_file() {
                 continue;
@@ -695,7 +719,8 @@ fn find_cover_candidates_with_config(dir: &Path, config: &ScanConfig) -> Vec<Str
                 .map(|e| e.to_lowercase())
                 .unwrap_or_default();
 
-            if !IMAGE_EXTENSIONS.contains(&ext.as_str()) {
+            // Check if extension is in the configured list (case-insensitive)
+            if !image_extensions.iter().any(|ext_ok| ext_ok.eq_ignore_ascii_case(&ext)) {
                 continue;
             }
 
@@ -896,35 +921,67 @@ fn calculate_dir_size(dir: &Path) -> u64 {
 /// Check if an exe product name is generic and shouldn't be used as game title
 fn is_generic_exe_name(name: &str) -> bool {
     // Only filter out truly generic names that don't identify a specific game
-    // Use exact matches to avoid false positives (e.g., "Unity of Command" should not be filtered)
+    // Use word-boundary matching to avoid false positives (e.g., "Unity of Command" should not be filtered)
     let generic_names = [
-        "Godot Engine", "BootstrapPackagedGame", "Unity", "Unreal Engine",
-        "UnrealEngine", "UE4", "UE5", "UE4Game",
-        "Windows", "Launcher", "Setup", "Installer", "Updater",
-        "CrashReport", "Crash Handler", "Unity Player", "UE4 Game",
-        "Game Launcher", "Application", "App",
-        "WindowsNoEditor", "Win64", "Win32", "Shipping",
-        "Development", "Debug", "Release", "Player", "Runtime",
-        "Redistributable", "Microsoft", "Visual", "C++", "DirectX",
-        "OpenGL", "Vulkan", "XInput", "DInput", "PhysX", "NVIDIA",
-        "AMD", "Intel", "Steam", "Epic", "GOG", "Origin", "Ubisoft",
-        "EA", "Battle.net", "Rockstar", "Bethesda", "2K", "Sega",
-        "Square Enix", "Capcom", "Konami", "Bandai Namco", "Activision",
-        "Blizzard", "Microsoft Studios", "Xbox", "PlayStation", "Nintendo"
+        "godot engine", "bootstrappackagedgame", "^(?:.*\\s)?unity(?:\\s|$)", "unreal engine",
+        "unrealengine", "ue4", "ue5", "ue4game",
+        "windows", "launcher", "setup", "installer", "updater",
+        "crashreport", "crash handler", "unity player", "ue4 game",
+        "game launcher", "application", "app",
+        "windowsnoeditor", "win64", "win32", "shipping",
+        "development", "debug", "release", "player", "runtime",
+        "redistributable", "microsoft", "visual", "c\\+\\+", "directx",
+        "opengl", "vulkan", "xinput", "dinput", "physx", "nvidia",
+        "amd", "intel", "steam", "epic", "gog", "origin", "ubisoft",
+        "ea", "battle\\.net", "rockstar", "bethesda", "2k", "sega",
+        "square enix", "capcom", "konami", "bandai namco", "activision",
+        "blizzard", "microsoft studios", "xbox", "playstation", "nintendo"
     ];
-    
+
     let name_lower = name.to_lowercase();
-    for generic in &generic_names {
-        if name_lower == generic.to_lowercase() {
+
+    // Check exact matches first (fast path)
+    let exact_generic = [
+        "godot engine", "bootstrappackagedgame", "windows", "launcher", "setup",
+        "installer", "updater", "crashreport", "crash handler", "unity player",
+        "ue4 game", "game launcher", "application", "app", "windowsnoeditor",
+        "win64", "win32", "shipping", "development", "debug", "release",
+        "player", "runtime", "redistributable", "microsoft", "visual",
+        "opengl", "vulkan", "xinput", "dinput", "physx", "nvidia",
+        "amd", "intel", "steam", "epic", "gog", "origin", "ubisoft",
+        "ea", "rockstar", "bethesda", "2k", "sega", "square enix",
+        "capcom", "konami", "bandai namco", "activision", "blizzard",
+        "microsoft studios", "xbox", "playstation", "nintendo"
+    ];
+
+    for generic in &exact_generic {
+        if name_lower == *generic {
             return true;
         }
     }
-    
+
+    // Check regex patterns for word-boundary matching
+    lazy_static! {
+        static ref GENERIC_PATTERNS: Vec<Regex> = vec![
+            Regex::new(r"(?i)^(?:.*\s)?unity(?:\s|$)").unwrap(),
+            Regex::new(r"(?i)^(?:.*\s)?unreal(?:\s|$)").unwrap(),
+            Regex::new(r"(?i)^(?:.*\s)?ue[45](?:\s|$)").unwrap(),
+            Regex::new(r"(?i)^(?:.*\s)?c\+\+(?:\s|$)").unwrap(),
+            Regex::new(r"(?i)^(?:.*\s)?battle\.net(?:\s|$)").unwrap(),
+        ];
+    }
+
+    for pattern in &GENERIC_PATTERNS {
+        if pattern.is_match(&name_lower) {
+            return true;
+        }
+    }
+
     // Check if name is just version numbers (e.g., "1.0.0", "v2.0")
     if name.chars().all(|c| c.is_numeric() || c == '.' || c == '_' || c == '-' || c == 'v' || c == 'V') {
         return true;
     }
-    
+
     // Check if name contains only common non-game words
     let non_game_words = ["test", "demo", "sample", "example", "tutorial", "template"];
     for word in &non_game_words {
@@ -932,7 +989,7 @@ fn is_generic_exe_name(name: &str) -> bool {
             return true;
         }
     }
-    
+
     false
 }
 
@@ -1038,6 +1095,91 @@ fn extract_title_from_executable(executable: &Option<String>) -> Option<String> 
     })
 }
 
+/// Main title extraction with multi-level fallback strategy
+fn extract_title_with_fallback(
+    game_path: &Path,
+    dir_name: &str,
+    local_metadata: &Option<LocalMetadata>,
+    exe_metadata: &Option<ExeMetadata>,
+    executable: &Option<String>,
+) -> String {
+    // Level 0: Try local metadata file (game.json, info.txt, etc.)
+    if let Some(title) = try_extract_from_local_metadata(local_metadata) {
+        debug!("[title] Using local metadata name: '{}'", title);
+        return title;
+    }
+
+    // Level 1: Try cleaned directory name (PRIMARY - like Playnite uses shortcut/folder names)
+    if let Some(title) = try_extract_from_dir_name(dir_name) {
+        debug!("[title] Using cleaned dir name: '{}'", title);
+        return title;
+    }
+
+    // Level 2: Try metadata product name (SECONDARY - only if not generic and exe is in reasonable location)
+    if let Some(title) = try_extract_from_exe_metadata(game_path, exe_metadata) {
+        debug!("[title] Using metadata product name: '{}'", title);
+        return title;
+    }
+
+    // Level 3: Try parent directory (up to 3 levels up)
+    if let Some(title) = find_title_in_parents(game_path, 3) {
+        debug!("[title] Using parent dir: '{}'", title);
+        return title;
+    }
+
+    // Level 4: Try to extract from best executable name
+    if let Some(title) = extract_title_from_executable(executable) {
+        debug!("[title] Using executable name: '{}'", title);
+        return title;
+    }
+
+    // Level 5: Try metadata company name as last resort (only if not generic)
+    if let Some(title) = try_extract_from_company_name(exe_metadata) {
+        debug!("[title] Using company name: '{}'", title);
+        return title;
+    }
+
+    // Final fallback: use original dir name or "Unknown Game"
+    let fallback = if dir_name != "Unknown" { dir_name.to_string() } else { "Unknown Game".to_string() };
+    debug!("[title] Using fallback: '{}'", fallback);
+    fallback
+}
+
+/// Level 0: Extract title from local metadata file
+fn try_extract_from_local_metadata(metadata: &Option<LocalMetadata>) -> Option<String> {
+    metadata.as_ref()
+        .and_then(|m| m.name.as_ref())
+        .filter(|name| !name.is_empty() && !is_generic_exe_name(name) && !is_problematic_game_name(name))
+        .cloned()
+}
+
+/// Level 1: Extract title from cleaned directory name
+fn try_extract_from_dir_name(dir_name: &str) -> Option<String> {
+    get_non_empty_title(clean_game_title(dir_name))
+}
+
+/// Level 2: Extract title from exe metadata product name (if not in deep subfolder)
+fn try_extract_from_exe_metadata(game_path: &Path, exe_metadata: &Option<ExeMetadata>) -> Option<String> {
+    let path_str = game_path.to_string_lossy();
+    let exe_in_deep_subfolder = path_str.contains("Engine\\Binaries") ||
+                                path_str.contains("Engine/Binaries") ||
+                                path_str.contains("Plugins") ||
+                                path_str.contains("Binaries\\Win64") ||
+                                path_str.contains("Binaries/Win64");
+
+    exe_metadata.as_ref()
+        .and_then(|m| m.product_name.clone())
+        .filter(|name| !is_generic_exe_name(name) && !is_problematic_game_name(name))
+        .filter(|_| !exe_in_deep_subfolder)
+}
+
+/// Level 5: Extract title from company name (as last resort)
+fn try_extract_from_company_name(exe_metadata: &Option<ExeMetadata>) -> Option<String> {
+    exe_metadata.as_ref()
+        .and_then(|m| m.company_name.clone())
+        .filter(|name| !is_generic_exe_name(name) && !is_problematic_game_name(name))
+}
+
 /// Local metadata structure
 #[derive(Debug, Clone)]
 struct LocalMetadata {
@@ -1049,46 +1191,9 @@ struct LocalMetadata {
     release_date: Option<String>,
 }
 
-/// Helper function to extract metadata fields from a map-like structure
-fn extract_metadata_fields<F>(get_field: F) -> Option<LocalMetadata>
-where
-    F: Fn(&str) -> Option<String>,
-{
-    let name = get_field("name")
-        .or_else(|| get_field("title"))
-        .or_else(|| get_field("game_name"));
-    
-    let description = get_field("description")
-        .or_else(|| get_field("desc"))
-        .or_else(|| get_field("about"));
-    
-    let developer = get_field("developer")
-        .or_else(|| get_field("dev"))
-        .or_else(|| get_field("author"));
-    
-    let publisher = get_field("publisher");
-    let version = get_field("version").or_else(|| get_field("ver"));
-    let release_date = get_field("release_date")
-        .or_else(|| get_field("releaseDate"))
-        .or_else(|| get_field("date"));
-
-    if name.is_some() || description.is_some() {
-        Some(LocalMetadata {
-            name,
-            description,
-            developer,
-            publisher,
-            version,
-            release_date,
-        })
-    } else {
-        None
-    }
-}
-
 /// Read local metadata files (game.json, info.txt, README.md, etc.)
-fn read_local_metadata(dir: &Path) -> Option<LocalMetadata> {
-    for filename in METADATA_FILES {
+fn read_local_metadata(dir: &Path, metadata_files: &[String]) -> Option<LocalMetadata> {
+    for filename in metadata_files {
         let file_path = dir.join(filename);
         if !file_path.exists() {
             continue;
@@ -1143,14 +1248,14 @@ fn read_local_metadata(dir: &Path) -> Option<LocalMetadata> {
 /// Read JSON metadata file
 fn read_json_metadata(file_path: &Path) -> Option<LocalMetadata> {
     let content = fs::read_to_string(file_path).ok()?;
-    
+
     // Try to parse as JSON
     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-        let metadata = extract_metadata_fields(|key| {
+        let metadata = parse_key_value_file(|key| {
             json.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
         });
 
-        if let Some(ref meta) = metadata {
+        if let Some(ref meta) = &metadata {
             debug!("[local_metadata] Parsed JSON: name={:?}, desc={:?}",
                 meta.name, meta.description.as_ref().map(|d| &d[..50.min(d.len())]));
         }
@@ -1163,29 +1268,12 @@ fn read_json_metadata(file_path: &Path) -> Option<LocalMetadata> {
 /// Read YAML metadata file
 fn read_yaml_metadata(file_path: &Path) -> Option<LocalMetadata> {
     let content = fs::read_to_string(file_path).ok()?;
-    
-    let mut field_map = std::collections::HashMap::new();
-    
-    // Simple YAML parsing - look for key: value pairs
-    for line in content.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
 
-        if let Some(colon_pos) = line.find(':') {
-            let key = line[..colon_pos].trim().to_lowercase();
-            let value = line[colon_pos + 1..].trim().trim_matches('"').trim_matches('\'');
-            
-            if !value.is_empty() {
-                field_map.insert(key, value.to_string());
-            }
-        }
-    }
+    let field_map = parse_key_value_pairs(&content, ':')?;
 
-    let metadata = extract_metadata_fields(|key| field_map.get(key).cloned());
+    let metadata = parse_key_value_file(|key| field_map.get(key).cloned());
 
-    if let Some(ref meta) = metadata {
+    if let Some(ref meta) = &metadata {
         debug!("[local_metadata] Parsed YAML: name={:?}, desc={:?}",
             meta.name, meta.description.as_ref().map(|d| &d[..50.min(d.len())]));
     }
@@ -1195,29 +1283,12 @@ fn read_yaml_metadata(file_path: &Path) -> Option<LocalMetadata> {
 /// Read TOML metadata file
 fn read_toml_metadata(file_path: &Path) -> Option<LocalMetadata> {
     let content = fs::read_to_string(file_path).ok()?;
-    
-    let mut field_map = std::collections::HashMap::new();
-    
-    // Simple TOML parsing - look for key = "value" pairs
-    for line in content.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') || line.starts_with('[') {
-            continue;
-        }
 
-        if let Some(eq_pos) = line.find('=') {
-            let key = line[..eq_pos].trim().to_lowercase();
-            let value = line[eq_pos + 1..].trim().trim_matches('"').trim_matches('\'');
-            
-            if !value.is_empty() {
-                field_map.insert(key, value.to_string());
-            }
-        }
-    }
+    let field_map = parse_key_value_pairs(&content, '=')?;
 
-    let metadata = extract_metadata_fields(|key| field_map.get(key).cloned());
+    let metadata = parse_key_value_file(|key| field_map.get(key).cloned());
 
-    if let Some(ref meta) = metadata {
+    if let Some(ref meta) = &metadata {
         debug!("[local_metadata] Parsed TOML: name={:?}, desc={:?}",
             meta.name, meta.description.as_ref().map(|d| &d[..50.min(d.len())]));
     }
@@ -1227,18 +1298,18 @@ fn read_toml_metadata(file_path: &Path) -> Option<LocalMetadata> {
 /// Read XML metadata file
 fn read_xml_metadata(file_path: &Path) -> Option<LocalMetadata> {
     let content = fs::read_to_string(file_path).ok()?;
-    
+
     let mut field_map = std::collections::HashMap::new();
-    
+
     // Simple XML parsing - look for <tag>value</tag> patterns
     let tags = ["name", "title", "game_name", "description", "desc", "about",
                 "developer", "dev", "author", "publisher", "version", "ver",
                 "release_date", "releasedate", "date"];
-    
+
     for tag in &tags {
         let open_tag = format!("<{}>", tag);
         let close_tag = format!("</{}>", tag);
-        
+
         if let Some(start) = content.find(&open_tag) {
             if let Some(end) = content[start + open_tag.len()..].find(&close_tag) {
                 let value = content[start + open_tag.len()..start + open_tag.len() + end].trim();
@@ -1249,9 +1320,9 @@ fn read_xml_metadata(file_path: &Path) -> Option<LocalMetadata> {
         }
     }
 
-    let metadata = extract_metadata_fields(|key| field_map.get(key).cloned());
+    let metadata = parse_key_value_file(|key| field_map.get(key).cloned());
 
-    if let Some(ref meta) = metadata {
+    if let Some(ref meta) = &metadata {
         debug!("[local_metadata] Parsed XML: name={:?}, desc={:?}",
             meta.name, meta.description.as_ref().map(|d| &d[..50.min(d.len())]));
     }
@@ -1261,33 +1332,76 @@ fn read_xml_metadata(file_path: &Path) -> Option<LocalMetadata> {
 /// Read INI metadata file
 fn read_ini_metadata(file_path: &Path) -> Option<LocalMetadata> {
     let content = fs::read_to_string(file_path).ok()?;
-    
+
+    let field_map = parse_key_value_pairs(&content, '=')?;
+
+    let metadata = parse_key_value_file(|key| field_map.get(key).cloned());
+
+    if let Some(ref meta) = &metadata {
+        debug!("[local_metadata] Parsed INI: name={:?}, desc={:?}",
+            meta.name, meta.description.as_ref().map(|d| &d[..50.min(d.len())]));
+    }
+    metadata
+}
+
+/// Generic function to parse key-value pairs from text formats (YAML, TOML, INI)
+fn parse_key_value_pairs(content: &str, separator: char) -> Option<std::collections::HashMap<String, String>> {
     let mut field_map = std::collections::HashMap::new();
-    
-    // Simple INI parsing - look for key=value pairs
+
     for line in content.lines() {
         let line = line.trim();
-        if line.is_empty() || line.starts_with(';') || line.starts_with('[') {
+        if line.is_empty() || line.starts_with('#') || line.starts_with(';') || line.starts_with('[') {
             continue;
         }
 
-        if let Some(eq_pos) = line.find('=') {
-            let key = line[..eq_pos].trim().to_lowercase();
-            let value = line[eq_pos + 1..].trim().trim_matches('"').trim_matches('\'');
-            
+        if let Some(sep_pos) = line.find(separator) {
+            let key = line[..sep_pos].trim().to_lowercase();
+            let value = line[sep_pos + 1..].trim().trim_matches('"').trim_matches('\'');
+
             if !value.is_empty() {
                 field_map.insert(key, value.to_string());
             }
         }
     }
 
-    let metadata = extract_metadata_fields(|key| field_map.get(key).cloned());
+    Some(field_map)
+}
 
-    if let Some(ref meta) = metadata {
-        debug!("[local_metadata] Parsed INI: name={:?}, desc={:?}",
-            meta.name, meta.description.as_ref().map(|d| &d[..50.min(d.len())]));
+/// Generic function to extract metadata fields from a key-value map
+fn parse_key_value_file<F>(get_field: F) -> Option<LocalMetadata>
+where
+    F: Fn(&str) -> Option<String>,
+{
+    let name = get_field("name")
+        .or_else(|| get_field("title"))
+        .or_else(|| get_field("game_name"));
+
+    let description = get_field("description")
+        .or_else(|| get_field("desc"))
+        .or_else(|| get_field("about"));
+
+    let developer = get_field("developer")
+        .or_else(|| get_field("dev"))
+        .or_else(|| get_field("author"));
+
+    let publisher = get_field("publisher");
+    let version = get_field("version").or_else(|| get_field("ver"));
+    let release_date = get_field("release_date")
+        .or_else(|| get_field("releasedate"))
+        .or_else(|| get_field("date"));
+
+    if name.is_some() || description.is_some() {
+        Some(LocalMetadata {
+            name,
+            description,
+            developer,
+            publisher,
+            version,
+            release_date,
+        })
+    } else {
+        None
     }
-    metadata
 }
 
 /// Read text metadata file (README, info.txt, etc.)
