@@ -88,14 +88,15 @@ pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Resul
     // Update executable path if found
     let executable_path = scanned.executable.as_deref();
     
-    // Update the game in database
-    db.update_game(
+    // Update the game in database - RESET all metadata fields to force fresh local data
+    // Use update_game_with_reset to properly set fields to NULL when None is passed
+    db.update_game_with_reset(
         &game_id,
         title,
         description,
         developer,
-        None, // publisher
-        None, // cover_image - keep existing
+        None, // publisher - reset to None to get fresh data
+        None, // cover_image - reset to None to get fresh data
         None, // is_favorite - keep existing
         None, // completion_status - keep existing
         None, // user_rating - keep existing

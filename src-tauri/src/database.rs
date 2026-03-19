@@ -525,6 +525,53 @@ impl Database {
         Ok(())
     }
     
+    /// Update game fields, resetting to NULL when None is passed (for refresh operations)
+    pub fn update_game_with_reset(
+        &self,
+        id: &str,
+        title: Option<&str>,
+        description: Option<&str>,
+        developer: Option<&str>,
+        publisher: Option<&str>,
+        cover_image: Option<&str>,
+        is_favorite: Option<bool>,
+        completion_status: Option<&str>,
+        user_rating: Option<i32>,
+    ) -> Result<()> {
+        // For fields that should be reset to NULL when None, use COALESCE or direct NULL assignment
+        let title_val: Option<&str> = title;
+        let desc_val: Option<&str> = description;
+        let dev_val: Option<&str> = developer;
+        let pub_val: Option<&str> = publisher;
+        let cover_val: Option<&str> = cover_image;
+        
+        self.conn.execute(
+            "UPDATE games SET
+                title = COALESCE(?1, title),
+                description = ?2,
+                developer = ?3,
+                publisher = ?4,
+                cover_image = ?5,
+                is_favorite = COALESCE(?6, is_favorite),
+                completion_status = COALESCE(?7, completion_status),
+                user_rating = COALESCE(?8, user_rating),
+                updated_at = datetime('now')
+             WHERE id = ?9",
+            params![
+                title_val,
+                desc_val,
+                dev_val,
+                pub_val,
+                cover_val,
+                is_favorite.map(|b| b as i32),
+                completion_status,
+                user_rating,
+                id
+            ],
+        )?;
+        Ok(())
+    }
+    
     pub fn delete_game(&self, id: &str) -> Result<()> {
         self.conn.execute("DELETE FROM games WHERE id = ?", [id])?;
         Ok(())
