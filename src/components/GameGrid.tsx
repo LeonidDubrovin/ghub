@@ -42,7 +42,7 @@ interface GameGridProps {
   isGameRunning?: (gameId: string) => boolean;
   isSelectionMode?: boolean;
   selectedGameIds?: Set<string>;
-  onToggleSelection?: (gameId: string) => void;
+  onGameClick?: (gameId: string, shiftKey: boolean) => void;
   updatingGameIds?: Set<string>;
 }
 
@@ -55,7 +55,7 @@ export default function GameGrid({
   isGameRunning,
   isSelectionMode,
   selectedGameIds,
-  onToggleSelection,
+  onGameClick,
   updatingGameIds,
 }: GameGridProps) {
   const { t } = useTranslation();
@@ -72,9 +72,12 @@ export default function GameGrid({
             <div
               key={game.id}
               onContextMenu={(e) => onContextMenu?.(e, game)}
-              onClick={() => isSelectionMode && onToggleSelection?.(game.id)}
+              onClick={(e) => {
+                e.preventDefault();
+                onGameClick?.(game.id, e.shiftKey);
+              }}
               onDoubleClick={() => !isSelectionMode && onEdit(game)}
-              className={`flex items-center gap-4 p-3 bg-surface-200 rounded-lg hover:bg-surface-100 transition-colors cursor-pointer group 
+              className={`flex items-center gap-4 p-3 bg-surface-200 rounded-lg hover:bg-surface-100 transition-colors cursor-pointer group select-none
                 ${running ? 'ring-2 ring-green-500/50' : ''}
                 ${selected ? 'ring-2 ring-accent bg-surface-100' : ''}
                 ${updating ? 'bg-yellow-500/20 animate-pulse' : ''}
@@ -134,7 +137,10 @@ export default function GameGrid({
       {games.map(game => {
         const updating = updatingGameIds?.has(game.id) ?? false;
         return (
-          <div key={game.id} className="relative group" onClick={() => isSelectionMode && onToggleSelection?.(game.id)}>
+          <div key={game.id} className={`relative group select-none ${selectedGameIds?.has(game.id) ? 'ring-2 ring-accent bg-accent/10 rounded-lg' : ''}`} onClick={(e) => {
+            e.preventDefault();
+            onGameClick?.(game.id, e.shiftKey);
+          }}>
             {/* Selection Overlay for Grid */}
             {isSelectionMode && (
               <div className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors cursor-pointer
@@ -154,11 +160,8 @@ export default function GameGrid({
               onPlay={onPlay}
               onContextMenu={onContextMenu}
               isRunning={isGameRunning?.(game.id) ?? false}
-              onClick={isSelectionMode ? () => {
-                // Click handled by overlay
-              } : undefined}
-            />
-            {isSelectionMode && <div className="absolute inset-0 z-30 cursor-pointer" />} 
+              onClick={isSelectionMode ? undefined : undefined}
+            /> 
           </div>
         );
       })}

@@ -8,7 +8,7 @@ interface Props {
   games: Game[];
   selectedGame: Game | null;
   selectedGames?: Game[]; // Added for multi-selection support
-  onSelectGame: (g: Game) => void;
+  onSelectGame: (g: Game, shiftKey?: boolean) => void;
   onPlay: (g: Game) => void;
   onEdit: (g: Game) => void;
   onContextMenu?: (e: React.MouseEvent, g: Game) => void;
@@ -100,15 +100,16 @@ export default function GameDetailsView({
           const updating = updatingGameIds?.has(g.id);
           
           return (
-            <div key={g.id} data-id={g.id} 
-              onClick={() => {
-                 onSelectGame(g);
-              }} 
-              onDoubleClick={() => !r && !isSelectionMode && onPlay(g)} 
-              onContextMenu={e => onContextMenu?.(e, g)} 
-              onMouseEnter={() => setHov(g.id)} 
+            <div key={g.id} data-id={g.id}
+              onClick={(e) => {
+                e.preventDefault();
+                onSelectGame(g, e.shiftKey);
+              }}
+              onDoubleClick={() => !r && !isSelectionMode && onPlay(g)}
+              onContextMenu={e => onContextMenu?.(e, g)}
+              onMouseEnter={() => setHov(g.id)}
               onMouseLeave={() => setHov(null)}
-              className={`flex items-center gap-3 mx-2 px-2 py-2 rounded-lg cursor-pointer ${isSelected ? 'bg-accent/30 ring-1 ring-accent' : hov === g.id ? 'bg-surface-200/70' : 'hover:bg-surface-200/40'} ${r && !isSelected ? 'bg-green-500/10' : ''} ${updating ? 'bg-yellow-500/20 animate-pulse' : ''}`}>
+              className={`flex items-center gap-3 mx-2 px-2 py-2 rounded-lg cursor-pointer select-none ${isSelected ? 'bg-accent/30 ring-1 ring-accent' : hov === g.id ? 'bg-surface-200/70' : 'hover:bg-surface-200/40'} ${r && !isSelected ? 'bg-green-500/10' : ''} ${updating ? 'bg-yellow-500/20 animate-pulse' : ''}`}>
               
               {isSelectionMode && (
                 <div className="flex-shrink-0 mr-1">

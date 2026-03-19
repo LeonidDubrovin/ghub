@@ -45,6 +45,7 @@ function App() {
   
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedGameIds, setSelectedGameIds] = useState<Set<string>>(new Set());
+  const [lastSelectedGameId, setLastSelectedGameId] = useState<string | null>(null);
   const [showBatchMetadata, setShowBatchMetadata] = useState(false);
 
   const [sidebarWidth, setSidebarWidth] = useState(240);
@@ -127,13 +128,37 @@ function App() {
     return games.filter(g => g.last_played_at && new Date(g.last_played_at) > weekAgo).length;
   }, [games]);
 
-  const handleToggleSelection = (gameId: string) => {
-    setSelectedGameIds(prev => {
-      const next = new Set(prev);
-      if (next.has(gameId)) next.delete(gameId);
-      else next.add(gameId);
-      return next;
-    });
+  const handleGameClick = (gameId: string, shiftKey: boolean = false) => {
+    if (!isSelectionMode) return;
+
+    const lastIndex = lastSelectedGameId ? filteredGames.findIndex(g => g.id === lastSelectedGameId) : -1;
+    const currentIndex = filteredGames.findIndex(g => g.id === gameId);
+
+    if (shiftKey && lastIndex !== -1 && currentIndex !== -1) {
+      // Range selection: select all games between last selected and current
+      const startIndex = Math.min(lastIndex, currentIndex);
+      const endIndex = Math.max(lastIndex, currentIndex);
+
+      setSelectedGameIds(prev => {
+        const next = new Set(prev);
+        // Add all games in the range
+        for (let i = startIndex; i <= endIndex; i++) {
+          next.add(filteredGames[i].id);
+        }
+        return next;
+      });
+    } else {
+      // Single toggle
+      setSelectedGameIds(prev => {
+        const next = new Set(prev);
+        if (next.has(gameId)) next.delete(gameId);
+        else next.add(gameId);
+        return next;
+      });
+    }
+
+    // Update last selected game
+    setLastSelectedGameId(gameId);
   };
 
   const handleSelectAll = () => {
@@ -146,6 +171,64 @@ function App() {
 
   const handleBatchUpdate = () => {
     setShowBatchMetadata(true);
+  };
+
+  const handleBatchDelete = async () => {
+    if (!confirm(`Delete ${selectedGameIds.size} games?`)) return;
+    try {
+      for (const gameId of selectedGameIds) {
+        await deleteGameMutation.mutateAsync(gameId);
+      }
+      setSelectedGameIds(new Set());
+      setIsSelectionMode(false);
+      setLastSelectedGameId(null);
+      refetchGames();
+    } catch (err) {
+      console.error('Batch delete failed:', err);
+    }
+  };
+
+  const handleBatchToggleFavorite = async () => {
+    try {
+      for (const gameId of selectedGameIds) {
+        const game = games.find(g => g.id === gameId);
+        if (game) {
+          await invoke('update_game', { request: { id: gameId, is_favorite: !game.is_favorite } });
+        }
+      }
+      refetchGames();
+    } catch (err) {
+      console.error('Batch toggle favorite failed:', err);
+    }
+  };
+
+  const handleBatchRefreshLocal = async () => {
+    const gameIds = Array.from(selectedGameIds);
+    if (gameIds.length === 0) return;
+
+    // Mark all as updating
+    setUpdatingGameIds(prev => new Set([...prev, ...gameIds]));
+
+    try {
+      // Refresh all in parallel
+      await Promise.all(
+        gameIds.map(gameId =>
+          invoke('refresh_game_from_local', { gameId }).catch(err => {
+            console.error(`Failed to refresh game ${gameId}:`, err);
+          })
+        )
+      );
+      refetchGames();
+    } catch (err) {
+      console.error('Batch refresh failed:', err);
+    } finally {
+      // Clear updating status after a delay to show completion
+      setTimeout(() => setUpdatingGameIds(prev => {
+        const next = new Set(prev);
+        gameIds.forEach(id => next.delete(id));
+        return next;
+      }), 1000);
+    }
   };
 
   const handleSidebarResize = useCallback((delta: number) => {
@@ -250,23 +333,40 @@ function App() {
     setContextMenu({ x: e.clientX, y: e.clientY, game });
   };
 
-  const getGameContextMenuItems = (game: Game): ContextMenuItem[] => [
-    { label: t('actions.play'), icon: '▶', onClick: () => handlePlayGame(game), disabled: isGameRunning(game.id) },
-    { separator: true, label: '', onClick: () => {} },
-    { label: t('actions.editGame'), icon: '✏️', onClick: () => handleEditGame(game) },
-    { label: t('actions.fetchMetadata'), icon: '🔍', onClick: () => handleFetchMetadata(game) },
-    { label: t('actions.refreshFromLocal'), icon: '🔄', onClick: () => handleRefreshMetadata(game) },
-    { separator: true, label: '', onClick: () => {} },
-    { label: isSelectionMode ? 'Exit Selection' : 'Select Games', icon: '☑️', onClick: () => setIsSelectionMode(!isSelectionMode) },
-    { separator: true, label: '', onClick: () => {} },
-    {
-      label: game.is_favorite ? t('actions.removeFromFavorites') : t('actions.addToFavorites'),
-      icon: game.is_favorite ? '⭐' : '☆',
-      onClick: () => handleToggleFavorite(game),
-    },
-    { separator: true, label: '', onClick: () => {} },
-    { label: t('actions.delete'), icon: '🗑️', onClick: () => handleDeleteGame(game), danger: true },
-  ];
+  const getGameContextMenuItems = (game: Game): ContextMenuItem[] => {
+    // In selection mode, show batch operations
+    if (isSelectionMode) {
+      return [
+        { label: `${t('common.selected')}: ${selectedGameIds.size}`, icon: '☑️', onClick: () => {}, disabled: true },
+        { separator: true, label: '', onClick: () => {} },
+        { label: t('actions.updateMetadata'), icon: '🔍', onClick: handleBatchUpdate, disabled: selectedGameIds.size === 0 },
+        { label: t('actions.refreshFromLocal'), icon: '🔄', onClick: handleBatchRefreshLocal, disabled: selectedGameIds.size === 0 },
+        { label: t('actions.addToFavorites'), icon: '⭐', onClick: handleBatchToggleFavorite, disabled: selectedGameIds.size === 0 },
+        { label: t('actions.delete'), icon: '🗑️', onClick: handleBatchDelete, disabled: selectedGameIds.size === 0, danger: true },
+        { separator: true, label: '', onClick: () => {} },
+        { label: t('actions.exitSelection'), icon: '✕', onClick: () => { setIsSelectionMode(false); setSelectedGameIds(new Set()); setLastSelectedGameId(null); } },
+      ];
+    }
+
+    // Normal mode
+    return [
+      { label: t('actions.play'), icon: '▶', onClick: () => handlePlayGame(game), disabled: isGameRunning(game.id) },
+      { separator: true, label: '', onClick: () => {} },
+      { label: t('actions.editGame'), icon: '✏️', onClick: () => handleEditGame(game) },
+      { label: t('actions.fetchMetadata'), icon: '🔍', onClick: () => handleFetchMetadata(game) },
+      { label: t('actions.refreshFromLocal'), icon: '🔄', onClick: () => handleRefreshMetadata(game) },
+      { separator: true, label: '', onClick: () => {} },
+      { label: t('actions.enterSelectionMode'), icon: '☑️', onClick: () => setIsSelectionMode(true) },
+      { separator: true, label: '', onClick: () => {} },
+      {
+        label: game.is_favorite ? t('actions.removeFromFavorites') : t('actions.addToFavorites'),
+        icon: game.is_favorite ? '⭐' : '☆',
+        onClick: () => handleToggleFavorite(game),
+      },
+      { separator: true, label: '', onClick: () => {} },
+      { label: t('actions.delete'), icon: '🗑️', onClick: () => handleDeleteGame(game), danger: true },
+    ];
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -292,39 +392,26 @@ function App() {
       <ResizeHandle onResize={handleSidebarResize} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <Header
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onScan={() => setShowScan(true)}
-          gameCount={filteredGames.length}
-          isSelectionMode={isSelectionMode}
-          onToggleSelectionMode={() => setIsSelectionMode(!isSelectionMode)}
-        />
+         <Header
+           searchQuery={searchQuery}
+           onSearchChange={setSearchQuery}
+           viewMode={viewMode}
+           onViewModeChange={setViewMode}
+           onScan={() => setShowScan(true)}
+           gameCount={filteredGames.length}
+           isSelectionMode={isSelectionMode}
+           onToggleSelectionMode={() => {
+             setIsSelectionMode(prev => {
+               if (prev) {
+                 // Exiting selection mode
+                 setLastSelectedGameId(null);
+               }
+               return !prev;
+             });
+           }}
+         />
 
-        {isSelectionMode && (
-          <div className="bg-surface-300 p-2 flex items-center justify-between border-b border-surface-100 px-6">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium">{selectedGameIds.size} selected</span>
-              <button onClick={handleSelectAll} className="text-xs text-accent hover:underline">
-                {selectedGameIds.size === filteredGames.length ? t('scan.deselectAll') : t('scan.selectAll')}
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={handleBatchUpdate}
-                disabled={selectedGameIds.size === 0}
-                className="btn btn-primary btn-sm"
-              >
-                {t('actions.updateMetadata')}
-              </button>
-              <button onClick={() => { setIsSelectionMode(false); setSelectedGameIds(new Set()); }} className="btn btn-secondary btn-sm">
-                {t('common.cancel')}
-              </button>
-            </div>
-          </div>
-        )}
+
 
         {launchError && (
           <div className="mx-6 mt-2 p-3 bg-danger/20 border border-danger/50 rounded-lg text-danger text-sm">
@@ -353,13 +440,15 @@ function App() {
               games={filteredGames}
               selectedGame={selectedGameForDetails}
               selectedGames={filteredGames.filter(g => selectedGameIds.has(g.id))}
-              onSelectGame={(game) => {
-                 if (isSelectionMode) {
-                   handleToggleSelection(game.id);
-                 } else {
-                   setSelectedGameForDetails(game);
-                 }
-              }}
+               onSelectGame={(game, shiftKey) => {
+                  if (shiftKey) {
+                    handleGameClick(game.id, true);
+                  } else if (isSelectionMode) {
+                    handleGameClick(game.id, false);
+                  } else {
+                    setSelectedGameForDetails(game);
+                  }
+                }}
               onPlay={handlePlayGame}
               onEdit={handleEditGame}
               onContextMenu={handleGameContextMenu}
@@ -372,18 +461,18 @@ function App() {
             />
           ) : (
             <div className="h-full overflow-auto p-6">
-              <GameGrid
-                games={filteredGames}
-                viewMode={viewMode}
-                onEdit={handleEditGame}
-                onPlay={handlePlayGame}
-                onContextMenu={handleGameContextMenu}
-                isGameRunning={isGameRunning}
-                isSelectionMode={isSelectionMode}
-                selectedGameIds={selectedGameIds}
-                onToggleSelection={handleToggleSelection}
-                updatingGameIds={updatingGameIds}
-              />
+               <GameGrid
+                 games={filteredGames}
+                 viewMode={viewMode}
+                 onEdit={handleEditGame}
+                 onPlay={handlePlayGame}
+                 onContextMenu={handleGameContextMenu}
+                 isGameRunning={isGameRunning}
+                 isSelectionMode={isSelectionMode}
+                 selectedGameIds={selectedGameIds}
+                 onGameClick={handleGameClick}
+                 updatingGameIds={updatingGameIds}
+               />
             </div>
           )}
         </div>
@@ -393,18 +482,19 @@ function App() {
       {showAddLink && <AddLinkDialog onClose={() => setShowAddLink(false)} onAdd={refetchGames} />}
       {showScan && <ScanDialog spaces={spaces} onClose={() => setShowScan(false)} />}
       {editingGame && <EditGameDialog game={editingGame} onClose={() => setEditingGame(null)} onSave={handleGameSaved} />}
-      {showBatchMetadata && (
-        <BatchMetadataDialog 
-          games={games.filter(g => selectedGameIds.has(g.id))}
-          onClose={() => setShowBatchMetadata(false)}
-          onSave={() => {
-            handleGameSaved();
-            setShowBatchMetadata(false);
-            setIsSelectionMode(false);
-            setSelectedGameIds(new Set());
-          }}
-        />
-      )}
+       {showBatchMetadata && (
+         <BatchMetadataDialog
+           games={games.filter(g => selectedGameIds.has(g.id))}
+           onClose={() => setShowBatchMetadata(false)}
+           onSave={() => {
+             handleGameSaved();
+             setShowBatchMetadata(false);
+             setIsSelectionMode(false);
+             setSelectedGameIds(new Set());
+             setLastSelectedGameId(null);
+           }}
+         />
+       )}
 
       {contextMenu && (
         <ContextMenu
