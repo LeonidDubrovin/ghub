@@ -138,6 +138,7 @@ export default function SourceItem({ spaceId, source }: SourceItemProps) {
           {error}
         </div>
       )}
+      </div> {/* Close flex-1 min-w-0 */}
       
       {/* Action buttons */}
       <div className="flex items-center gap-1 flex-shrink-0">

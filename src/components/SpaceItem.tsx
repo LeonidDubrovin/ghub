@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Space } from '../types';
 import clsx from 'clsx';
@@ -14,17 +14,6 @@ const FolderIcon = () => (
   </svg>
 );
 
-const ChevronRightIcon = () => (
-  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-  </svg>
-);
-
-const ChevronDownIcon = () => (
-  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-  </svg>
-);
 
 
 const SteamIcon = () => (
@@ -56,7 +45,6 @@ interface SpaceItemProps {
 export default function SpaceItem({ space, isSelected, onSelect, onSettings }: SpaceItemProps) {
   const { t } = useTranslation();
   const { data: sources = [] } = useSpaceSources(space.id);
-  const [isExpanded, setIsExpanded] = useState(false);
   const addSpaceSource = useAddSpaceSource();
 
   const activeSourceCount = useMemo(() =>
@@ -95,10 +83,6 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
     }
   };
 
-  const toggleExpand = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsExpanded(prev => !prev);
-  };
 
   return (
     <div className="space-item-container">
@@ -113,25 +97,14 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
           {space.icon || getSpaceIcon(space.type)}
         </span>
         <span className="truncate flex-1 text-left">{space.name}</span>
-        
+
         {/* Source count badge */}
         {activeSourceCount > 0 && (
           <span className="text-xs bg-accent/20 text-accent px-1.5 py-0.5 rounded ml-1">
             {activeSourceCount}
           </span>
         )}
-        
-        {/* Expand button */}
-        {sources.length > 0 && (
-          <button
-            onClick={toggleExpand}
-            className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={isExpanded ? t('space.collapseSources') : t('space.expandSources')}
-          >
-            {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
-          </button>
-        )}
-        
+
         {/* Settings button */}
         <button
           onClick={(e) => onSettings(space, e)}
@@ -142,8 +115,8 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
         </button>
       </button>
 
-      {/* Sources list (expanded) */}
-      {isExpanded && (
+      {/* Sources list - always shown if there are sources */}
+      {sources.length > 0 && (
         <div className="ml-8 mt-2 space-y-2 border-l-2 border-surface-100 pl-2">
           {sources.map(source => (
             <SourceItem
@@ -152,7 +125,7 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
               source={source}
             />
           ))}
-          
+
           {/* Add source button */}
           <button
             onClick={handleAddSource}
