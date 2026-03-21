@@ -1,16 +1,13 @@
-use crate::models::{ExeMetadata, ScannedGame};
-use crate::scanner::{self, ScanConfig};
+use crate::models::ScannedGame;
+use crate::scanner;
 use crate::scanner_constants;
-use crate::title_extraction::{clean_game_title, is_generic_exe_name, is_problematic_game_name};
 use crate::AppState;
-use lazy_static::lazy_static;
 use log::{debug, error, info, warn};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 use tauri::State;
-use walkdir::WalkDir;
 
 /// Configuration for game scanning behavior
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -243,36 +240,6 @@ pub fn scan_directory(path: String) -> Result<Vec<ScannedGame>, String> {
     result
 }
 
-/// Start scanning a source (directory) in background
-#[tauri::command]
-pub fn start_source_scan(state: State<AppState>, space_id: String, source_path: String) -> Result<(), String> {
-    state.scanning_service.lock().map_err(|e| e.to_string())?.start_scan(
-        state.db.clone(),
-        space_id,
-        source_path,
-    )
-}
-
-/// Cancel a running scan
-#[tauri::command]
-pub fn cancel_source_scan(state: State<AppState>, space_id: String, source_path: String) -> Result<(), String> {
-    state.scanning_service.lock().map_err(|e| e.to_string())?.cancel_scan(
-        &state.db,
-        &space_id,
-        &source_path,
-    )
-}
-
-/// Get scan status for a source
-#[tauri::command]
-pub fn get_source_scan_status(state: State<AppState>, space_id: String, source_path: String) -> Result<Option<SpaceSource>, String> {
-    state.scanning_service.lock().map_err(|e| e.to_string())?.get_source_scan_status(
-        &state.db,
-        &space_id,
-        &source_path,
-    )
-}
-
 /// Extract game title from directory name with cleaning
 #[tauri::command]
 fn extract_game_title(dir_name: &str) -> String {
@@ -345,16 +312,32 @@ pub fn scan_directory_internal_with_config(
         base_path.display()
     );
 
-    // Build scanner::ScanConfig from command config
+    // Build scanner::ScanConfig from command config, converting String patterns to Regex
     let scanner_config = scanner::ScanConfig {
         max_scan_depth: config.max_scan_depth,
         max_exe_search_depth: config.max_exe_search_depth,
         max_cover_candidates: config.max_cover_candidates,
         max_cover_search_depth: config.max_cover_search_depth,
-        base_exe_exclusions: config.base_exe_exclusions.clone(),
-        extra_exe_exclusions: config.extra_exe_exclusions.clone(),
-        base_folder_exclusions: config.base_folder_exclusions.clone(),
-        extra_folder_exclusions: config.extra_folder_exclusions.clone(),
+        base_exe_exclusions: config
+            .base_exe_exclusions
+            .iter()
+            .map(|s| Regex::new(s).map_err(|e| e.to_string()))
+            .collect::<Result<Vec<_>, _>>()?,
+        extra_exe_exclusions: config
+            .extra_exe_exclusions
+            .iter()
+            .map(|s| Regex::new(s).map_err(|e| e.to_string()))
+            .collect::<Result<Vec<_>, _>>()?,
+        base_folder_exclusions: config
+            .base_folder_exclusions
+            .iter()
+            .map(|s| Regex::new(s).map_err(|e| e.to_string()))
+            .collect::<Result<Vec<_>, _>>()?,
+        extra_folder_exclusions: config
+            .extra_folder_exclusions
+            .iter()
+            .map(|s| Regex::new(s).map_err(|e| e.to_string()))
+            .collect::<Result<Vec<_>, _>>()?,
         base_image_extensions: config.base_image_extensions.clone(),
         extra_image_extensions: config.extra_image_extensions.clone(),
         base_metadata_files: config.base_metadata_files.clone(),
@@ -365,5 +348,52 @@ pub fn scan_directory_internal_with_config(
     // Call shared scanner (no cancellation for synchronous scan)
     let (games, _) = scanner::scan_directory(base_path, &scanner_config, None)?;
     Ok(games)
+}
+
+/// Start scanning a source (directory) in background
+#[tauri::command]
+pub fn start_source_scan(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+) -> Result<(), String> {
+    state
+        .scanning_service
+        .lock()
+        .map_err(|e| e.to_string())?
+        .start_scan(state.db.clone(), space_id, source_path)
+}
+
+/// Cancel a running scan
+#[tauri::command]
+pub fn cancel_source_scan(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+) -> Result<(), String> {
+    state
+        .scanning_service
+        .lock()
+        .map_err(|e| e.to_string())?
+        .cancel_scan(&state.db, &space_id, &source_path)
+}
+
+/// Get scan status for a source
+#[tauri::command]
+pub fn get_source_scan_status(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+) -> Result<Option<SpaceSource>, String> {
+    state
+        .scanning_service
+        .lock()
+        .map_err(|e| e.to_string())?
+        .get_source_scan_status(&state.db, &space_id, &source_path)
+}
+
+/// Normalize a path for deduplication (canonicalize to resolve symlinks and normalize separators)
+fn normalize_path(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
 

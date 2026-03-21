@@ -101,13 +101,20 @@ impl ScanningService {
 
         // Spawn background thread with panic catching
         let _ = thread::spawn(move || {
+            // Clone variables before moving them into scan_source to keep originals for cleanup
+            let active_scans_for_scan = active_scans_clone.clone();
+            let db_for_scan = db_clone.clone();
+            let space_id_for_scan = space_id_clone.clone();
+            let source_path_for_scan = source_path_clone.clone();
+            let cancel_flag_for_scan = cancel_flag_clone.clone();
+
             let result = std::panic::catch_unwind(|| {
                 Self::scan_source(
-                    active_scans_clone,
-                    db_clone,
-                    space_id_clone,
-                    source_path_clone,
-                    cancel_flag_clone,
+                    active_scans_for_scan,
+                    db_for_scan,
+                    space_id_for_scan,
+                    source_path_for_scan,
+                    cancel_flag_for_scan,
                 )
             });
 
