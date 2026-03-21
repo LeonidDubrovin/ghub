@@ -634,7 +634,7 @@ impl Database {
         developer: Option<&str>,
     ) -> Result<Option<Game>> {
         // Build query: match title (case-insensitive) and developer if provided
-        let mut stmt = if let Some(dev) = developer {
+        let mut stmt = if let Some(_dev) = developer {
             self.conn.prepare(
                 "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
                         g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,

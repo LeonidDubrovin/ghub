@@ -240,63 +240,6 @@ pub fn scan_directory(path: String) -> Result<Vec<ScannedGame>, String> {
     result
 }
 
-/// Extract game title from directory name with cleaning
-#[tauri::command]
-fn extract_game_title(dir_name: &str) -> String {
-    let mut title = dir_name.to_string();
-
-    // Remove common prefixes/suffixes
-    let prefixes = ["the ", "a ", "an "];
-    let suffixes = [
-        " (windows)",
-        " (pc)",
-        " (steam)",
-        " (gog)",
-        " (epic)",
-        " - windows",
-        " - pc",
-        " - steam",
-        " - gog",
-        " - epic",
-        " [windows]",
-        " [pc]",
-        " [steam]",
-        " [gog]",
-        " [epic]",
-        " v1",
-        " v2",
-        " v3",
-        " v4",
-        " v5",
-        " version 1",
-        " version 2",
-        " version 3",
-    ];
-
-    let lower_title = title.to_lowercase();
-
-    // Remove prefixes
-    for prefix in &prefixes {
-        if lower_title.starts_with(prefix) {
-            title = title[prefix.len()..].to_string();
-            break;
-        }
-    }
-
-    // Remove suffixes
-    let lower_title = title.to_lowercase();
-    for suffix in &suffixes {
-        if lower_title.ends_with(suffix) {
-            title = title[..title.len() - suffix.len()].to_string();
-            break;
-        }
-    }
-
-    // Clean up extra spaces and trim
-    title = title.split_whitespace().collect::<Vec<&str>>().join(" ");
-    title.trim().to_string()
-}
-
 /// Internal scan function that doesn't require a full path string
 pub fn scan_directory_internal(base_path: &Path) -> Result<Vec<ScannedGame>, String> {
     scan_directory_internal_with_config(base_path, &ScanConfig::default())
@@ -348,48 +291,6 @@ pub fn scan_directory_internal_with_config(
     // Call shared scanner (no cancellation for synchronous scan)
     let (games, _) = scanner::scan_directory(base_path, &scanner_config, None)?;
     Ok(games)
-}
-
-/// Start scanning a source (directory) in background
-#[tauri::command]
-pub fn start_source_scan(
-    state: State<AppState>,
-    space_id: String,
-    source_path: String,
-) -> Result<(), String> {
-    state
-        .scanning_service
-        .lock()
-        .map_err(|e| e.to_string())?
-        .start_scan(state.db.clone(), space_id, source_path)
-}
-
-/// Cancel a running scan
-#[tauri::command]
-pub fn cancel_source_scan(
-    state: State<AppState>,
-    space_id: String,
-    source_path: String,
-) -> Result<(), String> {
-    state
-        .scanning_service
-        .lock()
-        .map_err(|e| e.to_string())?
-        .cancel_scan(&state.db, &space_id, &source_path)
-}
-
-/// Get scan status for a source
-#[tauri::command]
-pub fn get_source_scan_status(
-    state: State<AppState>,
-    space_id: String,
-    source_path: String,
-) -> Result<Option<SpaceSource>, String> {
-    state
-        .scanning_service
-        .lock()
-        .map_err(|e| e.to_string())?
-        .get_source_scan_status(&state.db, &space_id, &source_path)
 }
 
 /// Normalize a path for deduplication (canonicalize to resolve symlinks and normalize separators)

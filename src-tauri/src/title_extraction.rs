@@ -1,7 +1,6 @@
 /// Shared title extraction logic used by both scanning implementations.
 /// Provides multi-level fallback strategy for extracting accurate game titles.
 
-use lazy_static::lazy_static;
 use log::debug;
 use regex_lite::Regex;
 use serde_json;

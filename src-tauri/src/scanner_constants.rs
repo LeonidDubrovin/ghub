@@ -14,7 +14,8 @@ pub const MAX_COVER_CANDIDATES: usize = 15;
 pub const MAX_COVER_SEARCH_DEPTH: usize = 3;
 
 /// Maximum depth for searching within subdirectories to find the actual game folder
-pub const MAX_GAME_FOLDER_SEARCH_DEPTH: usize = 2;
+/// (currently unused, reserved for future use)
+pub const _MAX_GAME_FOLDER_SEARCH_DEPTH: usize = 2;
 
 /// Default metadata file names to search for
 pub const BASE_METADATA_FILES: &[&str] = &[

@@ -5,10 +5,8 @@ use crate::models::ScannedGame;
 use crate::title_extraction::{extract_title_with_fallback, read_local_metadata};
 use log::debug;
 use regex::Regex;
-use rusqlite::params;
 use std::collections::HashSet;
 use std::ffi::OsStr;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use walkdir::WalkDir;
@@ -135,7 +133,7 @@ pub fn scan_directory(
             .file_name()
             .and_then(|n: &OsStr| n.to_str())
             .unwrap_or("Unknown");
-        let title = extract_title_with_fallback(
+        let _title = extract_title_with_fallback(
             &game_path,
             dir_name,
             &local_metadata,

@@ -2,19 +2,17 @@ use crate::database::Database;
 use crate::models::{ScannedGame, SpaceSource};
 use crate::scanner::{self, ScanConfig};
 use lazy_static::lazy_static;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use regex::Regex;
 use rusqlite::params;
 use std::collections::HashMap;
-use std::ffi::OsStr;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
 };
 use std::thread;
-use walkdir::WalkDir;
 
 lazy_static! {
     static ref EXE_PATTERNS: Vec<Regex> = {
