@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSourceScanStatus, useStartSourceScan, useCancelSourceScan } from '../hooks/useScanning';
 import { useRemoveSpaceSource } from '../hooks/useSpaces';
@@ -7,7 +8,6 @@ import clsx from 'clsx';
 interface SourceItemProps {
   spaceId: string;
   source: SpaceSource;
-  onRemoved?: () => void;
 }
 
 // Icons
@@ -48,12 +48,14 @@ const AlertIcon = () => (
   </svg>
 );
 
-export default function SourceItem({ spaceId, source, onRemoved }: SourceItemProps) {
+export default function SourceItem({ spaceId, source }: SourceItemProps) {
   const { t } = useTranslation();
-  const { data: scanStatus, isLoading: isStatusLoading } = useSourceScanStatus(spaceId, source.source_path);
+  const { data: scanStatus } = useSourceScanStatus(spaceId, source.source_path);
   const startScan = useStartSourceScan();
   const cancelScan = useCancelSourceScan();
   const removeSource = useRemoveSpaceSource();
+  
+  const [error, setError] = useState<string | null>(null);
   
   const isScanning = scanStatus?.scan_status === 'scanning';
   const isCompleted = scanStatus?.scan_status === 'completed';
@@ -70,9 +72,15 @@ export default function SourceItem({ spaceId, source, onRemoved }: SourceItemPro
   
   const handleRemove = () => {
     if (window.confirm(t('space.confirmRemoveSource', { path: source.source_path }))) {
+      setError(null);
       removeSource.mutate(
         { space_id: spaceId, source_path: source.source_path },
-        { onSuccess: onRemoved }
+        {
+          onError: (err: unknown) => {
+            const message = err instanceof Error ? err.message : String(err);
+            setError(t('space.removeSourceError', { message }) || `Failed to remove source: ${message}`);
+          }
+        }
       );
     }
   };
@@ -124,7 +132,12 @@ export default function SourceItem({ spaceId, source, onRemoved }: SourceItemPro
             {scanStatus.scan_error}
           </div>
         )}
-      </div>
+      {/* Error message */}
+      {error && (
+        <div className="mt-1 text-xs text-danger">
+          {error}
+        </div>
+      )}
       
       {/* Action buttons */}
       <div className="flex items-center gap-1 flex-shrink-0">
@@ -152,7 +165,7 @@ export default function SourceItem({ spaceId, source, onRemoved }: SourceItemPro
           onClick={handleRemove}
           className="p-1.5 rounded hover:bg-surface-100 text-danger"
           title={t('space.removeSource')}
-          disabled={removeSource.isPending}
+          disabled={removeSource.isPending || isScanning}
         >
           <TrashIcon />
         </button>

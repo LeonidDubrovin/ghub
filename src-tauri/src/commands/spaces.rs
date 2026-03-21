@@ -26,8 +26,9 @@ pub fn create_space(state: State<AppState>, request: CreateSpaceRequest) -> Resu
     // If initial_sources provided, add them
     if let Some(sources) = request.initial_sources {
         for source_path in sources {
-            println!("➕ Adding source to space {}: {}", id, source_path);
-            let _ = db.add_space_source(&id, &source_path, true);
+            debug!("Adding source to space {}: {}", id, source_path);
+            db.add_space_source(&id, &source_path, true)
+                .map_err(|e| format!("Failed to add source '{}': {}", source_path, e))?;
         }
     }
 
@@ -56,14 +57,11 @@ pub fn add_space_source(
     source_path: String,
     scan_recursively: Option<bool>,
 ) -> Result<(), String> {
-    println!(
-        "➕ add_space_source: space={}, path={}, recursive={:?}",
-        space_id, source_path, scan_recursively
-    );
+    debug!("add_space_source: space={}, path={}, recursive={:?}", space_id, source_path, scan_recursively);
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.add_space_source(&space_id, &source_path, scan_recursively.unwrap_or(true))
         .map_err(|e| e.to_string())?;
-    println!("   ✅ Source added successfully");
+    debug!("Source added successfully");
     Ok(())
 }
 
@@ -73,10 +71,7 @@ pub fn remove_space_source(
     space_id: String,
     source_path: String,
 ) -> Result<(), String> {
-    println!(
-        "➖ remove_space_source: space={}, path={}",
-        space_id, source_path
-    );
+    debug!("remove_space_source: space={}, path={}", space_id, source_path);
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.remove_space_source(&space_id, &source_path)
         .map_err(|e| e.to_string())?;

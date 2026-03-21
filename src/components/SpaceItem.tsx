@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Space, SpaceSource } from '../types';
+import type { Space } from '../types';
 import clsx from 'clsx';
 import { useSpaceSources } from '../hooks/useSpaces';
 import { useAddSpaceSource } from '../hooks/useSpaces';
@@ -26,11 +26,6 @@ const ChevronDownIcon = () => (
   </svg>
 );
 
-const CheckIcon = () => (
-  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-);
 
 const SteamIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -91,10 +86,6 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
       console.error('Failed to select folder:', err);
     }
   };
-  
-  const handleSourceRemoved = () => {
-    // Optional: refresh or update UI
-  };
 
   const getSpaceIcon = (type: string) => {
     switch (type) {
@@ -107,15 +98,6 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
   const toggleExpand = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsExpanded(prev => !prev);
-  };
-
-  const truncatePath = (path: string, maxLength: number = 30): string => {
-    if (path.length <= maxLength) return path;
-    const parts = path.split(/[\\/]/);
-    if (parts.length <= 2) {
-      return '...' + path.slice(-maxLength);
-    }
-    return '.../' + parts.slice(-2).join('/');
   };
 
   return (
@@ -168,7 +150,6 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
               key={source.source_path}
               spaceId={space.id}
               source={source}
-              onRemoved={handleSourceRemoved}
             />
           ))}
           

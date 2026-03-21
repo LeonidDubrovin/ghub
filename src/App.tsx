@@ -161,14 +161,6 @@ function App() {
     setLastSelectedGameId(gameId);
   };
 
-  const handleSelectAll = () => {
-    if (selectedGameIds.size === filteredGames.length) {
-      setSelectedGameIds(new Set());
-    } else {
-      setSelectedGameIds(new Set(filteredGames.map(g => g.id)));
-    }
-  };
-
   const handleBatchUpdate = () => {
     setShowBatchMetadata(true);
   };

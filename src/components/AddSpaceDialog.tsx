@@ -24,6 +24,7 @@ export default function AddSpaceDialog({ onClose }: AddSpaceDialogProps) {
   const [icon, setIcon] = useState(ICONS[0]);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [isAddingSources, setIsAddingSources] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const handleSelectFolders = async () => {
     try {
@@ -52,9 +53,10 @@ export default function AddSpaceDialog({ onClose }: AddSpaceDialogProps) {
     
     if (!name.trim()) return;
     
+    setError(null);
+    setIsAddingSources(true);
+    
     try {
-      setIsAddingSources(true);
-      
       // Create space first
       const space = await createSpace.mutateAsync({
         name: name.trim(),
@@ -66,21 +68,38 @@ export default function AddSpaceDialog({ onClose }: AddSpaceDialogProps) {
       
       // Add sources if any
       if (selectedPaths.length > 0) {
-        await Promise.all(
-          selectedPaths.map(path => 
+        // Track which sources failed
+        const failedSources: string[] = [];
+        const results = await Promise.all(
+          selectedPaths.map(path =>
             addSpaceSource.mutateAsync({
               space_id: space.id,
               source_path: path,
               scan_recursively: true,
+            }).catch(err => {
+              failedSources.push(path);
+              console.error(`Failed to add source ${path}:`, err);
+              return null;
             })
           )
         );
+        
+        // If any sources failed, show error but don't close dialog
+        if (failedSources.length > 0) {
+          setError(t('space.addSourcesPartialError', {
+            count: failedSources.length,
+            total: selectedPaths.length
+          }) || `Failed to add ${failedSources.length} of ${selectedPaths.length} sources`);
+          setIsAddingSources(false);
+          return;
+        }
       }
       
       onClose();
     } catch (error) {
       console.error('Failed to create space:', error);
-    } finally {
+      const message = error instanceof Error ? error.message : String(error);
+      setError(t('space.createSpaceError', { message }) || `Failed to create space: ${message}`);
       setIsAddingSources(false);
     }
   };
@@ -203,6 +222,13 @@ export default function AddSpaceDialog({ onClose }: AddSpaceDialogProps) {
               </button>
             </div>
           </div>
+          
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 p-3 bg-danger/20 border border-danger/50 rounded-lg text-danger text-sm">
+              ❌ {error}
+            </div>
+          )}
           
           {/* Preview */}
           <div className="p-3 bg-surface-400 rounded-lg">

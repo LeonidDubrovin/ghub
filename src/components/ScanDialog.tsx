@@ -42,13 +42,6 @@ export default function ScanDialog({
   // Load space sources if using space mode
   const { data: spaceSources = [] } = useSpaceSources(targetSpaceId);
   
-  // Auto-scan space sources when switching to that mode and we have active sources
-  useEffect(() => {
-    if (scanMode === 'space_sources' && targetSpaceId) {
-      handleScanSpaceSources();
-    }
-  }, [scanMode, targetSpaceId]);
-  
   const handleSelectFolder = async () => {
     setError(null);
     try {
@@ -272,6 +265,13 @@ export default function ScanDialog({
                   </li>
                 ))}
               </ul>
+              <button
+                onClick={handleScanSpaceSources}
+                disabled={scanSpaceSources.isPending || activeSources.length === 0}
+                className="mt-2 btn btn-primary"
+              >
+                {scanSpaceSources.isPending ? t('scan.scanning') : t('scan.scanNow')}
+              </button>
             </div>
           )}
           

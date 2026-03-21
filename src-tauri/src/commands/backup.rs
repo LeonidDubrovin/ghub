@@ -1,7 +1,6 @@
 use crate::AppState;
 use chrono::Local;
 use std::fs;
-use std::path::PathBuf;
 use tauri::State;
 
 #[tauri::command]

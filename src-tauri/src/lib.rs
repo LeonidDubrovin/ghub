@@ -3,6 +3,8 @@ mod commands;
 mod models;
 mod playtime;
 mod scanning_service;
+mod scanner_constants;
+mod title_extraction;
 pub mod meta_service;
 pub mod metadata;
 

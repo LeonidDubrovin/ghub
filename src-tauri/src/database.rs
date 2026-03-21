@@ -158,45 +158,82 @@ impl Database {
         )?;
 
         // Migration: Add external_link if not exists
-        let _ = self
-            .conn
-            .execute("ALTER TABLE games ADD COLUMN external_link TEXT", []);
+        match self.conn.execute("ALTER TABLE games ADD COLUMN external_link TEXT", []) {
+            Ok(_) => {}
+            Err(e) if e.to_string().contains("duplicate column") => {}
+            Err(e) => return Err(e),
+        }
 
         // Migration: Migrate existing spaces.path to space_sources
         self.migrate_space_paths()?;
 
         // Migration: Add scan tracking columns to space_sources (if missing)
-        let _ = self
+        match self
             .conn
-            .execute("ALTER TABLE space_sources ADD COLUMN scan_status TEXT", []);
-        let _ = self.conn.execute(
+            .execute("ALTER TABLE space_sources ADD COLUMN scan_status TEXT", [])
+        {
+            Ok(_) => {}
+            Err(e) if e.to_string().contains("duplicate column") => {}
+            Err(e) => return Err(e),
+        }
+        match self.conn.execute(
             "ALTER TABLE space_sources ADD COLUMN scan_progress INTEGER DEFAULT 0",
             [],
-        );
-        let _ = self.conn.execute(
+        ) {
+            Ok(_) => {}
+            Err(e) if e.to_string().contains("duplicate column") => {}
+            Err(e) => return Err(e),
+        }
+        match self.conn.execute(
             "ALTER TABLE space_sources ADD COLUMN scan_total INTEGER DEFAULT 0",
             [],
-        );
-        let _ = self
+        ) {
+            Ok(_) => {}
+            Err(e) if e.to_string().contains("duplicate column") => {}
+            Err(e) => return Err(e),
+        }
+        match self
             .conn
-            .execute("ALTER TABLE space_sources ADD COLUMN scan_error TEXT", []);
-        let _ = self.conn.execute(
+            .execute("ALTER TABLE space_sources ADD COLUMN scan_error TEXT", [])
+        {
+            Ok(_) => {}
+            Err(e) if e.to_string().contains("duplicate column") => {}
+            Err(e) => return Err(e),
+        }
+        match self.conn.execute(
             "ALTER TABLE space_sources ADD COLUMN scan_started_at TEXT",
             [],
-        );
-        let _ = self.conn.execute(
+        ) {
+            Ok(_) => {}
+            Err(e) if e.to_string().contains("duplicate column") => {}
+            Err(e) => return Err(e),
+        }
+        match self.conn.execute(
             "ALTER TABLE space_sources ADD COLUMN scan_completed_at TEXT",
             [],
-        );
+        ) {
+            Ok(_) => {}
+            Err(e) if e.to_string().contains("duplicate column") => {}
+            Err(e) => return Err(e),
+        }
 
         // Migration: Add status and fingerprint to installs
-        let _ = self.conn.execute(
+        match self.conn.execute(
             "ALTER TABLE installs ADD COLUMN status TEXT DEFAULT 'installed'",
             [],
-        );
-        let _ = self
+        ) {
+            Ok(_) => {}
+            Err(e) if e.to_string().contains("duplicate column") => {}
+            Err(e) => return Err(e),
+        }
+        match self
             .conn
-            .execute("ALTER TABLE installs ADD COLUMN fingerprint TEXT", []);
+            .execute("ALTER TABLE installs ADD COLUMN fingerprint TEXT", [])
+        {
+            Ok(_) => {}
+            Err(e) if e.to_string().contains("duplicate column") => {}
+            Err(e) => return Err(e),
+        }
 
         // Migration: Create index for installs status queries
         self.conn.execute(
@@ -587,6 +624,107 @@ impl Database {
                 install_fingerprint: row.get(25).ok(),
             })
         })
+    }
+
+    /// Find a game by its fingerprint (title + developer)
+    /// Returns the first match if found (case-insensitive)
+    pub fn get_game_by_fingerprint(
+        &self,
+        title: &str,
+        developer: Option<&str>,
+    ) -> Result<Option<Game>> {
+        // Build query: match title (case-insensitive) and developer if provided
+        let mut stmt = if let Some(dev) = developer {
+            self.conn.prepare(
+                "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
+                        g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,
+                        g.times_launched, g.is_favorite, g.is_hidden, g.completion_status, g.user_rating,
+                        g.added_at, g.updated_at, g.external_link
+                 FROM games g
+                 WHERE g.title = ? COLLATE NOCASE AND g.developer = ? COLLATE NOCASE
+                 LIMIT 1"
+            )?
+        } else {
+            self.conn.prepare(
+                "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
+                        g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,
+                        g.times_launched, g.is_favorite, g.is_hidden, g.completion_status, g.user_rating,
+                        g.added_at, g.updated_at, g.external_link
+                 FROM games g
+                 WHERE g.title = ? COLLATE NOCASE
+                 LIMIT 1"
+            )?
+        };
+
+        let result = if let Some(dev) = developer {
+            stmt.query_row(params![title, dev], |row| {
+                Ok(Game {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    sort_title: row.get(2)?,
+                    description: row.get(3)?,
+                    release_date: row.get(4)?,
+                    developer: row.get(5)?,
+                    publisher: row.get(6)?,
+                    cover_image: row.get(7)?,
+                    background_image: row.get(8)?,
+                    total_playtime_seconds: row.get(9)?,
+                    last_played_at: row.get(10)?,
+                    times_launched: row.get(11)?,
+                    is_favorite: row.get::<_, i32>(12)? == 1,
+                    is_hidden: row.get::<_, i32>(13)? == 1,
+                    completion_status: row.get(14)?,
+                    user_rating: row.get(15)?,
+                    added_at: row.get(16)?,
+                    updated_at: row.get(17)?,
+                    external_link: row.get(18).ok(),
+                    space_id: None,
+                    space_name: None,
+                    space_type: None,
+                    install_path: None,
+                    executable_path: None,
+                    install_status: None,
+                    install_fingerprint: None,
+                })
+            })
+        } else {
+            stmt.query_row([title], |row| {
+                Ok(Game {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    sort_title: row.get(2)?,
+                    description: row.get(3)?,
+                    release_date: row.get(4)?,
+                    developer: row.get(5)?,
+                    publisher: row.get(6)?,
+                    cover_image: row.get(7)?,
+                    background_image: row.get(8)?,
+                    total_playtime_seconds: row.get(9)?,
+                    last_played_at: row.get(10)?,
+                    times_launched: row.get(11)?,
+                    is_favorite: row.get::<_, i32>(12)? == 1,
+                    is_hidden: row.get::<_, i32>(13)? == 1,
+                    completion_status: row.get(14)?,
+                    user_rating: row.get(15)?,
+                    added_at: row.get(16)?,
+                    updated_at: row.get(17)?,
+                    external_link: row.get(18).ok(),
+                    space_id: None,
+                    space_name: None,
+                    space_type: None,
+                    install_path: None,
+                    executable_path: None,
+                    install_status: None,
+                    install_fingerprint: None,
+                })
+            })
+        };
+
+        match result {
+            Ok(game) => Ok(Some(game)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e),
+        }
     }
 
     pub fn update_game(
@@ -1162,28 +1300,34 @@ impl Database {
 
     /// Get all installs for a specific source (by path prefix)
     /// This finds all installs where install_path starts with the source_path
+    /// Uses range query (>= and <) for reliable prefix matching across platforms
     pub fn get_installs_for_source(
         &self,
         space_id: &str,
         source_path: &str,
     ) -> Result<Vec<Install>> {
-        // Ensure pattern matches only subdirectories of the source path
-        let pattern = if source_path.ends_with('/') || source_path.ends_with('\\') {
-            format!("{}%", source_path)
+        // Build prefix that ensures we only match subdirectories of source_path
+        // We want install_path that starts with "source_path" followed by a separator
+        let prefix = if source_path.ends_with('/') || source_path.ends_with('\\') {
+            source_path.to_string()
         } else {
-            // Append the appropriate path separator for the platform
-            let sep = std::path::MAIN_SEPARATOR;
-            format!("{}{}%", source_path, sep)
+            format!("{}{}", source_path, std::path::MAIN_SEPARATOR)
         };
+        
+        // Use range query: >= prefix and < prefix + highest possible char
+        // This is equivalent to "install_path LIKE 'prefix%'" but handles
+        // backslashes correctly on Windows and is case-insensitive if needed
+        let prefix_end = format!("{}~", prefix); // '~' is high ASCII, works for prefix range
+        
         let mut stmt = self.conn.prepare(
             "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments,
                     working_directory, status, version, install_size_bytes, installed_at, fingerprint
              FROM installs
-             WHERE space_id = ? AND install_path LIKE ?"
+             WHERE space_id = ? AND install_path >= ? AND install_path < ?"
         )?;
 
         let installs = stmt
-            .query_map(params![space_id, pattern], |row| {
+            .query_map(params![space_id, prefix, prefix_end], |row| {
                 Ok(Install {
                     id: row.get(0)?,
                     game_id: row.get(1)?,
