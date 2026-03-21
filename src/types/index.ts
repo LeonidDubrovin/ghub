@@ -19,8 +19,8 @@ export interface SpaceSource {
   scan_recursively: boolean;
   last_scanned_at?: string;
   exclude_patterns?: string[];
-  // Scan status fields
-  scan_status?: 'idle' | 'scanning' | 'completed' | 'error';
+  // Scan status - always set explicitly, never undefined
+  scan_status: 'idle' | 'scanning' | 'completed' | 'error';
   scan_progress?: number;
   scan_total?: number;
   scan_error?: string;

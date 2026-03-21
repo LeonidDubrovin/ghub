@@ -1355,3 +1355,207 @@ pub struct ActiveSessionRow {
     pub game_id: String,
     pub accumulated_seconds: i64,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    /// Helper: create a temporary test database
+    fn create_test_db() -> Result<Database> {
+        let temp_dir = std::env::temp_dir();
+        let db_path = temp_dir.join("test_ghub.db");
+        // Clean up if exists
+        let _ = fs::remove_file(&db_path);
+        let db = Database::new(&db_path)?;
+        Ok(db)
+    }
+
+    #[test]
+    fn test_get_installs_for_source_range_query() {
+        let db = create_test_db().expect("Failed to create test db");
+
+        // Create a space
+        let space_id = "test_space".to_string();
+        let source_path = "C:\\Games\\"; // Windows path with trailing separator
+
+        // Insert test installs with various paths
+        let installs = vec![
+            ("C:\\Games\\Game1", "inst1"),
+            ("C:\\Games\\Game1\\SubDir", "inst2"),
+            ("C:\\Games\\Game2", "inst3"),
+            ("C:\\GamesOther", "inst4"), // Should NOT match (not under source)
+            ("D:\\Games\\Game3", "inst5"), // Should NOT match (different drive)
+        ];
+
+        for (path, id) in installs {
+            let game_id = format!("game_{}", id);
+            // Insert game first
+            let _ = db.conn.execute(
+                "INSERT INTO games (id, title) VALUES (?, ?)",
+                params![game_id, id],
+            );
+            // Insert install
+            let _ = db.conn.execute(
+                "INSERT INTO installs (id, game_id, space_id, install_path, status) VALUES (?, ?, ?, ?, ?)",
+                params![id, game_id, space_id, path, "installed"],
+            );
+        }
+
+        // Query installs for source
+        let result = db.get_installs_for_source(&space_id, source_path).unwrap();
+
+        // Should return only installs under C:\Games\
+        assert_eq!(result.len(), 3, "Should find 3 installs under source path");
+
+        let paths: Vec<&str> = result.iter().map(|i| i.install_path.as_str()).collect();
+        assert!(paths.contains(&"C:\\Games\\Game1"));
+        assert!(paths.contains(&"C:\\Games\\Game1\\SubDir"));
+        assert!(paths.contains(&"C:\\Games\\Game2"));
+        assert!(!paths.contains(&"C:\\GamesOther"));
+        assert!(!paths.contains(&"D:\\Games\\Game3"));
+    }
+
+    #[test]
+    fn test_get_installs_for_source_unix_paths() {
+        let db = create_test_db().expect("Failed to create test db");
+
+        let space_id = "test_space_unix".to_string();
+        let source_path = "/home/games/"; // Unix path with trailing separator
+
+        let installs = vec![
+            ("/home/games/Game1", "inst1"),
+            ("/home/games/Game1/subdir", "inst2"),
+            ("/home/games/Game2", "inst3"),
+            ("/home/games_other", "inst4"), // Should NOT match
+            ("/var/games/Game3", "inst5"), // Should NOT match
+        ];
+
+        for (path, id) in installs {
+            let game_id = format!("game_{}", id);
+            let _ = db.conn.execute(
+                "INSERT INTO games (id, title) VALUES (?, ?)",
+                params![game_id, id],
+            );
+            let _ = db.conn.execute(
+                "INSERT INTO installs (id, game_id, space_id, install_path, status) VALUES (?, ?, ?, ?, ?)",
+                params![id, game_id, space_id, path, "installed"],
+            );
+        }
+
+        let result = db.get_installs_for_source(&space_id, source_path).unwrap();
+
+        assert_eq!(result.len(), 3);
+        let paths: Vec<&str> = result.iter().map(|i| i.install_path.as_str()).collect();
+        assert!(paths.contains(&"/home/games/Game1"));
+        assert!(paths.contains(&"/home/games/Game1/subdir"));
+        assert!(paths.contains(&"/home/games/Game2"));
+        assert!(!paths.contains(&"/home/games_other"));
+        assert!(!paths.contains(&"/var/games/Game3"));
+    }
+
+    #[test]
+    fn test_get_game_by_fingerprint() {
+        let db = create_test_db().expect("Failed to create test db");
+
+        // Insert test games
+        let game1_id = "game1".to_string();
+        let game2_id = "game2".to_string();
+        let game3_id = "game3".to_string();
+
+        let _ = db.conn.execute(
+            "INSERT INTO games (id, title, developer) VALUES (?, ?, ?)",
+            params![game1_id, "My Game", "MyDev"],
+        );
+        let _ = db.conn.execute(
+            "INSERT INTO games (id, title, developer) VALUES (?, ?, ?)",
+            params![game2_id, "My Game", "OtherDev"],
+        );
+        let _ = db.conn.execute(
+            "INSERT INTO games (id, title, developer) VALUES (?, ?, ?)",
+            params![game3_id, "My Game", None::<String>],
+        );
+
+        // Test 1: Match with both title and developer (case-insensitive)
+        let result = db.get_game_by_fingerprint("my game", Some("mydev")).unwrap();
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().id, game1_id);
+
+        // Test 2: Match with title only (should return first match)
+        let result = db.get_game_by_fingerprint("my game", None).unwrap();
+        assert!(result.is_some());
+        // Should return first game with that title (game1)
+        assert_eq!(result.unwrap().id, game1_id);
+
+        // Test 3: Different developer returns None
+        let result = db.get_game_by_fingerprint("my game", Some("otherdev")).unwrap();
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().id, game2_id);
+
+        // Test 4: Non-existent game returns None
+        let result = db.get_game_by_fingerprint("nonexistent", None).unwrap();
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_get_game_by_fingerprint_case_insensitive() {
+        let db = create_test_db().expect("Failed to create test db");
+
+        let game_id = "game1".to_string();
+        let _ = db.conn.execute(
+            "INSERT INTO games (id, title, developer) VALUES (?, ?, ?)",
+            params![game_id, "MyGame", "MyDev"],
+        );
+
+        // Test various case combinations
+        let cases = vec![
+            ("mygame", Some("mydev")),
+            ("MYGAME", Some("MYDEV")),
+            ("MyGame", Some("MyDev")),
+            ("mYgAmE", Some("mYdEv")),
+        ];
+
+        for (title, dev) in cases {
+            let result = db.get_game_by_fingerprint(title, dev).unwrap();
+            assert!(result.is_some(), "Should match case-insensitively for {:?}", (title, dev));
+            assert_eq!(result.unwrap().id, game_id);
+        }
+    }
+
+    #[test]
+    fn test_get_installs_for_source_path_edge_cases() {
+        let db = create_test_db().expect("Failed to create test db");
+
+        // Test with path without trailing separator
+        let space_id = "test_edge".to_string();
+        let source_path = "C:\\Games"; // No trailing separator
+
+        let installs = vec![
+            ("C:\\Games\\Game1", "inst1"),
+            ("C:\\Games\\Game1\\SubDir", "inst2"),
+            ("C:\\GamesBeta\\Game3", "inst3"), // Should NOT match (prefix but not subdirectory)
+        ];
+
+        for (path, id) in installs {
+            let game_id = format!("game_{}", id);
+            let _ = db.conn.execute(
+                "INSERT INTO games (id, title) VALUES (?, ?)",
+                params![game_id, id],
+            );
+            let _ = db.conn.execute(
+                "INSERT INTO installs (id, game_id, space_id, install_path, status) VALUES (?, ?, ?, ?, ?)",
+                params![id, game_id, space_id, path, "installed"],
+            );
+        }
+
+        let result = db.get_installs_for_source(&space_id, source_path).unwrap();
+
+        // Should only match paths that have a separator after the prefix
+        assert_eq!(result.len(), 2);
+        let paths: Vec<&str> = result.iter().map(|i| i.install_path.as_str()).collect();
+        assert!(paths.contains(&"C:\\Games\\Game1"));
+        assert!(paths.contains(&"C:\\Games\\Game1\\SubDir"));
+        assert!(!paths.contains(&"C:\\GamesBeta\\Game3"));
+    }
+}
+

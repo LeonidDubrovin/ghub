@@ -1,6 +1,6 @@
 use crate::database::Database;
 use crate::models::{ScannedGame, SpaceSource};
-use crate::title_extraction::{extract_title_with_fallback, read_local_metadata};
+use crate::scanner::{self, ScanConfig};
 use lazy_static::lazy_static;
 use log::{debug, error, info, warn};
 use regex::Regex;
@@ -51,6 +51,8 @@ pub struct ScanningService {
 }
 
 impl ScanningService {
+    /// Lock ordering policy: Always acquire `active_scans` before `db` to prevent deadlocks.
+    /// All methods must follow this order when both locks are needed.
     pub fn new() -> Self {
         Self {
             active_scans: Arc::new(Mutex::new(HashMap::new())),
@@ -115,7 +117,13 @@ impl ScanningService {
                 }
                 Err(panic) => {
                     error!("Scan thread panicked for {}: {:?}", key_for_cleanup, panic);
-                    
+
+                    // Remove from active_scans FIRST (lock ordering: active_scans before db)
+                    if let Ok(mut active_scans) = active_scans_clone.lock() {
+                        active_scans.remove(&key_for_cleanup);
+                        debug!("Cleaned up scan key after panic: {}", key_for_cleanup);
+                    }
+
                     // Attempt to clear scan status in DB
                     if let Ok(db_lock) = db_clone.lock() {
                         let _ = db_lock.set_source_scan_status(
@@ -126,12 +134,6 @@ impl ScanningService {
                             None,
                             Some("Scan thread panicked - check logs"),
                         );
-                    }
-                    
-                    // Remove from active_scans (if still present)
-                    if let Ok(mut active_scans) = active_scans_clone.lock() {
-                        active_scans.remove(&key_for_cleanup);
-                        debug!("Cleaned up scan key after panic: {}", key_for_cleanup);
                     }
                 }
             }
@@ -405,123 +407,64 @@ impl ScanningService {
             }
         }
 
+        // Remove from active scans FIRST (lock ordering: active_scans before db)
+        let key = format!("{}:{}", space_id, source_path);
+        let mut active_scans = active_scans.lock().unwrap();
+        active_scans.remove(&key);
+        // Drop active_scans lock before acquiring db
+        drop(active_scans);
+
         // Update last_scanned_at timestamp
         if let Ok(db_lock) = db.lock() {
             if let Err(e) = db_lock.update_source_last_scanned(&space_id, &source_path) {
                 error!("Failed to update last_scanned_at for {}: {}", source_path, e);
             }
         }
-
-        // Remove from active scans
-        let key = format!("{}:{}", space_id, source_path);
-        let mut active_scans = active_scans.lock().unwrap();
-        active_scans.remove(&key);
     }
 
-    /// Perform the actual directory scan
+    /// Perform the actual directory scan using shared scanner
     fn perform_scan(
         path: &Path,
         source: &SpaceSource,
         cancel_flag: &AtomicBool,
     ) -> Result<(Vec<ScannedGame>, usize), String> {
-        let mut games = Vec::new();
-        let mut scanned_dirs = std::collections::HashSet::new();
-
-        let max_depth = if source.scan_recursively { crate::scanner_constants::MAX_SCAN_DEPTH } else { 1 };
-
-        for entry in WalkDir::new(path)
-            .max_depth(max_depth)
-            .into_iter()
-            .filter_map(|e| e.ok())
-        {
-            if cancel_flag.load(Ordering::SeqCst) {
-                return Err("Scan cancelled".to_string());
-            }
-
-            let entry_path = entry.path();
-            if !entry_path.is_dir() {
-                continue;
-            }
-
-            // Normalize path
-            let normalized = entry_path.to_string_lossy().to_string();
-            if scanned_dirs.contains(&normalized) {
-                continue;
-            }
-            scanned_dirs.insert(normalized);
-
-            // Skip non-game folders
-            let dir_name = entry_path
-                .file_name()
-                .and_then(|n: &OsStr| n.to_str())
-                .unwrap_or("")
-                .to_lowercase();
-
-            if Self::is_folder_excluded(&dir_name) {
-                debug!("Skipping excluded folder: {}", entry_path.display());
-                continue;
-            }
-
-            // Check if directory has executables
-            if !Self::has_executable_files(entry_path) {
-                continue;
-            }
-
-            debug!("Found game folder: {}", entry_path.display());
-
-            // Find actual game folder (dive deeper if needed)
-            let game_path = Self::find_actual_game_folder(entry_path);
-            debug!("Game folder resolved to: {}", game_path.display());
-
-            // Read local metadata
-            let metadata_files: Vec<String> = crate::scanner_constants::BASE_METADATA_FILES
+        // Build config from constants (background service uses fixed config)
+        let config = ScanConfig {
+            max_scan_depth: if source.scan_recursively {
+                crate::scanner_constants::MAX_SCAN_DEPTH
+            } else {
+                1
+            },
+            max_exe_search_depth: crate::scanner_constants::MAX_EXE_SEARCH_DEPTH,
+            max_cover_candidates: crate::scanner_constants::MAX_COVER_CANDIDATES,
+            max_cover_search_depth: crate::scanner_constants::MAX_COVER_SEARCH_DEPTH,
+            base_exe_exclusions: crate::scanner_constants::BASE_EXE_EXCLUSIONS
+                .iter()
+                .map(|&s| Regex::new(s).unwrap())
+                .collect(),
+            extra_exe_exclusions: Vec::new(),
+            base_folder_exclusions: crate::scanner_constants::BASE_FOLDER_EXCLUSIONS
+                .iter()
+                .map(|&s| Regex::new(s).unwrap())
+                .collect(),
+            extra_folder_exclusions: Vec::new(),
+            base_image_extensions: crate::scanner_constants::BASE_IMAGE_EXTENSIONS
                 .iter()
                 .map(|&s| s.to_string())
-                .collect();
-            let local_metadata = read_local_metadata(&game_path, &metadata_files);
+                .collect(),
+            extra_image_extensions: Vec::new(),
+            base_metadata_files: crate::scanner_constants::BASE_METADATA_FILES
+                .iter()
+                .map(|&s| s.to_string())
+                .collect(),
+            extra_metadata_files: Vec::new(),
+            cover_search_paths: crate::scanner_constants::BASE_COVER_SEARCH_PATHS
+                .iter()
+                .map(|&s| s.to_string())
+                .collect(),
+        };
 
-            // Extract title with multi-level fallback strategy
-            let dir_name = game_path
-                .file_name()
-                .and_then(|n: &OsStr| n.to_str())
-                .unwrap_or("Unknown");
-            let title = extract_title_with_fallback(
-                &game_path,
-                dir_name,
-                &local_metadata,
-                &exe_metadata,
-                &executable,
-            );
-
-            // Find executables
-            let all_executables = Self::find_all_executables(&game_path);
-            let executable = Self::pick_best_executable(&game_path, &all_executables);
-
-            // Find covers
-            let cover_candidates = Self::find_cover_candidates(&game_path);
-
-            // Calculate size
-            let size_bytes = Self::calculate_dir_size(&game_path);
-
-            // Extract exe metadata
-            let exe_metadata = executable
-                .as_ref()
-                .and_then(|exe| Self::extract_exe_metadata(&game_path.join(exe)));
-
-            games.push(ScannedGame {
-                path: game_path.to_string_lossy().to_string(),
-                title,
-                executable,
-                all_executables,
-                size_bytes,
-                icon_path: None,
-                cover_candidates,
-                exe_metadata,
-            });
-        }
-
-        let games_count = games.len();
-        Ok((games, games_count))
+        scanner::scan_directory(path, &config, Some(cancel_flag))
     }
 
     /// Compute fingerprint for a scanned game
@@ -544,405 +487,6 @@ impl ScanningService {
         // Fallback: use title only (size can fluctuate due to logs/caches)
         // If no executable found, we rely on title which is more stable than folder size
         scanned_game.title.clone()
-    }
-
-    // Helper methods (similar to existing scanning.rs)
-
-    fn is_folder_excluded(dir_name: &str) -> bool {
-        let folder_patterns: Vec<Regex> = crate::scanner_constants::BASE_FOLDER_EXCLUSIONS
-            .iter()
-            .map(|s| Regex::new(s).unwrap())
-            .collect();
-
-        folder_patterns.iter().any(|re| re.is_match(dir_name))
-    }
-
-    fn has_executable_files(dir: &Path) -> bool {
-        std::fs::read_dir(dir)
-            .map(|entries| {
-                entries.filter_map(|e| e.ok()).any(|entry| {
-                    let path = entry.path();
-                    if path.is_file() {
-                        if let Some(ext) = path.extension() {
-                            let ext_str = ext.to_str().unwrap_or("").to_lowercase();
-                            return ext_str == "exe" || ext_str == "lnk" || ext_str == "bat";
-                        }
-                    }
-                    false
-                })
-            })
-            .unwrap_or(false)
-    }
-
-    fn find_actual_game_folder(dir: &Path) -> PathBuf {
-        if Self::has_exe_files(dir) {
-            return dir.to_path_buf();
-        }
-
-        // Search subdirectories up to configured depth
-        if let Some(found) = Self::find_folder_with_exe(dir, crate::scanner_constants::MAX_GAME_FOLDER_SEARCH_DEPTH as u32) {
-            return found;
-        }
-
-        dir.to_path_buf()
-    }
-
-    fn has_exe_files(dir: &Path) -> bool {
-        let result = std::fs::read_dir(dir)
-            .map(|entries| {
-                entries.filter_map(|e| e.ok()).any(|entry| {
-                    let path = entry.path();
-                    path.is_file()
-                        && path
-                            .extension()
-                            .map(|ext| {
-                                ext.eq_ignore_ascii_case("exe") || ext.eq_ignore_ascii_case("bat")
-                            })
-                            .unwrap_or(false)
-                })
-            })
-            .unwrap_or(false);
-        result
-    }
-
-    fn find_folder_with_exe(dir: &Path, max_depth: u32) -> Option<PathBuf> {
-        if max_depth == 0 {
-            return None;
-        }
-
-        let entries: Vec<_> = std::fs::read_dir(dir)
-            .ok()?
-            .filter_map(|e| e.ok())
-            .filter(|e| e.path().is_dir())
-            .collect();
-
-        for entry in &entries {
-            let subdir = entry.path();
-            let dir_name = subdir
-                .file_name()
-                .and_then(|n: &OsStr| n.to_str())
-                .unwrap_or("")
-                .to_lowercase();
-
-            if Self::is_folder_excluded(&dir_name) {
-                continue;
-            }
-
-            if Self::has_exe_files(&subdir) {
-                return Some(subdir);
-            }
-        }
-
-        for entry in &entries {
-            let subdir = entry.path();
-            let dir_name = subdir
-                .file_name()
-                .and_then(|n: &OsStr| n.to_str())
-                .unwrap_or("")
-                .to_lowercase();
-
-            if Self::is_folder_excluded(&dir_name) {
-                continue;
-            }
-
-            if let Some(found) = Self::find_folder_with_exe(&subdir, max_depth - 1) {
-                return Some(found);
-            }
-        }
-
-        None
-    }
-
-    fn find_all_executables(dir: &Path) -> Vec<String> {
-        let mut executables = Vec::new();
-        let max_depth = crate::scanner_constants::MAX_EXE_SEARCH_DEPTH;
-
-        for entry in WalkDir::new(dir)
-            .max_depth(max_depth)
-            .into_iter()
-            .filter_map(|e| e.ok())
-        {
-            let path = entry.path();
-
-            if path.is_file() {
-                if let Some(ext) = path.extension() {
-                    let ext_str = ext.to_str().unwrap_or("").to_lowercase();
-
-                    if ext_str == "exe" || ext_str == "lnk" || ext_str == "bat" {
-                        let name = path
-                            .file_name()
-                            .and_then(|n: &OsStr| n.to_str())
-                            .unwrap_or("")
-                            .to_string();
-
-                        let name_lower = name.to_lowercase();
-
-                        // Skip known non-game executables
-                        let should_skip = EXE_PATTERNS.iter().any(|re| re.is_match(&name_lower));
-
-                        if !should_skip && !name.is_empty() {
-                            let relative = path
-                                .strip_prefix(dir)
-                                .map(|p| p.to_string_lossy().to_string())
-                                .unwrap_or(name);
-                            executables.push(relative);
-                        }
-                    }
-                }
-            }
-        }
-
-        executables.sort();
-        executables.dedup();
-        executables
-    }
-
-    fn pick_best_executable(dir: &Path, executables: &[String]) -> Option<String> {
-        if executables.is_empty() {
-            return None;
-        }
-
-        let dir_name = dir.file_name()?.to_str()?.to_lowercase();
-
-        // Priority 1: exe with same name as folder
-        for exe in executables {
-            let exe_stem = Path::new(exe)
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("")
-                .to_lowercase();
-
-            if exe_stem == dir_name || dir_name.contains(&exe_stem) || exe_stem.contains(&dir_name)
-            {
-                debug!(
-                    "[pick_best] Priority 1 match: '{}' matches folder '{}'",
-                    exe, dir_name
-                );
-                return Some(exe.clone());
-            }
-        }
-
-        // Priority 2: exe in root folder
-        for exe in executables {
-            if !exe.contains('\\') && !exe.contains('/') {
-                debug!("[pick_best] Priority 2 match: '{}' is in root", exe);
-                return Some(exe.clone());
-            }
-        }
-
-        // Priority 3: largest exe file
-        let mut best: Option<(String, u64)> = None;
-        for exe in executables {
-            let full_path = dir.join(exe);
-            if let Ok(meta) = std::fs::metadata(&full_path) {
-                let size = meta.len();
-                if best.is_none() || size > best.as_ref().unwrap().1 {
-                    best = Some((exe.clone(), size));
-                }
-            }
-        }
-
-        best.map(|(exe, _)| exe)
-    }
-
-    fn find_cover_candidates(dir: &Path) -> Vec<String> {
-        let mut candidates = Vec::new();
-        let mut seen = std::collections::HashSet::new();
-
-        let cover_search_paths: Vec<String> = crate::scanner_constants::BASE_COVER_SEARCH_PATHS
-            .iter()
-            .map(|&s| s.to_string())
-            .collect();
-
-        let image_extensions: Vec<String> = crate::scanner_constants::BASE_IMAGE_EXTENSIONS
-            .iter()
-            .map(|&s| s.to_string())
-            .collect();
-
-        let mut search_paths = vec![dir.to_path_buf()];
-        for subdir in &cover_search_paths {
-            search_paths.push(dir.join(subdir));
-        }
-
-        for search_path in &search_paths {
-            if !search_path.exists() {
-                continue;
-            }
-
-            for entry in WalkDir::new(search_path)
-                .max_depth(crate::scanner_constants::MAX_COVER_SEARCH_DEPTH)
-                .into_iter()
-                .filter_map(|e| e.ok())
-            {
-                let path = entry.path();
-                if !path.is_file() {
-                    continue;
-                }
-
-                let ext = path
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .map(|e| e.to_lowercase())
-                    .unwrap_or_default();
-
-                if !image_extensions.iter().any(|&ext_ok| ext_ok == ext) {
-                    continue;
-                }
-
-                let name = path
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("")
-                    .to_lowercase();
-
-                let cover_keywords = [
-                    "cover",
-                    "poster",
-                    "banner",
-                    "icon",
-                    "logo",
-                    "header",
-                    "art",
-                    "thumb",
-                    "image",
-                    "box",
-                    "front",
-                    "back",
-                    "screenshot",
-                    "promo",
-                    "keyart",
-                    "key_art",
-                    "key-art",
-                    "capsule",
-                    "library",
-                    "hero",
-                    "background",
-                    "bg",
-                    "wallpaper",
-                    "tile",
-                ];
-                let is_cover_like = cover_keywords.iter().any(|kw| name.contains(kw));
-
-                let relative = path
-                    .strip_prefix(dir)
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|_| path.to_string_lossy().to_string());
-
-                if seen.insert(relative.clone()) {
-                    if is_cover_like {
-                        candidates.insert(0, relative);
-                    } else {
-                        candidates.push(relative);
-                    }
-                }
-            }
-        }
-
-        candidates.truncate(crate::scanner_constants::MAX_COVER_CANDIDATES as usize);
-        candidates
-    }
-
-    fn calculate_dir_size(dir: &Path) -> u64 {
-        WalkDir::new(dir)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| e.file_type().is_file())
-            .filter_map(|e| e.metadata().ok())
-            .map(|m| m.len())
-            .sum()
-    }
-
-    #[cfg(target_os = "windows")]
-    fn extract_exe_metadata(exe_path: &Path) -> Option<crate::models::ExeMetadata> {
-        use std::ffi::OsStr;
-        use std::os::windows::ffi::OsStrExt;
-        use windows_sys::Win32::Storage::FileSystem::{
-            GetFileVersionInfoSizeW, GetFileVersionInfoW,
-        };
-
-        if !exe_path.exists() {
-            return None;
-        }
-
-        let path_wide: Vec<u16> = OsStr::new(exe_path)
-            .encode_wide()
-            .chain(std::iter::once(0))
-            .collect();
-
-        unsafe {
-            let size = GetFileVersionInfoSizeW(path_wide.as_ptr(), std::ptr::null_mut());
-            if size == 0 {
-                return None;
-            }
-
-            let mut buffer = vec![0u8; size as usize];
-            if GetFileVersionInfoW(path_wide.as_ptr(), 0, size, buffer.as_mut_ptr() as *mut _) == 0
-            {
-                return None;
-            }
-
-            let mut metadata = crate::models::ExeMetadata {
-                product_name: None,
-                company_name: None,
-                file_description: None,
-                file_version: None,
-            };
-
-            metadata.product_name = Self::query_version_string(&buffer, "ProductName");
-            metadata.company_name = Self::query_version_string(&buffer, "CompanyName");
-            metadata.file_description = Self::query_version_string(&buffer, "FileDescription");
-            metadata.file_version = Self::query_version_string(&buffer, "FileVersion");
-
-            if metadata.product_name.is_some() || metadata.company_name.is_some() {
-                Some(metadata)
-            } else {
-                None
-            }
-        }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    fn extract_exe_metadata(_exe_path: &Path) -> Option<crate::models::ExeMetadata> {
-        None
-    }
-
-    fn query_version_string(buffer: &[u8], name: &str) -> Option<String> {
-        use std::ffi::OsStr;
-        use std::os::windows::ffi::OsStrExt;
-        use windows_sys::Win32::Storage::FileSystem::VerQueryValueW;
-
-        let lang_codepages = ["040904B0", "040904E4", "000004B0", "040904E4"];
-
-        for lc in &lang_codepages {
-            let query = format!("\\StringFileInfo\\{}\\{}", lc, name);
-            let query_wide: Vec<u16> = OsStr::new(&query)
-                .encode_wide()
-                .chain(std::iter::once(0))
-                .collect();
-
-            unsafe {
-                let mut ptr: *mut u16 = std::ptr::null_mut();
-                let mut len: u32 = 0;
-
-                if VerQueryValueW(
-                    buffer.as_ptr() as *const _,
-                    query_wide.as_ptr(),
-                    &mut ptr as *mut _ as *mut *mut _,
-                    &mut len,
-                ) != 0
-                    && len > 0
-                {
-                    let slice = std::slice::from_raw_parts(ptr, len as usize);
-                    let end = slice.iter().position(|&c| c == 0).unwrap_or(slice.len());
-                    let result = String::from_utf16_lossy(&slice[..end]);
-                    if !result.is_empty() {
-                        return Some(result);
-                    }
-                }
-            }
-        }
-
-        None
     }
 
 }

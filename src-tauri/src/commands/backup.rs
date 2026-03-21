@@ -12,6 +12,11 @@ pub fn backup_database(state: State<AppState>) -> Result<String, String> {
     let backup_dir = db_path.parent().ok_or("Invalid db path")?.join("backups");
     fs::create_dir_all(&backup_dir).map_err(|e| e.to_string())?;
 
+    // Verify backup directory is writable
+    let test_file = backup_dir.join(".write_test");
+    fs::write(&test_file, "test").map_err(|e| format!("Backup directory is not writable: {}", e))?;
+    fs::remove_file(&test_file).map_err(|e| format!("Failed to clean up test file: {}", e))?;
+
     // Generate timestamped backup filename
     let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
     let backup_filename = format!("ghub_{}.db", timestamp);
