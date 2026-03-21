@@ -70,7 +70,7 @@ export default function AddSpaceDialog({ onClose }: AddSpaceDialogProps) {
       if (selectedPaths.length > 0) {
         // Track which sources failed
         const failedSources: string[] = [];
-        const results = await Promise.all(
+        await Promise.all(
           selectedPaths.map(path =>
             addSpaceSource.mutateAsync({
               space_id: space.id,
