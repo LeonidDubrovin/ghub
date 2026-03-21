@@ -77,7 +77,12 @@
     "folderAlreadyAdded": "This folder is already added",
     "activeSources": "active sources",
     "expandSources": "Expand sources",
-    "collapseSources": "Collapse sources"
+    "collapseSources": "Collapse sources",
+    "scanning": "Scanning...",
+    "cancelScan": "Cancel scan",
+    "startScan": "Start scan",
+    "addSource": "Add source",
+    "addFolder": "Add folder"
   },
   "spaces": {
     "confirmDeleteTitle": "Delete space?",

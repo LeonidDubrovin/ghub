@@ -75,7 +75,12 @@
     "folderAlreadyAdded": "Эта папка уже добавлена",
     "activeSources": "активных источников",
     "expandSources": "Показать источники",
-    "collapseSources": "Скрыть источники"
+    "collapseSources": "Скрыть источники",
+    "scanning": "Сканирование...",
+    "cancelScan": "Отменить сканирование",
+    "startScan": "Начать сканирование",
+    "addSource": "Добавить источник",
+    "addFolder": "Добавить папку"
   },
   "spaces": {
     "confirmDeleteTitle": "Удалить пространство?",

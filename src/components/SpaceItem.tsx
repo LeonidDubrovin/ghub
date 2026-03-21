@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import type { Space, SpaceSource } from '../types';
 import clsx from 'clsx';
 import { useSpaceSources } from '../hooks/useSpaces';
+import { useAddSpaceSource } from '../hooks/useSpaces';
+import { open } from '@tauri-apps/plugin-dialog';
+import SourceItem from './SourceItem';
 
 // Icon components
 const FolderIcon = () => (
@@ -59,11 +62,39 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
   const { t } = useTranslation();
   const { data: sources = [] } = useSpaceSources(space.id);
   const [isExpanded, setIsExpanded] = useState(false);
+  const addSpaceSource = useAddSpaceSource();
 
-  const activeSourceCount = useMemo(() => 
+  const activeSourceCount = useMemo(() =>
     sources.filter(s => s.is_active).length,
     [sources]
   );
+  
+  const handleAddSource = async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: true,
+        title: t('space.selectFolders'),
+      });
+      
+      if (selected && Array.isArray(selected)) {
+        // Add each selected path as a source
+        for (const path of selected) {
+          await addSpaceSource.mutateAsync({
+            space_id: space.id,
+            source_path: path,
+            scan_recursively: true,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to select folder:', err);
+    }
+  };
+  
+  const handleSourceRemoved = () => {
+    // Optional: refresh or update UI
+  };
 
   const getSpaceIcon = (type: string) => {
     switch (type) {
@@ -130,25 +161,25 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
       </button>
 
       {/* Sources list (expanded) */}
-      {isExpanded && sources.length > 0 && (
-        <div className="ml-8 mt-1 space-y-1 border-l-2 border-surface-100 pl-2">
+      {isExpanded && (
+        <div className="ml-8 mt-2 space-y-2 border-l-2 border-surface-100 pl-2">
           {sources.map(source => (
-            <div
+            <SourceItem
               key={source.source_path}
-              className={clsx(
-                'flex items-center gap-2 text-xs p-1.5 rounded transition-colors',
-                source.is_active ? 'bg-surface-200' : 'bg-surface-400 opacity-60'
-              )}
-              title={source.source_path}
-            >
-              <span className={clsx('flex-shrink-0', source.is_active ? 'text-green-500' : 'text-gray-500')}>
-                {source.is_active ? <CheckIcon /> : <FolderIcon />}
-              </span>
-              <span className="truncate flex-1 text-gray-300">
-                {truncatePath(source.source_path)}
-              </span>
-            </div>
+              spaceId={space.id}
+              source={source}
+              onRemoved={handleSourceRemoved}
+            />
           ))}
+          
+          {/* Add source button */}
+          <button
+            onClick={handleAddSource}
+            className="w-full p-2 text-sm text-accent hover:bg-surface-200 rounded-lg border border-dashed border-accent/50 transition-colors"
+            title={t('space.addSource')}
+          >
+            + {t('space.addSource')}
+          </button>
         </div>
       )}
     </div>

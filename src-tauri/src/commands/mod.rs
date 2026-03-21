@@ -8,6 +8,7 @@ mod metadata;
 mod settings;
 mod downloads;
 mod playtime;
+mod backup;
 
 // Re-export all commands
 pub use spaces::*;
@@ -17,3 +18,4 @@ pub use metadata::*;
 pub use settings::*;
 pub use downloads::*;
 pub use playtime::*;
+pub use backup::*;

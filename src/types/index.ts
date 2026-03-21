@@ -19,6 +19,13 @@ export interface SpaceSource {
   scan_recursively: boolean;
   last_scanned_at?: string;
   exclude_patterns?: string[];
+  // Scan status fields
+  scan_status?: 'idle' | 'scanning' | 'completed' | 'error';
+  scan_progress?: number;
+  scan_total?: number;
+  scan_error?: string;
+  scan_started_at?: string;
+  scan_completed_at?: string;
 }
 
 export interface Game {
@@ -57,10 +64,11 @@ export interface Install {
   executable_path: string | null;
   launch_arguments: string | null;
   working_directory: string | null;
-  status: 'installed' | 'installing' | 'broken';
+  status: 'installed' | 'missing' | 'modified' | 'installing' | 'broken';
   version: string | null;
   install_size_bytes: number | null;
   installed_at: string;
+  fingerprint?: string;
 }
 
 export interface ScannedGame {

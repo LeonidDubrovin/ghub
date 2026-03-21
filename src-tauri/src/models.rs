@@ -23,6 +23,13 @@ pub struct SpaceSource {
     pub scan_recursively: bool,
     pub last_scanned_at: Option<String>,
     pub exclude_patterns: Option<Vec<String>>,
+    // Scan status fields
+    pub scan_status: Option<String>,
+    pub scan_progress: Option<i32>,
+    pub scan_total: Option<i32>,
+    pub scan_error: Option<String>,
+    pub scan_started_at: Option<String>,
+    pub scan_completed_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +64,10 @@ pub struct Game {
     pub install_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub executable_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_status: Option<String>, // installed, missing, modified
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_fingerprint: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,10 +79,11 @@ pub struct Install {
     pub executable_path: Option<String>,
     pub launch_arguments: Option<String>,
     pub working_directory: Option<String>,
-    pub status: String, // installed, installing, broken
+    pub status: String, // installed, missing, modified, installing, broken
     pub version: Option<String>,
     pub install_size_bytes: Option<i64>,
     pub installed_at: String,
+    pub fingerprint: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

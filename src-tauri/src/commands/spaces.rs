@@ -1,5 +1,6 @@
-use crate::models::{Space, SpaceSource, CreateSpaceRequest};
+use crate::models::{CreateSpaceRequest, Space, SpaceSource};
 use crate::AppState;
+use log::debug;
 use tauri::State;
 
 #[tauri::command]
@@ -19,7 +20,8 @@ pub fn create_space(state: State<AppState>, request: CreateSpaceRequest) -> Resu
         &request.space_type,
         request.icon.as_deref(),
         request.color.as_deref(),
-    ).map_err(|e| e.to_string())?;
+    )
+    .map_err(|e| e.to_string())?;
 
     // If initial_sources provided, add them
     if let Some(sources) = request.initial_sources {
@@ -33,39 +35,137 @@ pub fn create_space(state: State<AppState>, request: CreateSpaceRequest) -> Resu
 }
 
 #[tauri::command]
+pub fn get_space_sources(
+    state: State<AppState>,
+    space_id: String,
+) -> Result<Vec<SpaceSource>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let sources = db.get_space_sources(&space_id).map_err(|e| e.to_string())?;
+    println!(
+        "📚 get_space_sources for {}: {} sources",
+        space_id,
+        sources.len()
+    );
+    Ok(sources)
+}
+
+#[tauri::command]
+pub fn add_space_source(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+    scan_recursively: Option<bool>,
+) -> Result<(), String> {
+    println!(
+        "➕ add_space_source: space={}, path={}, recursive={:?}",
+        space_id, source_path, scan_recursively
+    );
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.add_space_source(&space_id, &source_path, scan_recursively.unwrap_or(true))
+        .map_err(|e| e.to_string())?;
+    println!("   ✅ Source added successfully");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn remove_space_source(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+) -> Result<(), String> {
+    println!(
+        "➖ remove_space_source: space={}, path={}",
+        space_id, source_path
+    );
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.remove_space_source(&space_id, &source_path)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn delete_space(state: State<AppState>, id: String) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.delete_space(&id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn get_space_sources(state: State<AppState>, space_id: String) -> Result<Vec<SpaceSource>, String> {
+pub fn update_space_source(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+    is_active: Option<bool>,
+    scan_recursively: Option<bool>,
+) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
-    let sources = db.get_space_sources(&space_id).map_err(|e| e.to_string())?;
-    println!("📚 get_space_sources for {}: {} sources", space_id, sources.len());
-    Ok(sources)
+    db.update_space_source(
+        &space_id,
+        &source_path,
+        is_active.unwrap_or(true),
+        scan_recursively,
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
+// ============ ASYNC SCANNING COMMANDS ============
+
 #[tauri::command]
-pub fn add_space_source(state: State<AppState>, space_id: String, source_path: String, scan_recursively: Option<bool>) -> Result<(), String> {
-    println!("➕ add_space_source: space={}, path={}, recursive={:?}", space_id, source_path, scan_recursively);
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    db.add_space_source(&space_id, &source_path, scan_recursively.unwrap_or(true)).map_err(|e| e.to_string())?;
-    println!("   ✅ Source added successfully");
+pub fn start_source_scan(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+) -> Result<(), String> {
+    debug!(
+        "start_source_scan: space={}, source={}",
+        space_id, source_path
+    );
+    let scanning_service = state.scanning_service.lock().map_err(|e| e.to_string())?;
+    let db = state.db.clone();
+    scanning_service.start_scan(db, space_id, source_path)?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn remove_space_source(state: State<AppState>, space_id: String, source_path: String) -> Result<(), String> {
-    println!("➖ remove_space_source: space={}, path={}", space_id, source_path);
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    db.remove_space_source(&space_id, &source_path).map_err(|e| e.to_string())?;
-    Ok(())
+pub fn get_source_scan_status(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+) -> Result<SpaceSource, String> {
+    debug!(
+        "get_source_scan_status: space={}, source={}",
+        space_id, source_path
+    );
+    let scanning_service = state.scanning_service.lock().map_err(|e| e.to_string())?;
+
+    match scanning_service.get_source_scan_status(&state.db, &space_id, &source_path) {
+        Ok(Some(status)) => Ok(status),
+        Ok(None) => {
+            // Return source without scan status
+            let db = state.db.lock().map_err(|e| e.to_string())?;
+            let source = db
+                .get_space_sources(&space_id)
+                .map_err(|e| e.to_string())?
+                .into_iter()
+                .find(|s| s.source_path == source_path)
+                .ok_or_else(|| "Source not found".to_string())?;
+            Ok(source)
+        }
+        Err(e) => Err(e),
+    }
 }
 
 #[tauri::command]
-pub fn update_space_source(state: State<AppState>, space_id: String, source_path: String, is_active: Option<bool>, scan_recursively: Option<bool>) -> Result<(), String> {
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    db.update_space_source(&space_id, &source_path, is_active.unwrap_or(true), scan_recursively).map_err(|e| e.to_string())?;
+pub fn cancel_source_scan(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+) -> Result<(), String> {
+    debug!(
+        "cancel_source_scan: space={}, source={}",
+        space_id, source_path
+    );
+    let scanning_service = state.scanning_service.lock().map_err(|e| e.to_string())?;
+    scanning_service.cancel_scan(&state.db, &space_id, &source_path)?;
     Ok(())
 }

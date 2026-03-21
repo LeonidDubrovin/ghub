@@ -2,21 +2,26 @@ mod database;
 mod commands;
 mod models;
 mod playtime;
+mod scanning_service;
 pub mod meta_service;
 pub mod metadata;
 
 use tauri::Manager;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 pub use database::Database;
 pub use playtime::PlaytimeTracker;
 pub use metadata::MetadataAggregator;
+pub use scanning_service::ScanningService;
 
 pub struct AppState {
     pub db: Arc<Mutex<Database>>,
+    pub db_path: PathBuf,
     pub playtime: Mutex<PlaytimeTracker>,
     pub http_client: reqwest::Client,
     pub metadata_aggregator: MetadataAggregator,
+    pub scanning_service: Mutex<ScanningService>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -41,12 +46,17 @@ pub fn run() {
             let playtime = PlaytimeTracker::new(Arc::clone(&db));
             let http_client = reqwest::Client::new();
             
+            // Initialize scanning service
+            let scanning_service = ScanningService::new();
+            
             // Manage app state
-            app.manage(AppState { 
+            app.manage(AppState {
                 db,
+                db_path: db_path.clone(),
                 playtime: Mutex::new(playtime),
                 http_client,
                 metadata_aggregator: MetadataAggregator::new(),
+                scanning_service: Mutex::new(scanning_service),
             });
             
             println!("✅ GHub initialized successfully");
@@ -61,6 +71,9 @@ pub fn run() {
             commands::remove_space_source,
             commands::update_space_source,
             commands::scan_space_sources,
+            commands::start_source_scan,
+            commands::get_source_scan_status,
+            commands::cancel_source_scan,
             commands::get_all_games,
             commands::get_games_by_space,
             commands::create_game,
@@ -78,6 +91,7 @@ pub fn run() {
             commands::search_game_metadata,
             commands::refresh_game_from_local,
             commands::fetch_and_update_game_metadata,
+            commands::backup_database,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
