@@ -2,6 +2,7 @@
 /// Provides multi-level fallback strategy for extracting accurate game titles.
 
 use log::debug;
+use lazy_static::lazy_static;
 use regex_lite::Regex;
 use serde_json;
 use std::path::Path;
@@ -502,7 +503,7 @@ pub fn is_generic_exe_name(name: &str) -> bool {
     }
 
     // Check regex patterns for word-boundary matching
-    lazy_static::lazy_static! {
+    lazy_static! {
         static ref GENERIC_PATTERNS: Vec<Regex> = vec![
             Regex::new(r"(?i)^(?:.*\s)?unity(?:\s|$)").unwrap(),
             Regex::new(r"(?i)^(?:.*\s)?unreal(?:\s|$)").unwrap(),
