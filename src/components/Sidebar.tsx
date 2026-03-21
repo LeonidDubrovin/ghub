@@ -11,8 +11,10 @@ interface SidebarProps {
   spaces: Space[];
   selectedSpaceId: string | null;
   selectedFilter: FilterType;
+  selectedSourcePath: string | null;
   onSelectSpace: (id: string | null) => void;
   onSelectFilter: (filter: FilterType) => void;
+  onSelectSource: (path: string | null) => void;
   onAddSpace: () => void;
   onAddLink: () => void;
   onDeleteSpace?: (space: Space) => void;
@@ -62,8 +64,10 @@ export default function Sidebar({
   spaces,
   selectedSpaceId,
   selectedFilter,
+  selectedSourcePath,
   onSelectSpace,
   onSelectFilter,
+  onSelectSource,
   onAddSpace,
   onAddLink,
   onDeleteSpace,
@@ -155,7 +159,9 @@ export default function Sidebar({
                   key={space.id}
                   space={space}
                   isSelected={selectedSpaceId === space.id}
-                  onSelect={onSelectSpace}
+                  selectedSourcePath={selectedSourcePath}
+                  onSelectSpace={onSelectSpace}
+                  onSelectSource={onSelectSource}
                   onSettings={handleSpaceSettings}
                 />
               ))}

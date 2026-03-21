@@ -38,11 +38,20 @@ const SettingsIcon = () => (
 interface SpaceItemProps {
   space: Space;
   isSelected: boolean;
-  onSelect: (id: string) => void;
+  selectedSourcePath: string | null;
+  onSelectSpace: (id: string | null) => void;
+  onSelectSource: (path: string | null) => void;
   onSettings: (space: Space, e: React.MouseEvent) => void;
 }
 
-export default function SpaceItem({ space, isSelected, onSelect, onSettings }: SpaceItemProps) {
+export default function SpaceItem({
+  space,
+  isSelected,
+  selectedSourcePath,
+  onSelectSpace,
+  onSelectSource,
+  onSettings
+}: SpaceItemProps) {
   const { t } = useTranslation();
   const { data: sources = [] } = useSpaceSources(space.id);
   const addSpaceSource = useAddSpaceSource();
@@ -87,7 +96,7 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
   return (
     <div className="space-item-container">
       <button
-        onClick={() => onSelect(space.id)}
+        onClick={() => onSelectSpace(space.id)}
         className={clsx('sidebar-item w-full group relative', isSelected && 'active')}
       >
         <span
@@ -117,19 +126,21 @@ export default function SpaceItem({ space, isSelected, onSelect, onSettings }: S
 
       {/* Sources list - always shown if there are sources */}
       {sources.length > 0 && (
-        <div className="ml-8 mt-2 space-y-2 border-l-2 border-surface-100 pl-2">
+        <div className="ml-4 mt-1 space-y-1 border-l-2 border-surface-200 pl-2">
           {sources.map(source => (
             <SourceItem
               key={source.source_path}
               spaceId={space.id}
               source={source}
+              isSourceSelected={selectedSourcePath === source.source_path}
+              onSelectSource={onSelectSource}
             />
           ))}
 
           {/* Add source button */}
           <button
             onClick={handleAddSource}
-            className="w-full p-2 text-sm text-accent hover:bg-surface-200 rounded-lg border border-dashed border-accent/50 transition-colors"
+            className="w-full p-2 text-sm text-accent hover:bg-accent/10 rounded-lg border border-dashed border-accent/30 transition-colors mt-2"
             title={t('space.addSource')}
           >
             + {t('space.addSource')}

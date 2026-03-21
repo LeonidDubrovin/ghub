@@ -16,6 +16,16 @@ pub fn get_games_by_space(state: State<AppState>, space_id: String) -> Result<Ve
 }
 
 #[tauri::command]
+pub fn get_games_by_source(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+) -> Result<Vec<Game>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.get_games_for_source(&space_id, &source_path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn create_game(state: State<'_, AppState>, request: CreateGameRequest) -> Result<Game, String> {
     let game_id = uuid::Uuid::new_v4().to_string();
     let install_id = uuid::Uuid::new_v4().to_string();

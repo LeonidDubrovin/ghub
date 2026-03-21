@@ -29,6 +29,7 @@ const GAME_LIST_MAX = 500;
 function App() {
   const { t } = useTranslation();
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(() => localStorage.getItem('selectedSpaceId') || null);
+  const [selectedSourcePath, setSelectedSourcePath] = useState<string | null>(() => localStorage.getItem('selectedSourcePath') || null);
   const [selectedFilter, setSelectedFilter] = useState<FilterType>(() => (localStorage.getItem('selectedFilter') as FilterType) || 'all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem('viewMode') as ViewMode) || 'details');
@@ -52,7 +53,7 @@ function App() {
   const [gameListWidth, setGameListWidth] = useState(280);
 
   const { data: spaces = [], isLoading: spacesLoading } = useSpaces();
-  const { data: games = [], isLoading: gamesLoading, refetch: refetchGames } = useGames(selectedSpaceId);
+  const { data: games = [], isLoading: gamesLoading, refetch: refetchGames } = useGames(selectedSpaceId, selectedSourcePath || undefined);
   const deleteSpaceMutation = useDeleteSpace();
   const deleteGameMutation = useDeleteGame();
 
@@ -60,6 +61,11 @@ function App() {
     if (selectedSpaceId) localStorage.setItem('selectedSpaceId', selectedSpaceId);
     else localStorage.removeItem('selectedSpaceId');
   }, [selectedSpaceId]);
+
+  useEffect(() => {
+    if (selectedSourcePath) localStorage.setItem('selectedSourcePath', selectedSourcePath);
+    else localStorage.removeItem('selectedSourcePath');
+  }, [selectedSourcePath]);
 
   useEffect(() => {
     localStorage.setItem('selectedFilter', selectedFilter);
@@ -233,11 +239,21 @@ function App() {
 
   const handleSelectFilter = (filter: FilterType) => {
     setSelectedFilter(filter);
+    setSelectedSourcePath(null); // Clear source selection when changing filter
     if (filter === 'links') {
       setViewMode('links');
     } else if (viewMode === 'links') {
       setViewMode('details');
     }
+  };
+
+  const handleSelectSpace = (spaceId: string | null) => {
+    setSelectedSpaceId(spaceId);
+    setSelectedSourcePath(null); // Clear source selection when changing space
+  };
+
+  const handleSelectSource = (sourcePath: string | null) => {
+    setSelectedSourcePath(sourcePath);
   };
 
   const handleEditGame = (game: Game) => setEditingGame(game);
@@ -370,8 +386,10 @@ function App() {
           spaces={spaces}
           selectedSpaceId={selectedSpaceId}
           selectedFilter={selectedFilter}
-          onSelectSpace={setSelectedSpaceId}
+          selectedSourcePath={selectedSourcePath}
+          onSelectSpace={handleSelectSpace}
           onSelectFilter={handleSelectFilter}
+          onSelectSource={handleSelectSource}
           onAddSpace={() => setShowAddSpace(true)}
           onAddLink={() => setShowAddLink(true)}
           onDeleteSpace={handleDeleteSpace}

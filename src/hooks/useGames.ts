@@ -2,10 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import type { Game, CreateGameRequest, ScannedGame } from '../types';
 
-export function useGames(spaceId: string | null) {
+export function useGames(spaceId: string | null, sourcePath?: string) {
   return useQuery({
-    queryKey: ['games', spaceId],
+    queryKey: ['games', spaceId, sourcePath],
     queryFn: async () => {
+      if (spaceId && sourcePath) {
+        return await invoke<Game[]>('get_games_by_source', { spaceId, sourcePath });
+      }
       if (spaceId) {
         return await invoke<Game[]>('get_games_by_space', { spaceId });
       }

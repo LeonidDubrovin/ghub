@@ -561,6 +561,72 @@ impl Database {
         Ok(games)
     }
 
+    /// Get games for a specific source (directory) within a space
+    /// This finds all games whose install_path starts with the source_path
+    pub fn get_games_for_source(&self, space_id: &str, source_path: &str) -> Result<Vec<Game>> {
+        // Build prefix that ensures we only match subdirectories of source_path
+        let prefix = if source_path.ends_with('/') || source_path.ends_with('\\') {
+            source_path.to_string()
+        } else {
+            format!("{}{}", source_path, std::path::MAIN_SEPARATOR)
+        };
+        
+        // Use range query for reliable prefix matching
+        let prefix_end = format!("{}~", prefix);
+        
+        let mut stmt = self.conn.prepare(
+            "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
+                    g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,
+                    g.times_launched, g.is_favorite, g.is_hidden, g.completion_status, g.user_rating,
+                    g.added_at, g.updated_at, g.external_link,
+                    i.space_id, s.name as space_name, s.type as space_type,
+                    i.install_path, i.executable_path, i.status, i.fingerprint
+             FROM games g
+             JOIN installs i ON g.id = i.game_id
+             LEFT JOIN spaces s ON i.space_id = s.id
+             WHERE i.space_id = ?
+               AND i.install_path >= ?
+               AND i.install_path < ?
+               AND g.is_hidden = 0
+             ORDER BY g.title COLLATE NOCASE"
+        )?;
+
+        let games = stmt
+            .query_map(params![space_id, prefix, prefix_end], |row| {
+                Ok(Game {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    sort_title: row.get(2)?,
+                    description: row.get(3)?,
+                    release_date: row.get(4)?,
+                    developer: row.get(5)?,
+                    publisher: row.get(6)?,
+                    cover_image: row.get(7)?,
+                    background_image: row.get(8)?,
+                    total_playtime_seconds: row.get(9)?,
+                    last_played_at: row.get(10)?,
+                    times_launched: row.get(11)?,
+                    is_favorite: row.get::<_, i32>(12)? == 1,
+                    is_hidden: row.get::<_, i32>(13)? == 1,
+                    completion_status: row.get(14)?,
+                    user_rating: row.get(15)?,
+                    added_at: row.get(16)?,
+                    updated_at: row.get(17)?,
+                    external_link: row.get(18).ok(),
+                    space_id: row.get(19).ok(),
+                    space_name: row.get(20).ok(),
+                    space_type: row.get(21).ok(),
+                    install_path: row.get(22).ok(),
+                    executable_path: row.get(23).ok(),
+                    install_status: row.get(24).ok(),
+                    install_fingerprint: row.get(25).ok(),
+                })
+            })?
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(games)
+    }
+
     pub fn create_game(
         &self,
         id: &str,
