@@ -79,6 +79,7 @@ pub fn run() {
             commands::cancel_source_scan,
             commands::get_all_games,
             commands::get_games_by_space,
+            commands::get_games_by_source,
             commands::create_game,
             commands::create_game_link,
             commands::create_download_link,
