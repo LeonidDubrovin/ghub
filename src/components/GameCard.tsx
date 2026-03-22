@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-shell';
 import type { Game } from '../types';
 
 const getCoverUrl = (cover: string | null): string | null => {
@@ -121,7 +120,7 @@ export default function GameCard({
                 onClick={async (e) => {
                   e.stopPropagation();
                   try {
-                    await open(game.install_path!);
+                    await import('@tauri-apps/plugin-shell').then(m => m.open(game.install_path!));
                   } catch (error) {
                     console.error('Failed to open folder:', error);
                   }
