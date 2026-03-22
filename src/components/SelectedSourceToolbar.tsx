@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStartSourceScan, useCancelSourceScan, useSourceScanStatus } from '../hooks/useScanning';
 import { useRemoveSpaceSource, useSpaceSources } from '../hooks/useSpaces';
 import type { SelectedSource, SpaceSource } from '../types';
+import RemoveSourceDialog from './RemoveSourceDialog';
 
 const PlayIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,6 +36,7 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
   const startScan = useStartSourceScan();
   const cancelScan = useCancelSourceScan();
   const removeSource = useRemoveSpaceSource();
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
 
   // Find the specific source to check if it's active
   const sourceData: SpaceSource | undefined = sources.find(s => s.source_path === selectedSource.sourcePath);
@@ -66,13 +69,18 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
     }
   };
 
-  const handleRemove = () => {
-    if (window.confirm(t('space.confirmRemoveSource', { path: selectedSource.sourcePath }))) {
-      removeSource.mutate({
-        space_id: selectedSource.spaceId,
-        source_path: selectedSource.sourcePath,
-      });
-    }
+  const handleRemoveClick = () => {
+    setShowRemoveDialog(true);
+  };
+
+  const handleRemoveConfirm = async (deleteGames: boolean) => {
+    await removeSource.mutateAsync({
+      space_id: selectedSource.spaceId,
+      source_path: selectedSource.sourcePath,
+      delete_games: deleteGames,
+    });
+    setShowRemoveDialog(false);
+    onClose();
   };
 
   // Get folder name for display
@@ -95,7 +103,8 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
   };
 
   return (
-    <div className="flex items-center gap-3 bg-surface-300 border-b border-surface-100 px-4 py-2">
+    <>
+      <div className="flex items-center gap-3 bg-surface-300 border-b border-surface-100 px-4 py-2">
       {/* Selected source info */}
       <div className="flex items-center gap-2 pr-2 border-r border-surface-100">
         <div className="w-8 h-8 rounded-lg bg-surface-200 flex items-center justify-center">
@@ -158,7 +167,7 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
         )}
 
         <button
-          onClick={handleRemove}
+          onClick={handleRemoveClick}
           disabled={removeSource.isPending || isScanning}
           className="btn flex items-center gap-2 px-3 py-2 text-sm bg-danger/20 text-danger border border-danger/30 hover:bg-danger/30 disabled:opacity-50"
           title={t('space.removeSource')}
@@ -176,6 +185,15 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
       >
         ✕
       </button>
-    </div>
+      </div>
+      {showRemoveDialog && (
+        <RemoveSourceDialog
+          selectedSource={selectedSource}
+          onClose={() => setShowRemoveDialog(false)}
+          onRemove={handleRemoveConfirm}
+          isPending={removeSource.isPending}
+        />
+      )}
+    </>
   );
 }

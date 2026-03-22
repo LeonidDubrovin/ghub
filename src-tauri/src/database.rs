@@ -404,91 +404,86 @@ impl Database {
         Ok(())
     }
 
-    /// Remove a space source and optionally delete associated games
+    /// Remove a space source and optionally delete associated games and installs
     ///
     /// This method:
-    /// 1. Finds all installs under the source path
-    /// 2. Deletes those installs
-    /// 3. If delete_games is true, deletes games that have no remaining installs
-    /// 4. Deletes the space_source entry
+    /// 1. If delete_games is true:
+    ///    - Finds all installs under the source path
+    ///    - Deletes those installs
+    ///    - Deletes games that have no remaining installs
+    /// 2. Always deletes the space_source entry
     pub fn remove_space_source(&mut self, space_id: &str, source_path: &str, delete_games: bool) -> Result<()> {
-        // Start transaction for data integrity
         let tx = self.conn.transaction()?;
         
-        // Build prefix for matching install paths (same logic as get_installs_for_source)
-        let prefix = if source_path.ends_with('/') || source_path.ends_with('\\') {
-            source_path.to_string()
-        } else {
-            format!("{}{}", source_path, std::path::MAIN_SEPARATOR)
-        };
-        let prefix_end = format!("{}~", prefix);
-        
-        // Step 1: Find all installs for this source
-        let mut stmt = tx.prepare(
-            "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments,
-                    working_directory, status, version, install_size_bytes, installed_at, fingerprint
-             FROM installs
-             WHERE space_id = ? AND install_path >= ? AND install_path < ?"
-        )?;
-        let installs = stmt.query_map(params![space_id, prefix, prefix_end], |row| {
-            Ok(Install {
-                id: row.get(0)?,
-                game_id: row.get(1)?,
-                space_id: row.get(2)?,
-                install_path: row.get(3)?,
-                executable_path: row.get(4)?,
-                launch_arguments: row.get(5)?,
-                working_directory: row.get(6)?,
-                status: row.get(7)?,
-                version: row.get(8)?,
-                install_size_bytes: row.get(9)?,
-                installed_at: row.get(10)?,
-                fingerprint: row.get(11)?,
-            })
-        })?.collect::<Result<Vec<_>>>()?;
-        
-        // Drop stmt to release borrow on tx before we commit
-        drop(stmt);
-        
-        // Collect game IDs to potentially delete
-        let game_ids: Vec<String> = installs.iter().map(|i| i.game_id.clone()).collect();
-        
-        // Step 2: Delete all installs for this source
-        let install_ids: Vec<&str> = installs.iter().map(|i| i.id.as_str()).collect();
-        if !install_ids.is_empty() {
-            // Use chunked execution for large sets (though unlikely)
-            for chunk in install_ids.chunks(100) {
-                let placeholders = vec!["?"; chunk.len()].join(",");
-                tx.execute(
-                    &format!("DELETE FROM installs WHERE id IN ({})", placeholders),
-                    params_from_iter(chunk.iter().copied()),
-                )?;
-            }
-        }
-        
-        // Step 3: Optionally delete games that have no remaining installs
         if delete_games {
+            // Build prefix for matching install paths (same logic as get_installs_for_source)
+            let prefix = if source_path.ends_with('/') || source_path.ends_with('\\') {
+                source_path.to_string()
+            } else {
+                format!("{}{}", source_path, std::path::MAIN_SEPARATOR)
+            };
+            let prefix_end = format!("{}~", prefix);
+            
+            // Find all installs for this source
+            let mut stmt = tx.prepare(
+                "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments,
+                        working_directory, status, version, install_size_bytes, installed_at, fingerprint
+                 FROM installs
+                 WHERE space_id = ? AND install_path >= ? AND install_path < ?"
+            )?;
+            let installs = stmt.query_map(params![space_id, prefix, prefix_end], |row| {
+                Ok(Install {
+                    id: row.get(0)?,
+                    game_id: row.get(1)?,
+                    space_id: row.get(2)?,
+                    install_path: row.get(3)?,
+                    executable_path: row.get(4)?,
+                    launch_arguments: row.get(5)?,
+                    working_directory: row.get(6)?,
+                    status: row.get(7)?,
+                    version: row.get(8)?,
+                    install_size_bytes: row.get(9)?,
+                    installed_at: row.get(10)?,
+                    fingerprint: row.get(11)?,
+                })
+            })?.collect::<Result<Vec<_>>>()?;
+            
+            drop(stmt);
+            
+            // Collect game IDs to potentially delete
+            let game_ids: Vec<String> = installs.iter().map(|i| i.game_id.clone()).collect();
+            
+            // Delete all installs for this source
+            let install_ids: Vec<&str> = installs.iter().map(|i| i.id.as_str()).collect();
+            if !install_ids.is_empty() {
+                for chunk in install_ids.chunks(100) {
+                    let placeholders = vec!["?"; chunk.len()].join(",");
+                    tx.execute(
+                        &format!("DELETE FROM installs WHERE id IN ({})", placeholders),
+                        params_from_iter(chunk.iter().copied()),
+                    )?;
+                }
+            }
+            
+            // Delete games that have no remaining installs
             for game_id in game_ids {
-                // Check if game still has any installs
                 let mut stmt = tx.prepare(
                     "SELECT COUNT(*) FROM installs WHERE game_id = ?"
                 )?;
                 let count: i64 = stmt.query_row([&game_id], |row| row.get(0))?;
                 
                 if count == 0 {
-                    // No installs left, delete the game
                     tx.execute("DELETE FROM games WHERE id = ?", [&game_id])?;
                 }
             }
         }
         
-        // Step 4: Delete the space_source entry
+        // Delete the space_source entry
         tx.execute(
             "DELETE FROM space_sources WHERE space_id = ? AND source_path = ?",
             params![space_id, source_path],
         )?;
         
-        // Commit transaction
         tx.commit()?;
         Ok(())
     }

@@ -96,7 +96,9 @@
     "removeSourceQuestion": "Удалить источник?",
     "removeSourceKeepGames": "Оставить игры в библиотеке",
     "removeSourceDeleteGames": "Удалить игры из библиотеке",
-    "removeSourceError": "Ошибка при удалении источника"
+    "removeSourceError": "Ошибка при удалении источника",
+    "removeSourceDialogTitle": "Удаление источника",
+    "removeSourceDialogMessage": "Что делать с играми из этого источника?"
   },
   "spaces": {
     "confirmDeleteTitle": "Удалить пространство?",

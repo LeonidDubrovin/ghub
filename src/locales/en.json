@@ -93,7 +93,11 @@
     "cancelScanError": "Failed to cancel scan",
     "scanAll": "Scan all",
     "scanAllError": "Failed to scan space sources",
-    "confirmCancelScan": "Cancel the current scan?"
+    "confirmCancelScan": "Cancel the current scan?",
+    "removeSourceKeepGames": "Keep games in library",
+    "removeSourceDeleteGames": "Delete games from library",
+    "removeSourceDialogTitle": "Remove source",
+    "removeSourceDialogMessage": "What should happen to the games from this source?"
   },
   "spaces": {
     "confirmDeleteTitle": "Delete space?",
