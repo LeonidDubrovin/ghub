@@ -3,6 +3,7 @@ use crate::metadata::strategy::MetadataStrategy;
 use crate::metadata::{SteamStrategy, ItchStrategy};
 use reqwest::Client;
 use std::sync::Arc;
+use log::debug;
 
 /// Aggregator for metadata strategies
 /// Manages multiple metadata sources and provides unified search interface
@@ -57,11 +58,11 @@ impl MetadataAggregator {
             
             match strategy.search(client, query).await {
                 Ok(results) => {
-                    println!("   [{}] Found {} results", strategy.name(), results.len());
+                    debug!("   [{}] Found {} results", strategy.name(), results.len());
                     all_results.extend(results);
                 }
                 Err(e) => {
-                    println!("   [{}] Search error: {}", strategy.name(), e);
+                    debug!("   [{}] Search error: {}", strategy.name(), e);
                 }
             }
         }
@@ -85,11 +86,11 @@ impl MetadataAggregator {
             
             match strategy.search(client, query).await {
                 Ok(results) => {
-                    println!("   [{}] Found {} results", strategy.name(), results.len());
+                    debug!("   [{}] Found {} results", strategy.name(), results.len());
                     all_results.extend(results);
                 }
                 Err(e) => {
-                    println!("   [{}] Search error: {}", strategy.name(), e);
+                    debug!("   [{}] Search error: {}", strategy.name(), e);
                 }
             }
         }
@@ -108,12 +109,12 @@ impl MetadataAggregator {
             match strategy.search(client, query).await {
                 Ok(results) => {
                     if let Some(first) = results.into_iter().next() {
-                        println!("   [{}] Found best match: {}", strategy.name(), first.name);
+                        debug!("   [{}] Found best match: {}", strategy.name(), first.name);
                         return Some(first);
                     }
                 }
                 Err(e) => {
-                    println!("   [{}] Search error: {}", strategy.name(), e);
+                    debug!("   [{}] Search error: {}", strategy.name(), e);
                 }
             }
         }

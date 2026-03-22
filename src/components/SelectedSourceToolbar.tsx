@@ -1,7 +1,10 @@
 import { useTranslation } from 'react-i18next';
+import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useStartSourceScan, useCancelSourceScan, useSourceScanStatus } from '../hooks/useScanning';
 import { useSpaceSources } from '../hooks/useSpaces';
 import type { SelectedSource, SpaceSource } from '../types';
+import { createLoggerForComponent } from '../lib/logger';
 
 const PlayIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,7 +25,9 @@ interface SelectedSourceToolbarProps {
 }
 
 export default function SelectedSourceToolbar({ selectedSource, onClose }: SelectedSourceToolbarProps) {
+  const logger = createLoggerForComponent('SelectedSourceToolbar');
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { data: scanStatus } = useSourceScanStatus(selectedSource.spaceId, selectedSource.sourcePath);
   const { data: sources = [] } = useSpaceSources(selectedSource.spaceId);
   const startScan = useStartSourceScan();
@@ -36,8 +41,17 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
   const isScanning = scanStatus?.scan_status === 'scanning';
   const isCompleted = scanStatus?.scan_status === 'completed';
   const isError = scanStatus?.scan_status === 'error';
+
+  // Auto-refresh games list when scan completes
+  useEffect(() => {
+    if (scanStatus?.scan_status === 'completed') {
+      queryClient.invalidateQueries({ queryKey: ['games'] });
+      queryClient.invalidateQueries({ queryKey: ['games', selectedSource.spaceId] });
+      queryClient.invalidateQueries({ queryKey: ['games', selectedSource.spaceId, selectedSource.sourcePath] });
+    }
+  }, [scanStatus, queryClient, selectedSource.spaceId, selectedSource.sourcePath]);
   
-  console.log('SelectedSourceToolbar render', {
+  logger.debug('render', {
     selectedSource,
     sourcesCount: sources.length,
     sourceData,
@@ -46,7 +60,7 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
   });
 
   const handleStartScan = () => {
-    console.log('handleStartScan called', {
+    logger.debug('handleStartScan called', {
       spaceId: selectedSource.spaceId,
       sourcePath: selectedSource.sourcePath,
       isSourceActive,
@@ -70,7 +84,7 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
         sourcePath: selectedSource.sourcePath
       });
     } catch (err) {
-      console.error('Failed to cancel scan:', err);
+      logger.error('Failed to cancel scan:', err);
       alert(t('space.cancelScanError') || 'Failed to cancel scan');
     }
   };
@@ -161,7 +175,7 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
         ) : (
           <button
             onClick={() => {
-              console.log('Scan button clicked!');
+              logger.debug('Scan button clicked!');
               handleStartScan();
             }}
             disabled={startScan.isPending || !isSourceActive}

@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 use std::thread;
 use chrono::Utc;
 use crate::database::Database;
+use log::info;
 
 const HEARTBEAT_INTERVAL_SECS: u64 = 15;
 const CHECKPOINT_INTERVAL_SECS: u64 = 60;
@@ -56,7 +57,7 @@ impl PlaytimeTracker {
             db.recover_session(&session.id, session.accumulated_seconds, &now)
                 .map_err(|e| e.to_string())?;
             
-            println!("Recovered session {} with {} seconds", session.id, session.accumulated_seconds);
+            info!("Recovered session {} with {} seconds", session.id, session.accumulated_seconds);
         }
         
         Ok(())

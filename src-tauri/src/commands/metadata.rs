@@ -4,6 +4,7 @@ use crate::meta_service;
 use crate::commands::scanning::scan_directory_internal;
 use tauri::State;
 use std::path::Path;
+use log::{debug, error, info, warn};
 
 /// Search game metadata from sources
 #[tauri::command]
@@ -17,14 +18,14 @@ pub async fn search_game_metadata(state: State<'_, AppState>, query: String, sou
     if let Some(fut) = use_steam.then(|| meta_service::search_steam(client, &query)) {
         match fut.await {
             Ok(r) => results.extend(r),
-            Err(e) => println!("Steam search error: {}", e),
+            Err(e) => error!("Steam search error: {}", e),
         }
     }
 
     if let Some(fut) = use_itch.then(|| meta_service::search_itch(client, &query)) {
         match fut.await {
             Ok(r) => results.extend(r),
-            Err(e) => println!("Itch search error: {}", e),
+            Err(e) => error!("Itch search error: {}", e),
         }
     }
 
@@ -34,7 +35,7 @@ pub async fn search_game_metadata(state: State<'_, AppState>, query: String, sou
 /// Refresh game data from local directory
 #[tauri::command]
 pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Result<Game, String> {
-    println!("🔄 refresh_game_from_local called for game_id: {}", game_id);
+    info!("🔄 refresh_game_from_local called for game_id: {}", game_id);
     
     let db = state.db.lock().map_err(|e| e.to_string())?;
     
@@ -56,7 +57,7 @@ pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Resul
         return Err(format!("Game directory does not exist: {}", install.install_path));
     }
     
-    println!("   Scanning directory: {}", game_path.display());
+    debug!("   Scanning directory: {}", game_path.display());
     
     // Scan the directory to get fresh data
     let scanned_games = scan_directory_internal(game_path).map_err(|e| e.to_string())?;
@@ -107,7 +108,7 @@ pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Resul
         db.update_install_executable(&install.id, exe_path).map_err(|e| e.to_string())?;
     }
     
-    println!("   ✅ Game refreshed successfully");
+    info!("   ✅ Game refreshed successfully");
     
     // Return updated game
     db.get_game_by_id(&game_id).map_err(|e| e.to_string())
@@ -140,7 +141,7 @@ fn is_generic_description(desc: &str) -> bool {
 /// Fetch and update game metadata from external sources (Steam, itch.io)
 #[tauri::command]
 pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id: String) -> Result<Game, String> {
-    println!("🔍 fetch_and_update_game_metadata called for game_id: {}", game_id);
+    info!("🔍 fetch_and_update_game_metadata called for game_id: {}", game_id);
     
     // Get game info first (need to drop lock before await)
     let (original_title, install_path) = {
@@ -165,7 +166,7 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
                             if let Some(product_name) = &exe_meta.product_name {
                                 let cleaned = clean_game_title(product_name);
                                 if !cleaned.is_empty() && !is_generic_title(&cleaned) {
-                                    println!("   Using exe metadata product name for search: {}", cleaned);
+                                    debug!("   Using exe metadata product name for search: {}", cleaned);
                                     cleaned
                                 } else {
                                     // Fall through to next priority
@@ -198,7 +199,7 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
         // Priority 2: Use game's existing title from database
         let cleaned_title = clean_game_title(&original_title);
         if !cleaned_title.is_empty() && !is_generic_title(&cleaned_title) {
-            println!("   Using game title for search: {}", cleaned_title);
+            debug!("   Using game title for search: {}", cleaned_title);
             cleaned_title
         } else if let Some(path) = &install_path {
             // Priority 3: Fall back to directory name (least reliable)
@@ -206,23 +207,23 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
             if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {
                 let cleaned = clean_game_title(dir_name);
                 if !cleaned.is_empty() && !is_generic_title(&cleaned) {
-                    println!("   Using directory name for search: {}", cleaned);
+                    debug!("   Using directory name for search: {}", cleaned);
                     cleaned
                 } else {
-                    println!("   Using original title for search: {}", original_title);
+                    debug!("   Using original title for search: {}", original_title);
                     original_title.clone()
                 }
             } else {
-                println!("   Using original title for search: {}", original_title);
+                debug!("   Using original title for search: {}", original_title);
                 original_title.clone()
             }
         } else {
-            println!("   Using original title for search: {}", original_title);
+            debug!("   Using original title for search: {}", original_title);
             original_title.clone()
         }
     };
     
-    println!("   Searching for: {}", query);
+    info!("   Searching for: {}", query);
     
     // Search for metadata from external sources
     let client = &state.http_client;
@@ -231,7 +232,7 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
     // Try Steam first
     if let Ok(results) = meta_service::search_steam(client, &query).await {
         if let Some(first) = results.into_iter().next() {
-            println!("   Found Steam result: {}", first.name);
+            debug!("   Found Steam result: {}", first.name);
             best_match = Some(first);
         }
     }
@@ -240,7 +241,7 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
     if best_match.is_none() {
         if let Ok(results) = meta_service::search_itch(client, &query).await {
             if let Some(first) = results.into_iter().next() {
-                println!("   Found Itch result: {}", first.name);
+                debug!("   Found Itch result: {}", first.name);
                 best_match = Some(first);
             }
         }
@@ -248,7 +249,7 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
     
     // Apply metadata if found
     if let Some(meta) = best_match {
-        println!("   Applying metadata: {}", meta.name);
+        info!("   Applying metadata: {}", meta.name);
         
         let db = state.db.lock().map_err(|e| e.to_string())?;
         let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
@@ -270,9 +271,9 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
             None, // user_rating - keep existing
         ).map_err(|e| e.to_string())?;
         
-        println!("   ✅ Metadata updated successfully");
+        info!("   ✅ Metadata updated successfully");
     } else {
-        println!("   ⚠️ No metadata found");
+        warn!("   ⚠️ No metadata found");
     }
     
     // Return updated game

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import type { Game } from '../types';
+import { createLoggerForComponent } from '../lib/logger';
 
 interface EditGameDialogProps {
   game: Game;
@@ -24,8 +25,9 @@ interface MetadataSearchResult {
 }
 
 export default function EditGameDialog({ game, onClose, onSave, onDelete }: EditGameDialogProps) {
+  const logger = createLoggerForComponent('EditGameDialog');
   const { t } = useTranslation();
-  
+   
   const [title, setTitle] = useState(game.title);
   const [description, setDescription] = useState(game.description || '');
   const [developer, setDeveloper] = useState(game.developer || '');
@@ -34,7 +36,7 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
   const [isFavorite, setIsFavorite] = useState(game.is_favorite);
   const [completionStatus, setCompletionStatus] = useState(game.completion_status);
   const [userRating, setUserRating] = useState(game.user_rating || 0);
-  
+   
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -78,13 +80,13 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
       onSave();
       onClose();
     } catch (err) {
-      console.error('Save failed:', err);
+      logger.error('Save failed:', err);
       setError(String(err));
     } finally {
       setIsSaving(false);
     }
   };
-  
+   
   const handleDelete = async () => {
     setIsDeleting(true);
     setError(null);
@@ -95,14 +97,14 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
       onSave(); // Refresh list
       onClose();
     } catch (err) {
-      console.error('Delete failed:', err);
+      logger.error('Delete failed:', err);
       setError(String(err));
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
   };
-  
+   
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
@@ -122,7 +124,7 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
       });
       setSearchResults(results);
     } catch (err) {
-      console.error('Search failed:', err);
+      logger.error('Search failed:', err);
       setError(String(err));
     } finally {
       setIsSearching(false);

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSpaceSources, useAddSpaceSource, useRemoveSpaceSource, useUpdateSpaceSource } from '../hooks/useSpaces';
 import { open } from '@tauri-apps/plugin-dialog';
 import type { Space, SpaceSource } from '../types';
+import { createLoggerForComponent } from '../lib/logger';
 
 interface SpaceSettingsDialogProps {
   space: Space;
@@ -10,12 +11,13 @@ interface SpaceSettingsDialogProps {
 }
 
 export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDialogProps) {
+  const logger = createLoggerForComponent('SpaceSettingsDialog');
   const { t } = useTranslation();
   const { data: sources = [], refetch: refetchSources } = useSpaceSources(space.id);
   const addSpaceSource = useAddSpaceSource();
   const removeSpaceSource = useRemoveSpaceSource();
   const updateSpaceSource = useUpdateSpaceSource();
-  
+   
   const [isSelectingFolder, setIsSelectingFolder] = useState(false);
   const [removingSource, setRemovingSource] = useState<string | null>(null);
   

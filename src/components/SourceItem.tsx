@@ -49,7 +49,7 @@ export default function SourceItem({
     <div
       onClick={handleClick}
       className={clsx(
-        'source-item flex items-center gap-3 p-2.5 rounded-lg transition-all cursor-pointer group border',
+        'source-item flex items-center gap-3 p-2.5 rounded-lg transition-all cursor-pointer group border select-none',
         isSourceSelected
           ? 'bg-accent/15 border-accent/40 shadow-sm'
           : source.is_active

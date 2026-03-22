@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useScanDirectory, useCreateGame } from '../hooks/useGames';
 import type { Space, ScannedGame } from '../types';
+import { createLoggerForComponent } from '../lib/logger';
 
 interface ScanDialogProps {
   spaces: Space[];
@@ -15,14 +16,15 @@ interface EditableGame extends ScannedGame {
   selected_cover: string | null;
 }
 
-export default function ScanDialog({ 
-  spaces, 
-  onClose 
+export default function ScanDialog({
+  spaces,
+  onClose
 }: ScanDialogProps) {
+  const logger = createLoggerForComponent('ScanDialog');
   const { t } = useTranslation();
   const scanDirectory = useScanDirectory();
   const createGame = useCreateGame();
-  
+   
   const [scanPath, setScanPath] = useState('');
   const [targetSpaceId, setTargetSpaceId] = useState(spaces[0]?.id || '');
   const [fetchMetadata, setFetchMetadata] = useState(false);
@@ -46,11 +48,11 @@ export default function ScanDialog({
         setScanPath(selected);
       }
     } catch (err) {
-      console.error('Failed to open folder dialog:', err);
+      logger.error('Failed to open folder dialog:', err);
       setError(String(err));
     }
   };
-  
+   
   const handleScan = async () => {
     const path = scanPath.trim();
     if (!path) return;
@@ -71,7 +73,7 @@ export default function ScanDialog({
       setScannedGames(editableGames);
       setSelectedGames(new Set(games.map(g => g.path)));
     } catch (err) {
-      console.error('Scan failed:', err);
+      logger.error('Scan failed:', err);
       setError(String(err));
     } finally {
       setIsScanning(false);
@@ -127,7 +129,7 @@ export default function ScanDialog({
 
       onClose();
     } catch (err) {
-      console.error('Failed to add games:', err);
+      logger.error('Failed to add games:', err);
       setError(String(err));
     } finally {
       setIsAdding(false);

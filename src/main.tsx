@@ -5,8 +5,10 @@ import App from './App';
 import { ErrorBoundary } from './ErrorBoundary';
 import './index.css';
 import './lib/i18n';
+import { createLoggerForComponent } from './lib/logger';
 
-console.log('Main: Starting application...');
+const logger = createLoggerForComponent('Main');
+logger.info('Starting application...');
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,7 +19,7 @@ const queryClient = new QueryClient({
   },
 });
 
-console.log('Main: Rendering React app...');
+logger.info('Rendering React app...');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -29,4 +31,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 );
 
-console.log('Main: Render complete');
+logger.info('Render complete');

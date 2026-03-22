@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import type { DownloadLink } from '../types';
+import { createLoggerForComponent } from '../lib/logger';
 
 export default function DownloadLinksView() {
+  const logger = createLoggerForComponent('DownloadLinksView');
   const { t } = useTranslation();
   const [links, setLinks] = useState<DownloadLink[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -14,7 +16,7 @@ export default function DownloadLinksView() {
       const data = await invoke<DownloadLink[]>('get_download_links');
       setLinks(data);
     } catch (err) {
-      console.error('Failed to load links:', err);
+      logger.error('Failed to load links:', err);
     } finally {
       setIsLoading(false);
     }
@@ -31,7 +33,7 @@ export default function DownloadLinksView() {
       await invoke('delete_download_link', { id });
       loadLinks();
     } catch (err) {
-      console.error('Failed to delete link:', err);
+      logger.error('Failed to delete link:', err);
     }
   };
 

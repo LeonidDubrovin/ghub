@@ -1,4 +1,5 @@
 import React from 'react';
+import { createLogger } from './lib/logger';
 
 interface Props {
   children: React.ReactNode;
@@ -11,6 +12,8 @@ interface State {
 }
 
 export class ErrorBoundary extends React.Component<Props, State> {
+  private logger = createLogger('ErrorBoundary');
+  
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
@@ -22,7 +25,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ errorInfo });
-    console.error('Uncaught error:', error, errorInfo);
+    this.logger.error('Uncaught error:', error, errorInfo);
   }
 
   render() {

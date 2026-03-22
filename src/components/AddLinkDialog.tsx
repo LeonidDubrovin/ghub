@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
+import { createLoggerForComponent } from '../lib/logger';
 
 interface AddLinkDialogProps {
   onClose: () => void;
@@ -8,6 +9,7 @@ interface AddLinkDialogProps {
 }
 
 export default function AddLinkDialog({ onClose, onAdd }: AddLinkDialogProps) {
+  const logger = createLoggerForComponent('AddLinkDialog');
   const { t } = useTranslation();
   const [urls, setUrls] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,7 +33,7 @@ export default function AddLinkDialog({ onClose, onAdd }: AddLinkDialogProps) {
           await invoke('create_download_link', { url });
           successCount++;
         } catch (err) {
-          console.error(`Failed to add link ${url}:`, err);
+          logger.error(`Failed to add link ${url}:`, err);
           errors.push(`${url}: ${err}`);
         }
       }
@@ -50,7 +52,7 @@ export default function AddLinkDialog({ onClose, onAdd }: AddLinkDialogProps) {
         }
       }
     } catch (err) {
-      console.error('Failed to add links:', err);
+      logger.error('Failed to add links:', err);
       setError(String(err));
     } finally {
       setIsSubmitting(false);

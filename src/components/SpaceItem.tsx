@@ -101,7 +101,7 @@ export default function SpaceItem({
     <div className="space-item-container">
       <button
         onClick={() => onSelectSpace(space.id)}
-        className={clsx('sidebar-item w-full group relative', isSelected && 'active')}
+        className={clsx('sidebar-item w-full group relative select-none', isSelected && 'active')}
       >
         <span
           className="w-6 h-6 flex items-center justify-center rounded"
@@ -140,15 +140,6 @@ export default function SpaceItem({
               onSelectSource={handleSourceSelect}
             />
           ))}
-
-          {/* Add source button */}
-          <button
-            onClick={handleAddSource}
-            className="w-full p-2 text-sm text-accent hover:bg-accent/10 rounded-lg border border-dashed border-accent/30 transition-colors mt-2"
-            title={t('space.addSource')}
-          >
-            + {t('space.addSource')}
-          </button>
         </div>
       )}
     </div>

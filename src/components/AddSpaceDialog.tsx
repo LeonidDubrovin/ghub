@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCreateSpace, useAddSpaceSource } from '../hooks/useSpaces';
 import { open } from '@tauri-apps/plugin-dialog';
+import { createLoggerForComponent } from '../lib/logger';
 
 interface AddSpaceDialogProps {
   onClose: () => void;
@@ -15,10 +16,11 @@ const COLORS = [
 const ICONS = ['📁', '🎮', '🎯', '⭐', '🎲', '🕹️', '💾', '📚'];
 
 export default function AddSpaceDialog({ onClose }: AddSpaceDialogProps) {
+  const logger = createLoggerForComponent('AddSpaceDialog');
   const { t } = useTranslation();
   const createSpace = useCreateSpace();
   const addSpaceSource = useAddSpaceSource();
-  
+   
   const [name, setName] = useState('');
   const [color, setColor] = useState(COLORS[0]);
   const [icon, setIcon] = useState(ICONS[0]);
@@ -78,7 +80,7 @@ export default function AddSpaceDialog({ onClose }: AddSpaceDialogProps) {
               scan_recursively: true,
             }).catch(err => {
               failedSources.push(path);
-              console.error(`Failed to add source ${path}:`, err);
+              logger.error(`Failed to add source ${path}:`, err);
               return null;
             })
           )
@@ -97,7 +99,7 @@ export default function AddSpaceDialog({ onClose }: AddSpaceDialogProps) {
       
       onClose();
     } catch (error) {
-      console.error('Failed to create space:', error);
+      logger.error('Failed to create space:', error);
       const message = error instanceof Error ? error.message : String(error);
       setError(t('space.createSpaceError', { message }) || `Failed to create space: ${message}`);
       setIsAddingSources(false);

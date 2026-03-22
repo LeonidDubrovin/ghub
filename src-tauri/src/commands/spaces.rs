@@ -42,11 +42,7 @@ pub fn get_space_sources(
 ) -> Result<Vec<SpaceSource>, String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
     let sources = db.get_space_sources(&space_id).map_err(|e| e.to_string())?;
-    println!(
-        "📚 get_space_sources for {}: {} sources",
-        space_id,
-        sources.len()
-    );
+    debug!("📚 get_space_sources for {}: {} sources", space_id, sources.len());
     Ok(sources)
 }
 

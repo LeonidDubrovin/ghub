@@ -597,7 +597,8 @@ impl Database {
              FROM games g
              JOIN installs i ON g.id = i.game_id
              LEFT JOIN spaces s ON i.space_id = s.id
-             WHERE i.space_id = ? AND g.is_hidden = 0
+             LEFT JOIN space_sources ss ON i.space_id = ss.space_id AND i.install_path = ss.source_path
+             WHERE i.space_id = ? AND g.is_hidden = 0 AND ss.source_path IS NULL
              ORDER BY g.title COLLATE NOCASE"
         )?;
 
@@ -660,10 +661,12 @@ impl Database {
              FROM games g
              JOIN installs i ON g.id = i.game_id
              LEFT JOIN spaces s ON i.space_id = s.id
+             LEFT JOIN space_sources ss ON i.space_id = ss.space_id AND i.install_path = ss.source_path
              WHERE i.space_id = ?
                AND i.install_path >= ?
                AND i.install_path < ?
                AND g.is_hidden = 0
+               AND ss.source_path IS NULL
              ORDER BY g.title COLLATE NOCASE"
         )?;
 
