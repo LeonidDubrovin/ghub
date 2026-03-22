@@ -10,6 +10,7 @@ mod downloads;
 mod playtime;
 mod backup;
 mod logging;
+mod filesystem;
 
 // Re-export all commands
 pub use spaces::*;
@@ -21,3 +22,4 @@ pub use downloads::*;
 pub use playtime::*;
 pub use backup::*;
 pub use logging::*;
+pub use filesystem::*;
