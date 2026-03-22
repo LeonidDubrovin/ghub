@@ -72,7 +72,12 @@ export function useRemoveSpaceSource() {
   
   return useMutation({
     mutationFn: async ({ space_id, source_path, delete_games }: { space_id: string; source_path: string; delete_games?: boolean }) => {
-      return await invoke('remove_space_source', { space_id, source_path, delete_games });
+      // Tauri expects camelCase parameter names for command arguments
+      return await invoke('remove_space_source', {
+        spaceId: space_id,
+        sourcePath: source_path,
+        deleteGames: delete_games
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['space_sources', variables.space_id] });
