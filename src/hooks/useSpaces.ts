@@ -71,12 +71,16 @@ export function useRemoveSpaceSource() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ space_id, source_path }: { space_id: string; source_path: string }) => {
-      return await invoke('remove_space_source', { space_id, source_path });
+    mutationFn: async ({ space_id, source_path, delete_games }: { space_id: string; source_path: string; delete_games?: boolean }) => {
+      return await invoke('remove_space_source', { space_id, source_path, delete_games });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['space_sources', variables.space_id] });
       queryClient.invalidateQueries({ queryKey: ['spaces'] });
+      queryClient.invalidateQueries({ queryKey: ['games'] });
+      if (variables.space_id) {
+        queryClient.invalidateQueries({ queryKey: ['games', variables.space_id] });
+      }
     },
   });
 }

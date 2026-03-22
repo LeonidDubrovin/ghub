@@ -91,7 +91,12 @@
     "cancelScanError": "Не удалось отменить сканирование",
     "confirmCancelScan": "Отменить текущее сканирование?",
     "scanAll": "Сканировать все",
-    "scanAllError": "Не удалось сканировать источники пространства"
+    "scanAllError": "Не удалось сканировать источники пространства",
+    "confirmCancelScan": "Отменить текущее сканирование?",
+    "removeSourceQuestion": "Удалить источник?",
+    "removeSourceKeepGames": "Оставить игры в библиотеке",
+    "removeSourceDeleteGames": "Удалить игры из библиотеке",
+    "removeSourceError": "Ошибка при удалении источника"
   },
   "spaces": {
     "confirmDeleteTitle": "Удалить пространство?",

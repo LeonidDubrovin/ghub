@@ -1,6 +1,6 @@
 use crate::models::{CreateSpaceRequest, Space, SpaceSource};
 use crate::AppState;
-use log::debug;
+use log::{debug, error};
 use tauri::State;
 
 #[tauri::command]
@@ -70,12 +70,20 @@ pub fn remove_space_source(
     state: State<AppState>,
     space_id: String,
     source_path: String,
+    delete_games: Option<bool>,
 ) -> Result<(), String> {
-    debug!("remove_space_source: space={}, path={}", space_id, source_path);
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    db.remove_space_source(&space_id, &source_path)
-        .map_err(|e| e.to_string())?;
-    Ok(())
+    debug!("remove_space_source: space={}, path={}, delete_games={:?}", space_id, source_path, delete_games);
+    let mut db = state.db.lock().map_err(|e| e.to_string())?;
+    match db.remove_space_source(&space_id, &source_path, delete_games.unwrap_or(false)) {
+        Ok(_) => {
+            debug!("Successfully removed source {} from space {}", source_path, space_id);
+            Ok(())
+        }
+        Err(e) => {
+            error!("Failed to remove source {} from space {}: {}", source_path, space_id, e);
+            Err(e.to_string())
+        }
+    }
 }
 
 #[tauri::command]

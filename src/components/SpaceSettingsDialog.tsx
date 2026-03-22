@@ -17,6 +17,7 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
   const updateSpaceSource = useUpdateSpaceSource();
   
   const [isSelectingFolder, setIsSelectingFolder] = useState(false);
+  const [removingSource, setRemovingSource] = useState<string | null>(null);
   
   const handleSelectFolder = async () => {
     try {
@@ -47,14 +48,20 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
     }
   };
   
-  const handleRemoveSource = async (sourcePath: string) => {
-    if (!confirm(t('space.confirmRemoveSource'))) return;
-    
-    await removeSpaceSource.mutateAsync({
-      space_id: space.id,
-      source_path: sourcePath,
-    });
-    refetchSources();
+  const handleRemoveSource = async (sourcePath: string, deleteGames: boolean) => {
+    try {
+      await removeSpaceSource.mutateAsync({
+        space_id: space.id,
+        source_path: sourcePath,
+        delete_games: deleteGames,
+      });
+      // Invalidation is handled by the mutation's onSuccess, but we can also manually refetch if needed
+      // refetchSources(); // Not needed, but harmless
+      setRemovingSource(null);
+    } catch (err) {
+      console.error('Failed to remove source:', err);
+      alert(t('space.removeSourceError') + ': ' + (err instanceof Error ? err.message : String(err)));
+    }
   };
   
   const handleToggleSource = async (source: SpaceSource, isActive: boolean) => {
@@ -155,8 +162,8 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
                         </div>
                         
                         <button
-                          onClick={() => handleRemoveSource(source.source_path)}
-                          disabled={removeSpaceSource.isPending}
+                          onClick={() => setRemovingSource(source.source_path)}
+                          disabled={removeSpaceSource.isPending || removingSource === source.source_path}
                           className="text-danger hover:text-red-700 p-1"
                           title={t('space.removeSource')}
                         >
@@ -182,6 +189,45 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
         </div>
       </div>
       
+      {/* Remove Source Confirmation Modal */}
+      {removingSource && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-surface-300 rounded-xl w-full max-w-md shadow-2xl p-6">
+            <h3 className="text-lg font-semibold mb-2">{t('space.removeSourceQuestion')}</h3>
+            <p className="text-sm text-gray-400 mb-4 break-all">
+              {removingSource}
+            </p>
+            
+            <div className="space-y-3 mb-6">
+              <button
+                onClick={() => handleRemoveSource(removingSource, false)}
+                disabled={removeSpaceSource.isPending}
+                className="w-full btn btn-secondary"
+              >
+                {t('space.removeSourceKeepGames')}
+              </button>
+              <button
+                onClick={() => handleRemoveSource(removingSource, true)}
+                disabled={removeSpaceSource.isPending}
+                className="w-full btn btn-danger"
+              >
+                {t('space.removeSourceDeleteGames')}
+              </button>
+              <button
+                onClick={() => setRemovingSource(null)}
+                disabled={removeSpaceSource.isPending}
+                className="w-full btn btn-secondary"
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
+            
+            {removeSpaceSource.isPending && (
+              <p className="text-center text-sm text-gray-400">{t('common.loading')}</p>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
