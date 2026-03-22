@@ -84,6 +84,10 @@ pub fn scan_directory(
 
     let max_depth = config.max_scan_depth;
 
+    // Precompute normalized base path for robust comparison (case-insensitive, trailing separators ignored)
+    let base_path_str = base_path.to_string_lossy().to_lowercase();
+    let base_path_normalized = base_path_str.trim_end_matches(['\\', '/']).to_string();
+
     for entry in WalkDir::new(base_path)
         .max_depth(max_depth)
         .into_iter()
@@ -106,7 +110,10 @@ pub fn scan_directory(
 
         // Skip the base path itself - we only want to scan subdirectories
         // The source directory is a container, not a game
-        if entry_path == base_path {
+        // Use case-insensitive, trailing-separator-agnostic comparison for Windows compatibility
+        let entry_str = entry_path.to_string_lossy().to_lowercase();
+        let entry_normalized = entry_str.trim_end_matches(['\\', '/']).to_string();
+        if entry_normalized == base_path_normalized {
             debug!("[SCAN_DIRECTORY] Skipping base path itself: {}", entry_path.display());
             continue;
         }

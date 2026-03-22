@@ -290,14 +290,46 @@ impl ScanningService {
                 // We'll unmark them as we find them
                 {
                     let mut db_lock = db.lock().unwrap();
-                    // First, delete any install that points exactly to the source directory itself
+                    
+                    // Delete any install that points exactly to the source directory itself
                     // This cleans up false entries from previous scans where the source was treated as a game
-                    if let Ok(delete_count) = db_lock.conn.execute(
-                        "DELETE FROM installs WHERE space_id = ? AND install_path = ?",
-                        params![space_id, source_path],
+                    // We need to handle case-insensitivity and trailing separators for Windows
+                    let source_path_lower = source_path.to_lowercase();
+                    let source_normalized = source_path_lower.trim_end_matches(['\\', '/']).to_string();
+                    
+                    // Build patterns to match: exact path and path with trailing separator
+                    let patterns = if source_path.ends_with('\\') || source_path.ends_with('/') {
+                        vec![source_normalized.clone()]
+                    } else {
+                        vec![source_normalized.clone(), format!("{}{}", source_normalized, std::path::MAIN_SEPARATOR)]
+                    };
+                    
+                    // Fetch all installs for this space to check manually (more reliable than prefix query)
+                    if let Ok(all_installs) = db_lock.conn.prepare(
+                        "SELECT id, install_path FROM installs WHERE space_id = ?"
                     ) {
-                        if delete_count > 0 {
-                            debug!("[SCAN_SOURCE] Deleted {} false install(s) with path equal to source", delete_count);
+                        let mut total_deleted = 0;
+                        let installs_iter = all_installs.query(params![space_id]).unwrap_or_else(|_| {
+                            // Fallback to empty iterator on error
+                            rusqlite::MappedRows::new(None, |row| { row.ok() })
+                        });
+                        
+                        for install_row in installs_iter {
+                            if let Ok((install_id, install_path): (String, String)) = install_row {
+                                let install_lower = install_path.to_lowercase();
+                                let install_normalized = install_lower.trim_end_matches(['\\', '/']).to_string();
+                                
+                                // Check if this install's normalized path matches the source normalized path
+                                if install_normalized == source_normalized {
+                                    debug!("[SCAN_SOURCE] Deleting false install: id={}, path={}", install_id, install_path);
+                                    let _ = db_lock.conn.execute("DELETE FROM installs WHERE id = ?", params![install_id]);
+                                    total_deleted += 1;
+                                }
+                            }
+                        }
+                        
+                        if total_deleted > 0 {
+                            debug!("[SCAN_SOURCE] Deleted {} false install(s) with path equal to source", total_deleted);
                             // Clean up orphaned games (those with no remaining installs)
                             let _ = db_lock.conn.execute(
                                 "DELETE FROM games WHERE id NOT IN (SELECT DISTINCT game_id FROM installs)",
@@ -307,6 +339,7 @@ impl ScanningService {
                     }
 
                     // Now mark remaining installs for this source as missing
+                    // Use the prefix query which correctly finds subdirectory installs
                     if let Ok(mut existing_installs) = db_lock.get_installs_for_source(&space_id, &source_path) {
                         for (idx, install) in existing_installs.iter_mut().enumerate() {
                             // Check cancellation periodically
@@ -569,12 +602,16 @@ impl ScanningService {
         
         match result {
             Ok((mut games, count)) => {
-                // Defensive filter: remove any game whose path equals the source path itself
-                // This should never happen due to scanner skipping base path, but we guard against it
+                // Defensive filter: remove any game whose normalized path equals the source path
+                // Handles case-insensitivity and trailing separators on Windows
+                let source_path_str = path.to_string_lossy().to_lowercase();
+                let source_normalized = source_path_str.trim_end_matches(['\\', '/']).to_string();
+                
                 let original_len = games.len();
                 games.retain(|game| {
-                    let game_path = Path::new(&game.path);
-                    if game_path == path {
+                    let game_path_str = game.path.to_lowercase();
+                    let game_normalized = game_path_str.trim_end_matches(['\\', '/']).to_string();
+                    if game_normalized == source_normalized {
                         debug!("[PERFORM_SCAN] Filtered out game that is the source directory itself: {}", game.path);
                         false
                     } else {
