@@ -379,6 +379,10 @@ pub fn clean_game_title(name: &str) -> String {
         title = title.replace(tag, "");
     }
 
+    // Remove trailing incomplete parentheses/brackets (e.g., "Centroid (", "Game [")
+    // These often occur due to folder name truncation
+    title = title.trim_end_matches(|c| c == '(' || c == '[').trim().to_string();
+
     // Remove common generic folder names that shouldn't be game titles
     let generic_names = [
         "Windows",
@@ -405,6 +409,89 @@ pub fn clean_game_title(name: &str) -> String {
         "Shipping",
         "Development",
         "Debug",
+        // Additional generic names
+        "PC",
+        "Desktop",
+        "Binaries",
+        "Resources",
+        "en-us",
+        "en_us",
+        "en-US",
+        "MACOSX",
+        "osx",
+        "Steam",
+        "GOG",
+        "Epic",
+        "Origin",
+        "Uplay",
+        "Battle.net",
+        "Amazon",
+        "Xbox",
+        "PlayStation",
+        "Nintendo",
+        "Switch",
+        "3DS",
+        "Vita",
+        "PSP",
+        "PSX",
+        "PS2",
+        "PS3",
+        "PS4",
+        "PS5",
+        "XB1",
+        "XB360",
+        "XboxOne",
+        "XboxSeriesX",
+        "XboxSeriesXS",
+        "games",
+        "list",
+        "collection",
+        "pack",
+        "bundle",
+        "indie",
+        "freeware",
+        "shareware",
+        "demo",
+        "trial",
+        "beta",
+        "alpha",
+        "preview",
+        "test",
+        "sample",
+        "example",
+        "tutorial",
+        "template",
+        "drmfree",
+        "launcher",
+        "setup",
+        "installer",
+        "updater",
+        "crashhandler",
+        "crash_report",
+        "unins000",
+        "unins001",
+        "unins002",
+        "unins003",
+        "unins004",
+        "unins005",
+        "unins006",
+        "unins007",
+        "unins008",
+        "unins009",
+        "unins010",
+        // Additional generic folder names that should not be used as game titles
+        "engine",
+        "jre",
+        "jdk",
+        "runtime",
+        "runtimes",
+        "bin",
+        "win",
+        "windows",
+        "x64",
+        "x86",
+        "gmlive",
+        "__macosx",
     ];
 
     let trimmed = title.trim();
@@ -664,9 +751,38 @@ fn try_extract_from_local_metadata(metadata: &Option<LocalMetadata>) -> Option<S
         .as_ref()
         .and_then(|m| m.name.as_ref())
         .filter(|name| {
-            !name.is_empty() && !is_generic_exe_name(name) && !is_problematic_game_name(name)
+            !name.is_empty() 
+                && !is_generic_exe_name(name) 
+                && !is_problematic_game_name(name)
+                && !is_likely_sentence(name)
         })
-        .cloned()
+        .map(|name| name.trim().to_string())
+}
+
+/// Check if a string looks like a descriptive sentence rather than a game title.
+/// Sentences often contain verb phrases, colons, or attribution words.
+fn is_likely_sentence(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    // Common verb indicators that suggest a sentence
+    let sentence_indicators = [
+        " is ", " are ", " was ", " were ", " has ", " have ", " do ", " does ", " did ",
+        " will ", " would ", " could ", " should ", " may ", " might ", " must ", " can ", " cannot ",
+        " for ", " by ", " with ", " and ", " or ", " but ", " if ", " then ", " else ",
+    ];
+    for indicator in &sentence_indicators {
+        if lower.contains(indicator) {
+            return true;
+        }
+    }
+    // Ends with colon (common in descriptions like "garden is a collaboration between:")
+    if name.trim_end().ends_with(':') {
+        return true;
+    }
+    // Attribution words often found in descriptions
+    if lower.contains(" by ") || lower.contains(" with ") {
+        return true;
+    }
+    false
 }
 
 /// Level 1: Extract title from cleaned directory name
@@ -704,6 +820,7 @@ fn try_extract_from_company_name(exe_metadata: &Option<crate::models::ExeMetadat
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::ExeMetadata;
 
     #[test]
     fn test_clean_game_title() {
@@ -712,6 +829,60 @@ mod tests {
         assert_eq!(clean_game_title("The Game (windows)"), "Game");
         assert_eq!(clean_game_title("Game - pc"), "Game");
         assert_eq!(clean_game_title("Game_v1.0"), "Game");
+        
+        // Test version number removal
+        assert_eq!(clean_game_title("Game v1.2.3"), "Game");
+        assert_eq!(clean_game_title("Game V1.0.0"), "Game");
+        assert_eq!(clean_game_title("Game_1.0.1"), "Game");
+        assert_eq!(clean_game_title("Game-2.0.0-beta"), "Game");
+        
+        // Test platform tag removal
+        assert_eq!(clean_game_title("Game (Windows)"), "Game");
+        assert_eq!(clean_game_title("Game (PC)"), "Game");
+        assert_eq!(clean_game_title("Game_GOG"), "Game");
+        assert_eq!(clean_game_title("Game_Steam"), "Game");
+        
+        // Test trailing parenthesis stripping (truncation)
+        assert_eq!(clean_game_title("Game ("), "Game");
+        assert_eq!(clean_game_title("Game ["), "Game");
+        assert_eq!(clean_game_title("Game (Demo"), "Game");
+        
+        // Test generic folder names that should return empty
+        assert!(clean_game_title("Windows").is_empty());
+        assert!(clean_game_title("win64").is_empty());
+        assert!(clean_game_title("Binaries").is_empty());
+        assert!(clean_game_title("Engine").is_empty());
+        assert!(clean_game_title("jre").is_empty());
+        assert!(clean_game_title("en-us").is_empty());
+        assert!(clean_game_title("MACOSX").is_empty());
+        assert!(clean_game_title("gmlive").is_empty());
+        assert!(clean_game_title("Build").is_empty());
+        assert!(clean_game_title("runtime").is_empty());
+        
+        // Test valid names
+        assert_eq!(clean_game_title("My Awesome Game"), "My Awesome Game");
+        assert_eq!(clean_game_title("Game_2022Update"), "Game 2022Update");
+        assert_eq!(clean_game_title("(Win)Project Troll v2.2"), "(Win)Project Troll");
+    }
+
+    #[test]
+    fn test_is_likely_sentence() {
+        // Sentences with verb indicators
+        assert!(is_likely_sentence("This is a game"));
+        assert!(is_likely_sentence("garden is a collaboration between:"));
+        assert!(is_likely_sentence("The game was made by John"));
+        assert!(is_likely_sentence("Controls: WASD to move"));
+        assert!(is_likely_sentence("To play the game you must extract the folder"));
+        assert!(is_likely_sentence("made by Friedrich Hanisch"));
+        assert!(is_likely_sentence("System requirements: 4GB RAM"));
+        
+        // Valid game titles (not sentences)
+        assert!(!is_likely_sentence("MyGame"));
+        assert!(!is_likely_sentence("The Legend of Zelda"));
+        assert!(!is_likely_sentence("Super Mario Odyssey"));
+        assert!(!is_likely_sentence("Game Name 2022"));
+        assert!(!is_likely_sentence("Bikrash"));
+        assert!(!is_likely_sentence("DANGEON!"));
     }
 
     #[test]
@@ -720,32 +891,41 @@ mod tests {
         assert!(is_generic_exe_name("setup"));
         assert!(is_generic_exe_name("Unity Player"));
         assert!(is_generic_exe_name("UE4 Game"));
+        assert!(is_generic_exe_name("godot engine"));
+        assert!(is_generic_exe_name("BootstrapPackagedGame"));
+        assert!(is_generic_exe_name("crashreport"));
+        assert!(is_generic_exe_name("WindowsNoEditor"));
+        assert!(is_generic_exe_name("shipping"));
+        assert!(is_generic_exe_name("debug"));
+        assert!(is_generic_exe_name("runtime"));
+        assert!(is_generic_exe_name("redistributable"));
+        
+        // Should not be generic
         assert!(!is_generic_exe_name("MyGame"));
+        assert!(!is_generic_exe_name("Awesome Game"));
+        assert!(!is_generic_exe_name("Roguelike"));
+        assert!(!is_generic_exe_name("Project Troll"));
     }
 
     #[test]
     fn test_is_problematic_game_name() {
         assert!(is_problematic_game_name("ICARUS"));
         assert!(is_problematic_game_name("Godot Engine"));
+        assert!(is_problematic_game_name("BootstrapPackagedGame"));
+        assert!(is_problematic_game_name("WindowsNoEditor"));
+        assert!(is_problematic_game_name("Win64"));
+        assert!(is_problematic_game_name("Shipping"));
+        
         assert!(!is_problematic_game_name("MyGame"));
-    }
-
-    #[test]
-    fn test_extract_title_with_fallback() {
-        let game_path = Path::new("/games/MyGame");
-        let dir_name = "MyGame";
-        let local_metadata = None;
-        let exe_metadata = None;
-        let executable = None;
-
-        let title = extract_title_with_fallback(game_path, dir_name, &local_metadata, &exe_metadata, &executable);
-        assert_eq!(title, "MyGame");
+        assert!(!is_problematic_game_name("Roguelike"));
     }
 
     #[test]
     fn test_get_non_empty_title() {
         assert_eq!(get_non_empty_title("  ".to_string()), None);
         assert_eq!(get_non_empty_title("Hello".to_string()), Some("Hello".to_string()));
+        assert_eq!(get_non_empty_title("".to_string()), None);
+        assert_eq!(get_non_empty_title("   Game   ".to_string()), Some("Game".to_string()));
     }
 
     #[test]
@@ -754,5 +934,480 @@ mod tests {
         let map = parse_key_value_pairs(content, '=').unwrap();
         assert_eq!(map.get("name"), Some(&"My Game".to_string()));
         assert_eq!(map.get("description"), Some(&"Test".to_string()));
+        
+        // Test with quotes
+        let content = "name=\"My Game\"\ndesc='Test'\n";
+        let map = parse_key_value_pairs(content, '=').unwrap();
+        assert_eq!(map.get("name"), Some(&"My Game".to_string()));
+        assert_eq!(map.get("desc"), Some(&"Test".to_string()));
+        
+        // Test with YAML-style colon separator
+        let content = "name: My Game\ndescription: Test\n";
+        let map = parse_key_value_pairs(content, ':').unwrap();
+        assert_eq!(map.get("name"), Some(&"My Game".to_string()));
+        assert_eq!(map.get("description"), Some(&"Test".to_string()));
+    }
+
+    #[test]
+    fn test_try_extract_from_local_metadata() {
+        // Valid metadata with good name
+        let metadata = Some(LocalMetadata {
+            name: Some("Bikrash".to_string()),
+            description: Some("Pedaling ..... W Back ......... S Handling ..... A".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, Some("Bikrash".to_string()));
+        
+        // Metadata with sentence-like name should be rejected
+        let metadata = Some(LocalMetadata {
+            name: Some("To play the game you must extract the folder".to_string()),
+            description: None,
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+        
+        // Metadata with generic name should be rejected
+        let metadata = Some(LocalMetadata {
+            name: Some("Windows".to_string()),
+            description: None,
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+        
+        // Metadata with empty name
+        let metadata = Some(LocalMetadata {
+            name: Some("".to_string()),
+            description: Some("A good game".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+        
+        // No metadata
+        let metadata: Option<LocalMetadata> = None;
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+    }
+
+    #[test]
+    fn test_extract_title_with_fallback_scenarios() {
+        let game_path = Path::new("/games/MyGame");
+        
+        // Scenario 1: Local metadata with good name (Level 0)
+        let local_metadata = Some(LocalMetadata {
+            name: Some("Bikrash".to_string()),
+            description: Some("Pedaling game".to_string()),
+            developer: None,
+            version: None,
+        });
+        let exe_metadata = None;
+        let executable = None;
+        let title = extract_title_with_fallback(
+            game_path,
+            "Bikrash_0.6",
+            &local_metadata,
+            &exe_metadata,
+            &Some("Bikrash.exe".to_string()),
+        );
+        assert_eq!(title, "Bikrash");
+        
+        // Scenario 2: No metadata, good dir name (Level 1)
+        let local_metadata = None;
+        let exe_metadata = None;
+        let executable = None;
+        let title = extract_title_with_fallback(
+            game_path,
+            "My Awesome Game_v1.0",
+            &local_metadata,
+            &exe_metadata,
+            &None,
+        );
+        assert_eq!(title, "My Awesome Game");
+        
+        // Scenario 3: Dir name is generic, use parent (Level 3)
+        let local_metadata = None;
+        let exe_metadata = None;
+        let executable = None;
+        let game_path = Path::new("/games/MyCollection/Windows");
+        let title = extract_title_with_fallback(
+            game_path,
+            "Windows",
+            &local_metadata,
+            &exe_metadata,
+            &None,
+        );
+        assert_eq!(title, "MyCollection");
+        
+        // Scenario 4: Dir name is "jre" (generic), should use parent
+        let local_metadata = None;
+        let exe_metadata = None;
+        let executable = None;
+        let game_path = Path::new("/games/Greedy Miners/Greedy Miners/jre/bin");
+        let title = extract_title_with_fallback(
+            game_path,
+            "jre",
+            &local_metadata,
+            &exe_metadata,
+            &Some("javaws.exe".to_string()),
+        );
+        assert_eq!(title, "Greedy Miners");
+        
+        // Scenario 5: Dir name is "en-us" (language folder), should use parent
+        let local_metadata = None;
+        let exe_metadata = None;
+        let executable = None;
+        let game_path = Path::new("/games/Game/Engine/Extras/Redist/en-us");
+        let title = extract_title_with_fallback(
+            game_path,
+            "en-us",
+            &local_metadata,
+            &exe_metadata,
+            &None,
+        );
+        assert_eq!(title, "Redist");
+        
+        // Scenario 6: Dir name is "Build" (generic), should use parent
+        let local_metadata = None;
+        let exe_metadata = None;
+        let executable = None;
+        let game_path = Path::new("/games/MyGame/Build");
+        let title = extract_title_with_fallback(
+            game_path,
+            "Build",
+            &local_metadata,
+            &exe_metadata,
+            &None,
+        );
+        assert_eq!(title, "MyGame");
+        
+        // Scenario 7: Dir name is "D3D12" (generic), should use parent
+        let local_metadata = None;
+        let exe_metadata = None;
+        let executable = None;
+        let game_path = Path::new("/games/Blattgold Download/build/D3D12");
+        let title = extract_title_with_fallback(
+            game_path,
+            "D3D12",
+            &local_metadata,
+            &exe_metadata,
+            &Some("BlattGold.exe".to_string()),
+        );
+        assert_eq!(title, "Blattgold Download");
+        
+        // Scenario 8: Dir name is "New folder" (generic), should use parent
+        let local_metadata = None;
+        let exe_metadata = None;
+        let executable = None;
+        let game_path = Path::new("/games/Animal Crushing/New folder");
+        let title = extract_title_with_fallback(
+            game_path,
+            "New folder",
+            &local_metadata,
+            &exe_metadata,
+            &Some("AssetJamSource.exe".to_string()),
+        );
+        assert_eq!(title, "Animal Crushing");
+        
+        // Scenario 9: Dir name is "WindowsClient" (generic), should use parent
+        let local_metadata = None;
+        let exe_metadata = None;
+        let executable = None;
+        let game_path = Path::new("/games/Balance'em/WindowsClient");
+        let title = extract_title_with_fallback(
+            game_path,
+            "WindowsClient",
+            &local_metadata,
+            &exe_metadata,
+            &Some("Balance'em.exe".to_string()),
+        );
+        assert_eq!(title, "Balance'em");
+        
+        // Scenario 10: Dir name is "Win" (generic), should use parent
+        let local_metadata = None;
+        let exe_metadata = None;
+        let executable = None;
+        let game_path = Path::new("/games/GMTK2025/Win");
+        let title = extract_title_with_fallback(
+            game_path,
+            "Win",
+            &local_metadata,
+            &exe_metadata,
+            &Some("GMTK2025.exe".to_string()),
+        );
+        assert_eq!(title, "GMTK2025");
+        
+        // Scenario 11: Dir name is "games tmp for dev" (generic), should use parent
+        let local_metadata = None;
+        let exe_metadata = None;
+        let executable = None;
+        let game_path = Path::new("/games_genre/games_tmp_for_dev/0.0.15c demo");
+        let title = extract_title_with_fallback(
+            game_path,
+            "0.0.15c demo",
+            &local_metadata,
+            &exe_metadata,
+            &Some("Glorysmith.exe".to_string()),
+        );
+        // Since "0.0.15c demo" is not in generic list, it should be used
+        // But if it were generic, it would fall back to "games_tmp_for_dev"
+        // Actually "games_tmp_for_dev" is generic too, so it would go to "games_genre"
+        // Let's test a case where the dir name itself is generic
+        let game_path = Path::new("/games_genre/games_tmp_for_dev/games");
+        let title = extract_title_with_fallback(
+            game_path,
+            "games",
+            &local_metadata,
+            &exe_metadata,
+            &None,
+        );
+        assert_eq!(title, "games_tmp_for_dev");
+    }
+
+    #[test]
+    fn test_extract_title_from_executable() {
+        // Test with valid executable name
+        let executable = Some("MyGame.exe".to_string());
+        let title = extract_title_from_executable(&executable);
+        assert_eq!(title, Some("MyGame".to_string()));
+        
+        // Test with version in exe name
+        let executable = Some("MyGame_v1.0.exe".to_string());
+        let title = extract_title_from_executable(&executable);
+        assert_eq!(title, Some("MyGame".to_string()));
+        
+        // Test with generic exe name (should be filtered by clean_game_title)
+        let executable = Some("launcher.exe".to_string());
+        let title = extract_title_from_executable(&executable);
+        assert_eq!(title, None);
+        
+        // Test with no executable
+        let executable: Option<String> = None;
+        let title = extract_title_from_executable(&executable);
+        assert_eq!(title, None);
+    }
+
+    #[test]
+    fn test_real_world_examples_from_logs() {
+        // From log: (Win)Project Troll v2.2 -> (Win)Project Troll
+        assert_eq!(clean_game_title("(Win)Project Troll v2.2"), "(Win)Project Troll");
+        
+        // From log: 0.0.15c demo -> should be valid (not generic)
+        let title = clean_game_title("0.0.15c demo");
+        assert_eq!(title, "0.0.15c demo");
+        
+        // From log: A Night Around The Fire_2022Update -> A Night Around The Fire 2022Update
+        assert_eq!(clean_game_title("A Night Around The Fire_2022Update"), "A Night Around The Fire 2022Update");
+        
+        // From log: Abodtion -> Abodtion (should stay as is)
+        assert_eq!(clean_game_title("Abodtion"), "Abodtion");
+        
+        // From log: ARLO4 with FPS Project.exe -> ARLO4 (dir name used because exe name doesn't match)
+        // The dir name "ARLO4" is valid
+        assert_eq!(clean_game_title("ARLO4"), "ARLO4");
+        
+        // From log: Bridgebourn Demo Win64 v0-6-29 -> Bridgebourn Demo Win64
+        assert_eq!(clean_game_title("Bridgebourn Demo Win64 v0-6-29"), "Bridgebourn Demo Win64");
+        
+        // From log: COOKnRUN_1.1 -> COOKnRUN
+        assert_eq!(clean_game_title("COOKnRUN_1.1"), "COOKnRUN");
+        
+        // From log: Dangeon_11b with readme name "DANGEON!" -> DANGEON!
+        // This tests that metadata extraction works
+        let metadata = Some(LocalMetadata {
+            name: Some("DANGEON!".to_string()),
+            description: Some("made by Friedrich Hanisch - www.ratking.de Music b".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, Some("DANGEON!".to_string()));
+        
+        // From log: Dash & Blast with readme "This demo is purely to showcase the core gameplay."
+        // This is a sentence, should be rejected
+        let metadata = Some(LocalMetadata {
+            name: None,
+            description: Some("This demo is purely to showcase the core gameplay.".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+        
+        // From log: Deadly Boat (new build) with readme "Control: WASD - Movement"
+        // This is a sentence/controls description, should be rejected
+        let metadata = Some(LocalMetadata {
+            name: Some("Control:".to_string()),
+            description: Some("WASD - Movement Shift - Dash Space - power attack ".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+        
+        // From log: Elysis Demo 3b with readme "To play the game you must extract the folder"
+        // This is a sentence, should be rejected
+        let metadata = Some(LocalMetadata {
+            name: Some("To play the game you must extract the folder".to_string()),
+            description: Some("Otherwise you may get maps that don't load You can".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+        
+        // From log: egg_windows_v11 with readme "----------------------------------------------------------------------------------"
+        // This is not a valid name, should be rejected
+        let metadata = Some(LocalMetadata {
+            name: Some("----------------------------------------------------------------------------------".to_string()),
+            description: Some("EGG v1.1, 2nd November 2025".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+        
+        // From log: gauntlet-of-power-win with broken JSON name "{"
+        let metadata = Some(LocalMetadata {
+            name: Some("{".to_string()),
+            description: Some("\"classPath\": [ \"heroesofloot3demo.dat\" ], \"mainCla".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+        
+        // From log: HeavyRecoil with about.txt "-------- Controls"
+        let metadata = Some(LocalMetadata {
+            name: None,
+            description: Some("-------- Controls".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+        
+        // From log: Hive_Preserver_Jam_v10b with readme "It is a fast-paced first-person alien action game "
+        // This is a sentence, should be rejected
+        let metadata = Some(LocalMetadata {
+            name: None,
+            description: Some("It is a fast-paced first-person alien action game ".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        assert_eq!(title, None);
+        
+        // From log: Infineural with good readme name
+        let metadata = Some(LocalMetadata {
+            name: Some("Thank you so much for purchasing \"Infineural\".".to_string()),
+            description: Some("If you have any issues regarding the game, please ".to_string()),
+            developer: None,
+            version: None,
+        });
+        let title = try_extract_from_local_metadata(&metadata);
+        // This starts with "Thank you" which is a sentence indicator, should be rejected
+        assert_eq!(title, None);
+    }
+
+    #[test]
+    fn test_exe_metadata_extraction() {
+        // Test with valid product name
+        let exe_metadata = Some(ExeMetadata {
+            product_name: Some("Roguelike".to_string()),
+            company_name: Some("Some Company".to_string()),
+            file_description: None,
+            file_version: None,
+        });
+        let game_path = Path::new("/games/Roguelike");
+        let title = try_extract_from_exe_metadata(game_path, &exe_metadata);
+        assert_eq!(title, Some("Roguelike".to_string()));
+        
+        // Test with generic product name
+        let exe_metadata = Some(ExeMetadata {
+            product_name: Some("Unity Player".to_string()),
+            company_name: Some("Unity Technologies".to_string()),
+            file_description: None,
+            file_version: None,
+        });
+        let game_path = Path::new("/games/MyGame");
+        let title = try_extract_from_exe_metadata(&game_path, &exe_metadata);
+        assert_eq!(title, None);
+        
+        // Test with exe in deep subfolder (Engine/Binaries) - should not use metadata
+        let exe_metadata = Some(ExeMetadata {
+            product_name: Some("MyGame".to_string()),
+            company_name: Some("MyCompany".to_string()),
+            file_description: None,
+            file_version: None,
+        });
+        let game_path = Path::new("/games/MyGame/Engine/Binaries/Win64");
+        let title = try_extract_from_exe_metadata(game_path, &exe_metadata);
+        assert_eq!(title, None);
+        
+        // Test with exe in Plugins folder - should not use metadata
+        let game_path = Path::new("/games/MyGame/Data/Plugins/x86_64");
+        let title = try_extract_from_exe_metadata(game_path, &exe_metadata);
+        assert_eq!(title, None);
+    }
+
+    #[test]
+    fn test_company_name_extraction() {
+        // Test with valid company name (as last resort)
+        let exe_metadata = Some(ExeMetadata {
+            product_name: Some("BootstrapPackagedGame".to_string()),
+            company_name: Some("Valve".to_string()),
+            file_description: None,
+            file_version: None,
+        });
+        let title = try_extract_from_company_name(&exe_metadata);
+        assert_eq!(title, Some("Valve".to_string()));
+        
+        // Test with generic company name
+        let exe_metadata = Some(ExeMetadata {
+            product_name: Some("MyGame".to_string()),
+            company_name: Some("Microsoft Corporation".to_string()),
+            file_description: None,
+            file_version: None,
+        });
+        let title = try_extract_from_company_name(&exe_metadata);
+        assert_eq!(title, None);
+        
+        // Test with None
+        let exe_metadata: Option<ExeMetadata> = None;
+        let title = try_extract_from_company_name(&exe_metadata);
+        assert_eq!(title, None);
+    }
+
+    #[test]
+    fn test_find_title_in_parents() {
+        // Test finding title in immediate parent
+        let path = Path::new("/games/MyGame/Data");
+        let title = find_title_in_parents(path, 3);
+        assert_eq!(title, Some("MyGame".to_string()));
+        
+        // Test with generic parent name, should skip to next
+        let path = Path::new("/games/MyCollection/Windows/Data");
+        let title = find_title_in_parents(path, 3);
+        assert_eq!(title, Some("MyCollection".to_string()));
+        
+        // Test with multiple generic levels
+        let path = Path::new("/games/Collection/Build/Windows/Data");
+        let title = find_title_in_parents(path, 3);
+        // Should find "Collection" (skipping "Windows" and "Build" if they're generic)
+        // Actually "Build" is generic, "Windows" is generic, so it would go up to "Collection"
+        // But our generic list includes "Build" and "Windows"
+        assert_eq!(title, Some("Collection".to_string()));
+        
+        // Test with all generic parents, should return None
+        let path = Path::new("/games/Windows/Build/Release/Data");
+        let title = find_title_in_parents(path, 3);
+        assert_eq!(title, None);
     }
 }

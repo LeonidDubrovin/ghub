@@ -368,12 +368,29 @@ fn pick_best_executable(dir: &Path, executables: &[String]) -> Option<String> {
         }
     }
 
-    // Priority 2: exe in root folder (not subdir)
+    // Priority 2: exe in root folder (not subdir) with sufficient size (>= 1MB)
+    // Filter out small utilities/launchers that happen to be in root
+    let mut best_root: Option<(String, u64)> = None;
     for exe in executables {
         if !exe.contains('\\') && !exe.contains('/') {
-            debug!("[pick_best] Priority 2 match: '{}' is in root", exe);
-            return Some(exe.clone());
+            let full_path = dir.join(exe);
+            if let Ok(meta) = std::fs::metadata(&full_path) {
+                let size = meta.len();
+                // Consider root executables only if they are at least 1 MB
+                if size >= 1_048_576 {
+                    if best_root.is_none() || size > best_root.as_ref().unwrap().1 {
+                        best_root = Some((exe.clone(), size));
+                    }
+                }
+            }
         }
+    }
+    if let Some((exe, size)) = &best_root {
+        debug!(
+            "[pick_best] Priority 2 (root, size>=1MB): selected '{}' ({} bytes)",
+            exe, size
+        );
+        return Some(exe.clone());
     }
 
     // Priority 3: largest exe file (likely main game)
