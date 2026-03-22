@@ -223,6 +223,7 @@ export default function GameDetailsView({
                             await import('@tauri-apps/plugin-shell').then(m => m.open(selectedGame.install_path!));
                           } catch (error) {
                             console.error('Failed to open folder:', error);
+                            alert(`Failed to open folder: ${error}`);
                           }
                         }}
                         className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded text-xs flex items-center gap-1 transition-colors"

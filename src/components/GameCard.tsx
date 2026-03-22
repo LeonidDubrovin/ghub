@@ -123,6 +123,7 @@ export default function GameCard({
                     await import('@tauri-apps/plugin-shell').then(m => m.open(game.install_path!));
                   } catch (error) {
                     console.error('Failed to open folder:', error);
+                    alert(`Failed to open folder: ${error}`);
                   }
                 }}
                 className="w-full btn flex items-center justify-center gap-1 btn-outline"
