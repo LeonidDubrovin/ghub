@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStartSourceScan, useCancelSourceScan, useSourceScanStatus } from '../hooks/useScanning';
-import { useRemoveSpaceSource, useSpaceSources } from '../hooks/useSpaces';
+import { useSpaceSources } from '../hooks/useSpaces';
 import type { SelectedSource, SpaceSource } from '../types';
-import RemoveSourceDialog from './RemoveSourceDialog';
 
 const PlayIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -18,12 +16,6 @@ const StopIcon = () => (
   </svg>
 );
 
-const TrashIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
-);
-
 interface SelectedSourceToolbarProps {
   selectedSource: SelectedSource;
   onClose: () => void;
@@ -35,8 +27,7 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
   const { data: sources = [] } = useSpaceSources(selectedSource.spaceId);
   const startScan = useStartSourceScan();
   const cancelScan = useCancelSourceScan();
-  const removeSource = useRemoveSpaceSource();
-  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  // removeSource hook removed since delete source button is no longer in toolbar
 
   // Find the specific source to check if it's active
   const sourceData: SpaceSource | undefined = sources.find(s => s.source_path === selectedSource.sourcePath);
@@ -84,30 +75,7 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
     }
   };
 
-  const handleRemoveClick = () => {
-    setShowRemoveDialog(true);
-  };
-
-  const handleRemoveConfirm = async (deleteGames: boolean) => {
-    console.log('Remove source args:', {
-      space_id: selectedSource.spaceId,
-      source_path: selectedSource.sourcePath,
-      delete_games: deleteGames,
-    });
-    if (!selectedSource.spaceId || !selectedSource.sourcePath) {
-      const msg = `Missing spaceId or sourcePath: spaceId=${selectedSource.spaceId}, sourcePath=${selectedSource.sourcePath}`;
-      console.error(msg);
-      alert(msg);
-      throw new Error(msg);
-    }
-    await removeSource.mutateAsync({
-      space_id: selectedSource.spaceId,
-      source_path: selectedSource.sourcePath,
-      delete_games: deleteGames,
-    });
-    setShowRemoveDialog(false);
-    onClose();
-  };
+  // handleRemoveConfirm removed - source removal now only available in SpaceSettingsDialog
 
   // Get folder name for display
   const folderName = selectedSource.sourcePath.split(/[\\/]/).filter(Boolean).pop() || selectedSource.sourcePath;
@@ -204,16 +172,6 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
             <span>{t('space.scan')}</span>
           </button>
         )}
-
-        <button
-          onClick={handleRemoveClick}
-          disabled={removeSource.isPending || isScanning}
-          className="btn flex items-center gap-2 px-3 py-2 text-sm bg-danger/20 text-danger border border-danger/30 hover:bg-danger/30 disabled:opacity-50"
-          title={t('space.removeSource')}
-        >
-          <TrashIcon />
-          <span>{t('space.remove')}</span>
-        </button>
       </div>
 
       {/* Close button */}
@@ -225,14 +183,6 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
         ✕
       </button>
       </div>
-      {showRemoveDialog && (
-        <RemoveSourceDialog
-          selectedSource={selectedSource}
-          onClose={() => setShowRemoveDialog(false)}
-          onRemove={handleRemoveConfirm}
-          isPending={removeSource.isPending}
-        />
-      )}
     </>
   );
 }

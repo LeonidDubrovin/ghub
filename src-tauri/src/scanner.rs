@@ -73,8 +73,14 @@ pub fn scan_directory(
     config: &ScanConfig,
     cancel_flag: Option<&AtomicBool>,
 ) -> Result<(Vec<ScannedGame>, usize), String> {
+    debug!("[SCAN_DIRECTORY] Starting scan of base_path: {:?}", base_path);
+    debug!("[SCAN_DIRECTORY] max_scan_depth: {}", config.max_scan_depth);
+    
     let mut games = Vec::new();
     let mut scanned_dirs = HashSet::new();
+    let mut dir_count = 0;
+    let mut excluded_count = 0;
+    let mut no_exe_count = 0;
 
     let max_depth = config.max_scan_depth;
 
@@ -83,9 +89,12 @@ pub fn scan_directory(
         .into_iter()
         .filter_map(|e| e.ok())
     {
+        dir_count += 1;
+        
         // Check cancellation if flag provided
         if let Some(flag) = cancel_flag {
             if flag.load(Ordering::SeqCst) {
+                debug!("[SCAN_DIRECTORY] Scan cancelled after {} directories", dir_count);
                 return Err("Scan cancelled".to_string());
             }
         }
@@ -110,16 +119,22 @@ pub fn scan_directory(
             .to_lowercase();
 
         if is_folder_excluded(&dir_name, &config.folder_patterns()) {
-            debug!("Skipping excluded folder: {}", entry_path.display());
+            debug!("[SCAN_DIRECTORY] Skipping excluded folder '{}': {}", dir_name, entry_path.display());
+            excluded_count += 1;
             continue;
         }
 
         // Check if directory has executables
         if !has_executable_files(entry_path) {
+            no_exe_count += 1;
+            // Only log at debug level to avoid spam, but log first few
+            if no_exe_count <= 3 {
+                debug!("[SCAN_DIRECTORY] No executables in: {}", entry_path.display());
+            }
             continue;
         }
 
-        debug!("Found game folder: {}", entry_path.display());
+        debug!("[SCAN_DIRECTORY] Found potential game folder: {}", entry_path.display());
 
         // Find actual game folder (dive deeper if needed)
         let game_path = find_actual_game_folder(entry_path, config.max_scan_depth);
@@ -178,6 +193,8 @@ pub fn scan_directory(
     }
 
     let games_count = games.len();
+    debug!("[SCAN_DIRECTORY] Scan complete: total_dirs={}, excluded={}, no_exe={}, games_found={}",
+        dir_count, excluded_count, no_exe_count, games_count);
     Ok((games, games_count))
 }
 

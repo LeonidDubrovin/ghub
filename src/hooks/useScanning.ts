@@ -65,7 +65,10 @@ export function useCancelSourceScan() {
       return await invoke('cancel_source_scan', { spaceId, sourcePath });
     },
     onSuccess: (_, variables) => {
+      // Invalidate scan status to update UI immediately
       queryClient.invalidateQueries({ queryKey: ['source_scan_status', variables.spaceId, variables.sourcePath] });
+      // Also invalidate space_sources to update the source's scan_status field
+      queryClient.invalidateQueries({ queryKey: ['space_sources', variables.spaceId] });
     },
   });
 }
