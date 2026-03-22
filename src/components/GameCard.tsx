@@ -57,9 +57,13 @@ export default function GameCard({
   const [isHovered, setIsHovered] = useState(false);
   const coverUrl = getCoverUrl(game.cover_image);
 
+  const hasBeenPlayed = game.times_launched > 0;
+  
   return (
     <div
-      className={`card group cursor-pointer relative ${isRunning ? 'ring-2 ring-green-500/50' : ''} ${updating ? 'ring-2 ring-yellow-500/50' : ''}`}
+      className={`card group cursor-pointer relative border-2 ${
+        hasBeenPlayed ? 'border-blue-500/30' : 'border-transparent'
+      } ${isRunning ? 'ring-2 ring-green-500/50' : ''} ${updating ? 'ring-2 ring-yellow-500/50' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu?.(e, game); }}
@@ -117,6 +121,14 @@ export default function GameCard({
         {game.is_favorite && (
           <div className="absolute top-2 right-2 text-yellow-400 drop-shadow">
             <StarIcon />
+          </div>
+        )}
+        
+        {hasBeenPlayed && !isRunning && (
+          <div className="absolute top-2 left-2 bg-blue-500/80 rounded-full p-0.5">
+            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
           </div>
         )}
       </div>
