@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { convertFileSrc } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import type { Game } from '../types';
 import ResizeHandle from './ResizeHandle';
 
@@ -216,7 +216,17 @@ export default function GameDetailsView({
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-gray-400 text-sm">{t('details.installPath')}:</span>
-                      <span className="text-white text-sm font-mono">{selectedGame.install_path}</span>
+                      <span className="text-white text-sm font-mono flex-1 truncate">{selectedGame.install_path}</span>
+                      <button
+                        onClick={() => invoke('reveal_in_explorer', { path: selectedGame.install_path! }).catch(console.error)}
+                        className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded text-xs flex items-center gap-1 transition-colors"
+                        title={t('actions.openFolder')}
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        {t('actions.openFolder')}
+                      </button>
                     </div>
                     {selectedGame.space_name && (
                       <div className="flex items-center gap-2">
