@@ -30,9 +30,7 @@ pub struct AppState {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize logger early to capture all logs
-    env_logger::Builder::from_default_env()
-        .filter_level(log::LevelFilter::Debug)
-        .init();
+    init_logger();
     
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -67,7 +65,7 @@ pub fn run() {
                 scanning_service: Mutex::new(scanning_service),
             });
             
-            println!("✅ GHub initialized successfully");
+            log::info!("GHub initialized successfully");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -101,7 +99,162 @@ pub fn run() {
             commands::refresh_game_from_local,
             commands::fetch_and_update_game_metadata,
             commands::backup_database,
+            commands::log_frontend,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Initialize logging based on build configuration
+fn init_logger() {
+    #[cfg(debug_assertions)]
+    {
+        // Development: logs in project directory ./logs/ghub.log
+        use std::env::current_dir;
+        use std::fs;
+        
+        // Get the project directory (current working directory)
+        let project_dir = match current_dir() {
+            Ok(path) => path,
+            Err(_) => {
+                // Fallback to current directory if we can't get it
+                std::path::PathBuf::from(".")
+            }
+        };
+        
+        let log_dir = project_dir.join("logs");
+        
+        // Create logs directory
+        if let Err(e) = fs::create_dir_all(&log_dir) {
+            eprintln!("Failed to create log directory: {}", e);
+            // Fall back to console only if we can't create directory
+            fern::Dispatch::new()
+                .format(|out, message, record| {
+                    out.finish(format_args!(
+                        "{}[{}][{}] {}",
+                        chrono::Local::now().format("[%H:%M:%S]"),
+                        record.target(),
+                        record.level(),
+                        message
+                    ))
+                })
+                .level(log::LevelFilter::Debug)
+                .chain(std::io::stdout())
+                .apply()
+                .unwrap();
+            log::info!("Logger initialized in DEBUG mode (console only, directory creation failed)");
+            return;
+        }
+        
+        let log_file = log_dir.join("ghub.log");
+        let error_file = log_dir.join("error.log");
+        
+        // Configure fern for development
+        let mut dispatch = fern::Dispatch::new()
+            .format(|out, message, record| {
+                out.finish(format_args!(
+                    "{}[{}][{}] {}",
+                    chrono::Local::now().format("[%H:%M:%S]"),
+                    record.target(),
+                    record.level(),
+                    message
+                ))
+            })
+            .level(log::LevelFilter::Debug);
+        
+        // Chain to log file (all debug+)
+        if let Ok(file) = fern::log_file(&log_file) {
+            dispatch = dispatch.chain(file);
+        } else {
+            eprintln!("Failed to open log file: {}", log_file.display());
+        }
+        
+        // Chain to error file (errors only) - create separate dispatch with filter
+        if let Ok(file) = fern::log_file(&error_file) {
+            let error_dispatch = fern::Dispatch::new().chain(file).filter(|metadata| metadata.level() == log::Level::Error);
+            dispatch = dispatch.chain(error_dispatch);
+        } else {
+            eprintln!("Failed to open error log file: {}", error_file.display());
+        }
+        
+        // Also output to stdout
+        dispatch = dispatch.chain(std::io::stdout());
+        
+        if let Err(e) = dispatch.apply() {
+            eprintln!("Failed to initialize logger: {}", e);
+        } else {
+            log::info!("Logger initialized in DEBUG mode, logs: {}", log_dir.display());
+        }
+    }
+    
+    #[cfg(not(debug_assertions))]
+    {
+        // Release: file-based logging beside the executable
+        use std::env::current_exe;
+        use std::fs;
+        
+        // Get the directory of the executable
+        let exe_path = match current_exe() {
+            Ok(path) => path,
+            Err(_) => {
+                // Fallback to current directory if we can't get exe path
+                std::path::PathBuf::from(".")
+            }
+        };
+        
+        let exe_dir = exe_path.parent().unwrap_or_else(|| std::path::Path::new("."));
+        let log_dir = exe_dir.join("logs");
+        
+        // Create logs directory
+        if let Err(e) = fs::create_dir_all(&log_dir) {
+            eprintln!("Failed to create log directory: {}", e);
+            // Fall back to console if we can't create directory
+            fern::Dispatch::new()
+                .level(log::LevelFilter::Info)
+                .chain(std::io::stdout())
+                .apply()
+                .unwrap();
+            return;
+        }
+        
+        let log_file = log_dir.join("ghub.log");
+        let error_file = log_dir.join("error.log");
+        
+        // Configure fern for release
+        let mut dispatch = fern::Dispatch::new()
+            .format(|out, message, record| {
+                out.finish(format_args!(
+                    "{}[{}][{}] {}",
+                    chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                    record.target(),
+                    record.level(),
+                    message
+                ))
+            })
+            .level(log::LevelFilter::Info);
+        
+        // Chain to log file (all info+)
+        if let Ok(file) = fern::log_file(&log_file) {
+            dispatch = dispatch.chain(file);
+        } else {
+            eprintln!("Failed to open log file: {}", log_file.display());
+        }
+        
+        // Chain to error file (errors only) - create separate dispatch with filter
+        if let Ok(file) = fern::log_file(&error_file) {
+            let error_dispatch = fern::Dispatch::new().chain(file).filter(|metadata| metadata.level() == log::Level::Error);
+            dispatch = dispatch.chain(error_dispatch);
+        } else {
+            eprintln!("Failed to open error log file: {}", error_file.display());
+        }
+        
+        // Also output to stdout for console visibility in release
+        dispatch = dispatch.chain(std::io::stdout());
+        
+        if let Err(e) = dispatch.apply() {
+            eprintln!("Failed to initialize logger: {}", e);
+        } else {
+            log::info!("Logger initialized in RELEASE mode, logs: {}", log_dir.display());
+        }
+    }
 }

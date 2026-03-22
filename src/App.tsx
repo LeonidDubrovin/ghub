@@ -14,6 +14,7 @@ import ResizeHandle from './components/ResizeHandle';
 import { useSpaces, useDeleteSpace } from './hooks/useSpaces';
 import { useGames, useDeleteGame } from './hooks/useGames';
 import type { Game, Space, SelectedSource } from './types';
+import { createLoggerForComponent } from './lib/logger';
 
 import DownloadLinksView from './components/DownloadLinksView';
 import BatchMetadataDialog from './components/BatchMetadataDialog';
@@ -29,6 +30,7 @@ const GAME_LIST_MIN = 200;
 const GAME_LIST_MAX = 500;
 
 function App() {
+  const logger = createLoggerForComponent('App');
   const { t } = useTranslation();
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(() => localStorage.getItem('selectedSpaceId') || null);
   const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(() => {
@@ -113,7 +115,7 @@ function App() {
         const sessions = await invoke<[string, string, number][]>('get_active_sessions');
         setRunningGames(new Set(sessions.map(([, gameId]) => gameId)));
       } catch (err) {
-        console.error('Failed to get active sessions:', err);
+        logger.error('Failed to get active sessions:', err);
       }
     };
     checkActiveSessions();
@@ -185,27 +187,27 @@ function App() {
   };
 
   const handleBatchDelete = async () => {
-    console.log('handleBatchDelete called, selectedGameIds size:', selectedGameIds.size);
+    logger.info('handleBatchDelete called, selectedGameIds size:', selectedGameIds.size);
     // Use await to handle both synchronous confirm (returns boolean) and asynchronous confirm (returns Promise<boolean>)
     const confirmed = await confirm(`Delete ${selectedGameIds.size} games?`);
-    console.log('Confirm result:', confirmed);
+    logger.debug('Confirm result:', confirmed);
     if (!confirmed) {
-      console.log('Delete cancelled by user');
+      logger.debug('Delete cancelled by user');
       return;
     }
-    console.log('Delete confirmed, starting deletion');
+    logger.info('Delete confirmed, starting deletion');
     try {
       for (const gameId of selectedGameIds) {
-        console.log('Deleting game:', gameId);
+        logger.debug('Deleting game:', gameId);
         await deleteGameMutation.mutateAsync(gameId);
       }
-      console.log('All deletions complete, clearing selection');
+      logger.info('All deletions complete, clearing selection');
       setSelectedGameIds(new Set());
       setIsSelectionMode(false);
       setLastSelectedGameId(null);
       refetchGames();
     } catch (err) {
-      console.error('Batch delete failed:', err);
+      logger.error('Batch delete failed:', err);
     }
   };
 
@@ -219,7 +221,7 @@ function App() {
       }
       refetchGames();
     } catch (err) {
-      console.error('Batch toggle favorite failed:', err);
+      logger.error('Batch toggle favorite failed:', err);
     }
   };
 
@@ -233,13 +235,13 @@ function App() {
       await Promise.all(
         gameIds.map(gameId =>
           invoke('refresh_game_from_local', { gameId }).catch(err => {
-            console.error(`Failed to refresh game ${gameId}:`, err);
+            logger.error(`Failed to refresh game ${gameId}:`, err);
           })
         )
       );
       refetchGames();
     } catch (err) {
-      console.error('Batch refresh failed:', err);
+      logger.error('Batch refresh failed:', err);
     } finally {
       setTimeout(() => setUpdatingGameIds(prev => {
         const next = new Set(prev);
@@ -309,7 +311,7 @@ function App() {
       await deleteGameMutation.mutateAsync(game.id);
       refetchGames();
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to delete game:', err);
     }
   };
 
@@ -318,7 +320,7 @@ function App() {
       await invoke('update_game', { request: { id: game.id, is_favorite: !game.is_favorite } });
       refetchGames();
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to toggle favorite:', err);
     }
   };
 
@@ -335,7 +337,7 @@ function App() {
       if (selectedSpaceId === spaceToDelete.id) setSelectedSpaceId(null);
       setSpaceToDelete(null);
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to delete space:', err);
     }
   };
 

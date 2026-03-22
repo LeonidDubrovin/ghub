@@ -64,7 +64,7 @@ impl ScanningService {
         space_id: String,
         source_path: String,
     ) -> Result<(), String> {
-        println!("[START_SCAN] Command called: space={}, path={}", space_id, source_path);
+        debug!("[START_SCAN] Command called: space={}, path={}", space_id, source_path);
         let key = format!("{}:{}", space_id, source_path);
         let cancel_flag = Arc::new(AtomicBool::new(false));
         let cancel_flag_clone = cancel_flag.clone();
@@ -274,7 +274,7 @@ impl ScanningService {
                 // Immediately update scan status with total count so UI can show progress bar
                 let total_games_i32 = total_games as i32;
                 {
-                    let mut db_lock = db.lock().unwrap();
+                    let db_lock = db.lock().unwrap();
                     let _ = db_lock.set_source_scan_status(
                         &space_id,
                         &source_path,
@@ -289,7 +289,7 @@ impl ScanningService {
                 // Mark all existing installs for this source as missing initially
                 // We'll unmark them as we find them
                 {
-                    let mut db_lock = db.lock().unwrap();
+                    let db_lock = db.lock().unwrap();
                     
                     // Delete any install that points exactly to the source directory itself
                     // This cleans up false entries from previous scans where the source was treated as a game
@@ -362,7 +362,7 @@ impl ScanningService {
                 for (idx, scanned_game) in games.iter().enumerate() {
                     if cancel_flag.load(Ordering::SeqCst) {
                         info!("Scan cancelled for source: {}", source_path);
-                        let mut db_lock = db.lock().unwrap();
+                        let db_lock = db.lock().unwrap();
                         let _ = db_lock.set_source_scan_status(
                             &space_id,
                             &source_path,
@@ -375,8 +375,8 @@ impl ScanningService {
                     }
 
                     // Try to find existing install by path
-                    let (game_id, install_id, fingerprint) = {
-                        let mut db_lock = db.lock().unwrap();
+                    let (_game_id, _install_id, _fingerprint) = {
+                        let db_lock = db.lock().unwrap();
                         
                         if let Some(existing_install) = db_lock
                             .get_install_by_path(&space_id, &scanned_game.path)
@@ -475,7 +475,7 @@ impl ScanningService {
                     // Update progress (release lock after)
                     let progress = (idx + 1) as i32;
                     {
-                        let mut db_lock = db.lock().unwrap();
+                        let db_lock = db.lock().unwrap();
                         let _ = db_lock.set_source_scan_status(
                             &space_id,
                             &source_path,
@@ -509,7 +509,7 @@ impl ScanningService {
 
                 // Complete scan
                 {
-                    let mut db_lock = db.lock().unwrap();
+                    let db_lock = db.lock().unwrap();
                     let _ = db_lock.set_source_scan_status(
                         &space_id,
                         &source_path,
@@ -527,7 +527,7 @@ impl ScanningService {
             }
             Err(err_msg) => {
                 error!("Scan failed for source {}: {}", source_path, err_msg);
-                let mut db_lock = db.lock().unwrap();
+                let db_lock = db.lock().unwrap();
                 let _ = db_lock.set_source_scan_status(
                     &space_id,
                     &source_path,
@@ -604,7 +604,7 @@ impl ScanningService {
         let result = scanner::scan_directory(path, &config, Some(cancel_flag));
         
         match result {
-            Ok((mut games, count)) => {
+            Ok((mut games, _count)) => {
                 // Defensive filter: remove any game whose normalized path equals the source path
                 // Handles case-insensitivity and trailing separators on Windows
                 let source_path_str = path.to_string_lossy().to_lowercase();
