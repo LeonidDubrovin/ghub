@@ -74,6 +74,17 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
   };
 
   const handleRemoveConfirm = async (deleteGames: boolean) => {
+    console.log('Remove source args:', {
+      space_id: selectedSource.spaceId,
+      source_path: selectedSource.sourcePath,
+      delete_games: deleteGames,
+    });
+    if (!selectedSource.spaceId || !selectedSource.sourcePath) {
+      const msg = `Missing spaceId or sourcePath: spaceId=${selectedSource.spaceId}, sourcePath=${selectedSource.sourcePath}`;
+      console.error(msg);
+      alert(msg);
+      throw new Error(msg);
+    }
     await removeSource.mutateAsync({
       space_id: selectedSource.spaceId,
       source_path: selectedSource.sourcePath,
