@@ -1,10 +1,9 @@
 // Filesystem-related commands
-use tauri::Manager;
 use std::path::Path;
 
 /// Open a folder in the system file explorer (reveal in Finder/Explorer)
 #[tauri::command]
-pub fn reveal_in_explorer(app: tauri::AppHandle, path: String) -> Result<(), String> {
+pub fn reveal_in_explorer(path: String) -> Result<(), String> {
     if path.is_empty() {
         return Err("Path is empty".to_string());
     }
