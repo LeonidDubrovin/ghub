@@ -49,6 +49,17 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
   };
   
   const handleRemoveSource = async (sourcePath: string, deleteGames: boolean) => {
+    console.log('SpaceSettingsDialog remove args:', {
+      space_id: space.id,
+      source_path: sourcePath,
+      delete_games: deleteGames,
+    });
+    if (!space.id) {
+      const msg = 'Space ID is undefined';
+      console.error(msg);
+      alert(msg);
+      return;
+    }
     try {
       await removeSpaceSource.mutateAsync({
         space_id: space.id,
