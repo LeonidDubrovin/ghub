@@ -114,11 +114,17 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
 
   // Determine status message and progress
   const getStatusMessage = () => {
-    if (isScanning && scanStatus?.scan_total) {
-      const percent = Math.round((scanStatus.scan_progress! / scanStatus.scan_total!) * 100);
-      return t('space.scanningProgress', { progress: scanStatus.scan_progress, total: scanStatus.scan_total, percent });
-    } else if (isScanning) {
-      return t('space.scanning');
+    if (isScanning) {
+      // Show progress if we have a total, otherwise just show count of games found
+      if (scanStatus?.scan_total && scanStatus.scan_total > 0) {
+        const percent = Math.round((scanStatus.scan_progress! / scanStatus.scan_total!) * 100);
+        return t('space.scanningProgress', { progress: scanStatus.scan_progress, total: scanStatus.scan_total, percent });
+      } else if (scanStatus?.scan_progress && scanStatus.scan_progress > 0) {
+        // Show count of games found so far when total is unknown
+        return t('space.scanningWithCount', { count: scanStatus.scan_progress }) || `Scanning... (${scanStatus.scan_progress} games found)`;
+      } else {
+        return t('space.scanning');
+      }
     } else if (isError) {
       return t('space.scanError');
     } else if (isCompleted) {

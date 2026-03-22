@@ -271,29 +271,32 @@ impl ScanningService {
 
         match scan_result {
             Ok((games, total_games)) => {
-                // Process found games
-                let db_lock = db.lock().unwrap();
-
                 // Mark all existing installs for this source as missing initially
                 // We'll unmark them as we find them
-                if let Ok(mut existing_installs) =
-                    db_lock.get_installs_for_source(&space_id, &source_path)
                 {
-                    for (idx, install) in existing_installs.iter_mut().enumerate() {
-                        // Check cancellation periodically
-                        if idx % 100 == 0 && cancel_flag.load(Ordering::SeqCst) {
-                            info!("Scan cancelled during mark-missing loop for source: {}", source_path);
-                            return;
+                    let mut db_lock = db.lock().unwrap();
+                    if let Ok(mut existing_installs) =
+                        db_lock.get_installs_for_source(&space_id, &source_path)
+                    {
+                        for (idx, install) in existing_installs.iter_mut().enumerate() {
+                            // Check cancellation periodically
+                            if idx % 100 == 0 && cancel_flag.load(Ordering::SeqCst) {
+                                info!("Scan cancelled during mark-missing loop for source: {}", source_path);
+                                return;
+                            }
+                            install.status = "missing".to_string();
+                            let _ = db_lock.update_install_status(&install.id, "missing");
                         }
-                        install.status = "missing".to_string();
-                        let _ = db_lock.update_install_status(&install.id, "missing");
                     }
+                    // Drop db_lock explicitly to release it before continuing
+                    drop(db_lock);
                 }
 
                 // Process each found game
                 for (idx, scanned_game) in games.iter().enumerate() {
                     if cancel_flag.load(Ordering::SeqCst) {
                         info!("Scan cancelled for source: {}", source_path);
+                        let mut db_lock = db.lock().unwrap();
                         let _ = db_lock.set_source_scan_status(
                             &space_id,
                             &source_path,
@@ -306,133 +309,150 @@ impl ScanningService {
                     }
 
                     // Try to find existing install by path
-                    if let Some(existing_install) = db_lock
-                        .get_install_by_path(&space_id, &scanned_game.path)
-                        .unwrap_or(None)
-                    {
-                        // Install exists - update status and fingerprint
-                        let new_fingerprint = Self::compute_fingerprint(&scanned_game);
-                        let is_modified = if let Some(old_fp) = &existing_install.fingerprint {
-                            old_fp != &new_fingerprint
-                        } else {
-                            false
-                        };
+                    let (game_id, install_id, fingerprint) = {
+                        let mut db_lock = db.lock().unwrap();
+                        
+                        if let Some(existing_install) = db_lock
+                            .get_install_by_path(&space_id, &scanned_game.path)
+                            .unwrap_or(None)
+                        {
+                            // Install exists - update status and fingerprint
+                            let new_fingerprint = Self::compute_fingerprint(&scanned_game);
+                            let is_modified = if let Some(old_fp) = &existing_install.fingerprint {
+                                old_fp != &new_fingerprint
+                            } else {
+                                false
+                            };
 
-                        if is_modified {
-                            debug!(
-                                "Game modified (fingerprint changed): {}",
-                                scanned_game.title
-                            );
-                            let _ = db_lock.update_install(
-                                &existing_install.id,
-                                "modified",
-                                Some(&new_fingerprint),
-                            );
-                        } else {
-                            debug!("Game already installed, marking as installed: {}", scanned_game.title);
-                            let _ = db_lock.update_install(
-                                &existing_install.id,
-                                "installed",
-                                Some(&new_fingerprint),
-                            );
-                        }
-                    } else {
-                        // No install at this path - try to find existing game by fingerprint (deduplication)
-                        let developer = scanned_game.exe_metadata.as_ref().and_then(|m| m.company_name.clone());
-                        let existing_game = db_lock.get_game_by_fingerprint(
-                            &scanned_game.title,
-                            developer.as_deref()
-                        ).unwrap_or(None);
-
-                        if let Some(game) = existing_game {
-                            // Reuse existing game, just create new install
-                            debug!("Reusing existing game '{}' (id: {}) for new install", game.title, game.id);
-                            let install_id = uuid::Uuid::new_v4().to_string();
-                            let fingerprint = Self::compute_fingerprint(scanned_game);
-                            let _ = db_lock.conn.execute(
-                                "INSERT INTO installs (id, game_id, space_id, install_path, executable_path, status, fingerprint) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                params![
-                                    install_id,
-                                    game.id,
-                                    space_id,
-                                    scanned_game.path,
-                                    scanned_game.executable.as_deref(),
+                            if is_modified {
+                                debug!(
+                                    "Game modified (fingerprint changed): {}",
+                                    scanned_game.title
+                                );
+                                let _ = db_lock.update_install(
+                                    &existing_install.id,
+                                    "modified",
+                                    Some(&new_fingerprint),
+                                );
+                            } else {
+                                debug!("Game already installed, marking as installed: {}", scanned_game.title);
+                                let _ = db_lock.update_install(
+                                    &existing_install.id,
                                     "installed",
-                                    fingerprint
-                                ]
-                            );
+                                    Some(&new_fingerprint),
+                                );
+                            }
+                            // Return existing game_id, don't create new install
+                            (existing_install.game_id.clone(), None, new_fingerprint)
                         } else {
-                            // No matching game - create new game and install
-                            debug!("Creating new game: {}", scanned_game.title);
-                            let game_id = uuid::Uuid::new_v4().to_string();
-                            let install_id = uuid::Uuid::new_v4().to_string();
-
-                            // Create game with developer from exe metadata
-                            let dev = scanned_game.exe_metadata.as_ref().and_then(|m| m.company_name.clone());
-                            let _ = db_lock.create_game(
-                                &game_id,
+                            // No install at this path - try to find existing game by fingerprint (deduplication)
+                            let developer = scanned_game.exe_metadata.as_ref().and_then(|m| m.company_name.clone());
+                            let existing_game = db_lock.get_game_by_fingerprint(
                                 &scanned_game.title,
-                                None,
-                                dev.as_deref(),
-                                None,
-                                None,
-                            );
+                                developer.as_deref()
+                            ).unwrap_or(None);
 
-                            // Create install
-                            let fingerprint = Self::compute_fingerprint(scanned_game);
-                            let _ = db_lock.conn.execute(
-                                "INSERT INTO installs (id, game_id, space_id, install_path, executable_path, status, fingerprint) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                                params![
-                                    install_id,
-                                    game_id,
-                                    space_id,
-                                    scanned_game.path,
-                                    scanned_game.executable.as_deref(),
-                                    "installed",
-                                    fingerprint
-                                ]
-                            );
+                            if let Some(game) = existing_game {
+                                // Reuse existing game, just create new install
+                                debug!("Reusing existing game '{}' (id: {}) for new install", game.title, game.id);
+                                let new_install_id = uuid::Uuid::new_v4().to_string();
+                                let fingerprint = Self::compute_fingerprint(scanned_game);
+                                let _ = db_lock.conn.execute(
+                                    "INSERT INTO installs (id, game_id, space_id, install_path, executable_path, status, fingerprint) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                    params![
+                                        new_install_id,
+                                        game.id,
+                                        space_id,
+                                        scanned_game.path,
+                                        scanned_game.executable.as_deref(),
+                                        "installed",
+                                        fingerprint
+                                    ]
+                                );
+                                (game.id.clone(), Some(new_install_id), fingerprint)
+                            } else {
+                                // No matching game - create new game and install
+                                debug!("Creating new game: {}", scanned_game.title);
+                                let new_game_id = uuid::Uuid::new_v4().to_string();
+                                let new_install_id = uuid::Uuid::new_v4().to_string();
+
+                                // Create game with developer from exe metadata
+                                let dev = scanned_game.exe_metadata.as_ref().and_then(|m| m.company_name.clone());
+                                let _ = db_lock.create_game(
+                                    &new_game_id,
+                                    &scanned_game.title,
+                                    None,
+                                    dev.as_deref(),
+                                    None,
+                                    None,
+                                );
+
+                                // Create install
+                                let fingerprint = Self::compute_fingerprint(scanned_game);
+                                let _ = db_lock.conn.execute(
+                                    "INSERT INTO installs (id, game_id, space_id, install_path, executable_path, status, fingerprint) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                    params![
+                                        new_install_id,
+                                        new_game_id,
+                                        space_id,
+                                        scanned_game.path,
+                                        scanned_game.executable.as_deref(),
+                                        "installed",
+                                        fingerprint
+                                    ]
+                                );
+                                (new_game_id.clone(), Some(new_install_id), fingerprint)
+                            }
                         }
-                    }
+                    };
 
-                    // Update progress
+                    // Update progress (release lock after)
                     let progress = (idx + 1) as i32;
-                    let _ = db_lock.set_source_scan_status(
-                        &space_id,
-                        &source_path,
-                        Some(ScanStatus::Scanning.as_str()),
-                        Some(progress),
-                        Some(total_games as i32),
-                        None,
-                    );
+                    {
+                        let mut db_lock = db.lock().unwrap();
+                        let _ = db_lock.set_source_scan_status(
+                            &space_id,
+                            &source_path,
+                            Some(ScanStatus::Scanning.as_str()),
+                            Some(progress),
+                            Some(total_games as i32),
+                            None,
+                        );
+                    }
                 }
 
                 // Mark remaining installs as missing (those not found in scan)
-                if let Ok(installs) = db_lock.get_installs_for_source(&space_id, &source_path) {
-                    for install in installs {
-                        if install.status == "missing" {
-                            debug!(
-                                "Game missing: {} at {}",
-                                db_lock
-                                    .get_game_by_id(&install.game_id)
-                                    .ok()
-                                    .map(|g| g.title)
-                                    .unwrap_or_else(|| "Unknown".to_string()),
-                                install.install_path
-                            );
+                {
+                    let db_lock = db.lock().unwrap();
+                    if let Ok(installs) = db_lock.get_installs_for_source(&space_id, &source_path) {
+                        for install in installs {
+                            if install.status == "missing" {
+                                debug!(
+                                    "Game missing: {} at {}",
+                                    db_lock
+                                        .get_game_by_id(&install.game_id)
+                                        .ok()
+                                        .map(|g| g.title)
+                                        .unwrap_or_else(|| "Unknown".to_string()),
+                                        install.install_path
+                                );
+                            }
                         }
                     }
                 }
 
                 // Complete scan
-                let _ = db_lock.set_source_scan_status(
-                    &space_id,
-                    &source_path,
-                    Some(ScanStatus::Completed.as_str()),
-                    Some(total_games as i32),
-                    Some(total_games as i32),
-                    None,
-                );
+                {
+                    let mut db_lock = db.lock().unwrap();
+                    let _ = db_lock.set_source_scan_status(
+                        &space_id,
+                        &source_path,
+                        Some(ScanStatus::Completed.as_str()),
+                        Some(total_games as i32),
+                        Some(total_games as i32),
+                        None,
+                    );
+                }
 
                 info!(
                     "Scan completed for source {}: {} games found",
@@ -441,7 +461,8 @@ impl ScanningService {
             }
             Err(err_msg) => {
                 error!("Scan failed for source {}: {}", source_path, err_msg);
-                let _ = db.lock().unwrap().set_source_scan_status(
+                let mut db_lock = db.lock().unwrap();
+                let _ = db_lock.set_source_scan_status(
                     &space_id,
                     &source_path,
                     Some(ScanStatus::Error.as_str()),
