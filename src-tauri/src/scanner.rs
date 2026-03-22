@@ -104,6 +104,12 @@ pub fn scan_directory(
             continue;
         }
 
+        // Skip the base path itself - we only want to scan subdirectories
+        // The source directory is a container, not a game
+        if entry_path == base_path {
+            continue;
+        }
+
         // Normalize path for deduplication
         let normalized = entry_path.to_string_lossy().to_string();
         if scanned_dirs.contains(&normalized) {
