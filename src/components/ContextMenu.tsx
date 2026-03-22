@@ -71,8 +71,8 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
             key={index}
             onClick={() => {
               if (!item.disabled) {
-                item.onClick();
-                onClose();
+                onClose(); // Close menu first
+                item.onClick(); // Then perform action
               }
             }}
             disabled={item.disabled}

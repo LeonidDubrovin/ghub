@@ -156,14 +156,18 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
           {getStatusMessage()}
         </p>
         {/* Progress bar when scanning */}
-        {isScanning && scanStatus?.scan_total && (
+        {isScanning && (
           <div className="mt-1 h-1.5 bg-surface-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-accent transition-all duration-300"
-              style={{
-                width: `${(scanStatus.scan_progress! / scanStatus.scan_total!) * 100}%`
-              }}
-            />
+            {scanStatus?.scan_total && scanStatus.scan_total > 0 ? (
+              <div
+                className="h-full bg-accent transition-all duration-300"
+                style={{
+                  width: `${(scanStatus.scan_progress! / scanStatus.scan_total!) * 100}%`
+                }}
+              />
+            ) : (
+              <div className="h-full bg-accent animate-pulse" style={{ width: '100%' }} />
+            )}
           </div>
         )}
         {/* Error message */}

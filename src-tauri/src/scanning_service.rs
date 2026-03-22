@@ -266,11 +266,26 @@ impl ScanningService {
 
         // Scan directory
         let scan_result = Self::perform_scan(path, &source, &cancel_flag);
-        
+         
         debug!("[SCAN_SOURCE] perform_scan returned: {:?}", scan_result);
 
         match scan_result {
             Ok((games, total_games)) => {
+                // Immediately update scan status with total count so UI can show progress bar
+                let total_games_i32 = total_games as i32;
+                {
+                    let mut db_lock = db.lock().unwrap();
+                    let _ = db_lock.set_source_scan_status(
+                        &space_id,
+                        &source_path,
+                        Some(ScanStatus::Scanning.as_str()),
+                        Some(0), // progress starts at 0
+                        Some(total_games_i32),
+                        None,
+                    );
+                    debug!("[SCAN_SOURCE] Set initial total: {} games", total_games_i32);
+                }
+
                 // Mark all existing installs for this source as missing initially
                 // We'll unmark them as we find them
                 {

@@ -185,11 +185,21 @@ function App() {
   };
 
   const handleBatchDelete = async () => {
-    if (!confirm(`Delete ${selectedGameIds.size} games?`)) return;
+    console.log('handleBatchDelete called, selectedGameIds size:', selectedGameIds.size);
+    // Use await to handle both synchronous confirm (returns boolean) and asynchronous confirm (returns Promise<boolean>)
+    const confirmed = await confirm(`Delete ${selectedGameIds.size} games?`);
+    console.log('Confirm result:', confirmed);
+    if (!confirmed) {
+      console.log('Delete cancelled by user');
+      return;
+    }
+    console.log('Delete confirmed, starting deletion');
     try {
       for (const gameId of selectedGameIds) {
+        console.log('Deleting game:', gameId);
         await deleteGameMutation.mutateAsync(gameId);
       }
+      console.log('All deletions complete, clearing selection');
       setSelectedGameIds(new Set());
       setIsSelectionMode(false);
       setLastSelectedGameId(null);

@@ -93,19 +93,27 @@ export default function SourceItem({
         </div>
         
         {/* Scan progress */}
-        {isScanning && scanStatus?.scan_total && (
+        {isScanning && (
           <div className="mt-1.5">
             <div className="flex items-center gap-2 text-xs">
               <span className="text-yellow-500">{t('space.scanning')}</span>
-              <span className="text-gray-400">{scanStatus.scan_progress}/{scanStatus.scan_total}</span>
+              {scanStatus?.scan_total && scanStatus.scan_total > 0 ? (
+                <span className="text-gray-400">{scanStatus.scan_progress}/{scanStatus.scan_total}</span>
+              ) : scanStatus?.scan_progress && scanStatus.scan_progress > 0 ? (
+                <span className="text-gray-400">{t('space.scanningWithCount', { count: scanStatus.scan_progress })}</span>
+              ) : null}
             </div>
             <div className="mt-1 h-1.5 bg-surface-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-accent transition-all duration-300"
-                style={{
-                  width: `${(scanStatus.scan_progress! / scanStatus.scan_total!) * 100}%`
-                }}
-              />
+              {scanStatus?.scan_total && scanStatus.scan_total > 0 ? (
+                <div
+                  className="h-full bg-accent transition-all duration-300"
+                  style={{
+                    width: `${(scanStatus.scan_progress! / scanStatus.scan_total!) * 100}%`
+                  }}
+                />
+              ) : (
+                <div className="h-full bg-accent animate-pulse" style={{ width: '100%' }} />
+              )}
             </div>
           </div>
         )}
