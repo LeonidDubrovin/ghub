@@ -141,6 +141,21 @@ pub fn get_source_scan_status(
     );
     let scanning_service = state.scanning_service.lock().map_err(|e| e.to_string())?;
 
+    // Check if there's an actual active scan for this source using the public method
+    let has_active_scan = scanning_service.is_scan_active(&space_id, &source_path);
+
+    // If DB says scanning but no active scan, the scan is stuck - reset it
+    if !has_active_scan {
+        let db = state.db.lock().map_err(|e| e.to_string())?;
+        if let Ok(Some(source)) = db.get_source_scan_status(&space_id, &source_path) {
+            if source.scan_status == Some("scanning".to_string()) {
+                debug!("Stuck scan detected (DB says scanning but no active scan) - resetting status for {}:{}", space_id, source_path);
+                db.set_source_scan_status(&space_id, &source_path, None, None, None, None)
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+    }
+
     match scanning_service.get_source_scan_status(&state.db, &space_id, &source_path) {
         Ok(Some(status)) => Ok(status),
         Ok(None) => {

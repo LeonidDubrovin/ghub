@@ -41,12 +41,27 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
   // Find the specific source to check if it's active
   const sourceData: SpaceSource | undefined = sources.find(s => s.source_path === selectedSource.sourcePath);
   const isSourceActive = sourceData?.is_active ?? true;
-
+  
   const isScanning = scanStatus?.scan_status === 'scanning';
   const isCompleted = scanStatus?.scan_status === 'completed';
   const isError = scanStatus?.scan_status === 'error';
+  
+  console.log('SelectedSourceToolbar render', {
+    selectedSource,
+    sourcesCount: sources.length,
+    sourceData,
+    isSourceActive,
+    isScanning,
+  });
 
   const handleStartScan = () => {
+    console.log('handleStartScan called', {
+      spaceId: selectedSource.spaceId,
+      sourcePath: selectedSource.sourcePath,
+      isSourceActive,
+      isScanning,
+      startScanIsPending: startScan.isPending,
+    });
     if (!isSourceActive) {
       alert(t('space.sourceInactiveWarning') || 'This source is inactive and cannot be scanned.');
       return;
@@ -167,7 +182,10 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
           </button>
         ) : (
           <button
-            onClick={handleStartScan}
+            onClick={() => {
+              console.log('Scan button clicked!');
+              handleStartScan();
+            }}
             disabled={startScan.isPending || !isSourceActive}
             className="btn btn-primary flex items-center gap-2 px-3 py-2 text-sm disabled:opacity-50"
             title={isSourceActive ? t('space.startScan') : t('space.sourceInactiveWarning')}

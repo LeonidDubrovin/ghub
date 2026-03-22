@@ -64,6 +64,7 @@ impl ScanningService {
         space_id: String,
         source_path: String,
     ) -> Result<(), String> {
+        println!("[START_SCAN] Command called: space={}, path={}", space_id, source_path);
         let key = format!("{}:{}", space_id, source_path);
         let cancel_flag = Arc::new(AtomicBool::new(false));
         let cancel_flag_clone = cancel_flag.clone();
@@ -73,31 +74,43 @@ impl ScanningService {
         let source_path_clone = source_path.clone();
         let key_for_cleanup = key.clone();
 
+        debug!("[START_SCAN] Attempting to start scan for key: {}", key);
+
         // Acquire lock, check for existing scan, and insert handle in one atomic operation
         {
             let mut active_scans = self.active_scans.lock().map_err(|e| e.to_string())?;
             if active_scans.contains_key(&key) {
+                debug!("[START_SCAN] Scan already in progress for key: {}", key);
                 return Err("Scan already in progress for this source".to_string());
             }
             // Insert handle before releasing lock to prevent race condition
             active_scans.insert(key.clone(), ScanHandle { cancel_flag: cancel_flag_clone.clone() });
+            debug!("[START_SCAN] Inserted scan handle into active_scans");
         } // lock released here
 
         // Set initial scan status in database
         {
             let db_lock = db.lock().map_err(|e| e.to_string())?;
-            db_lock.set_source_scan_status(
+            let result = db_lock.set_source_scan_status(
                 &space_id,
                 &source_path,
                 Some(ScanStatus::Scanning.as_str()),
                 Some(0),
                 None,
                 None,
-            )
-            .map_err(|e| e.to_string())?;
+            );
+            if let Err(e) = result {
+                error!("[START_SCAN] Failed to set initial scan status: {}", e);
+                // Remove from active_scans if we failed to set status
+                let mut active_scans = self.active_scans.lock().unwrap();
+                active_scans.remove(&key);
+                return Err(format!("Failed to set scan status: {}", e));
+            }
+            debug!("[START_SCAN] Set initial scan status to 'scanning'");
         }
 
         // Spawn background thread with panic catching
+        debug!("[START_SCAN] Spawning background thread");
         let _ = thread::spawn(move || {
             // Clone variables before moving them into scan_source to keep originals for cleanup
             let active_scans_for_scan = active_scans_clone.clone();
@@ -106,6 +119,7 @@ impl ScanningService {
             let source_path_for_scan = source_path_clone.clone();
             let cancel_flag_for_scan = cancel_flag_clone.clone();
 
+            debug!("[SCAN_THREAD] Thread started for {}", key_for_cleanup);
             let result = std::panic::catch_unwind(|| {
                 Self::scan_source(
                     active_scans_for_scan,
@@ -118,15 +132,15 @@ impl ScanningService {
 
             match result {
                 Ok(_) => {
-                    debug!("Scan completed normally for {}", key_for_cleanup);
+                    debug!("[SCAN_THREAD] Scan completed normally for {}", key_for_cleanup);
                 }
                 Err(panic) => {
-                    error!("Scan thread panicked for {}: {:?}", key_for_cleanup, panic);
+                    error!("[SCAN_THREAD] Scan thread panicked for {}: {:?}", key_for_cleanup, panic);
 
                     // Remove from active_scans FIRST (lock ordering: active_scans before db)
                     if let Ok(mut active_scans) = active_scans_clone.lock() {
                         active_scans.remove(&key_for_cleanup);
-                        debug!("Cleaned up scan key after panic: {}", key_for_cleanup);
+                        debug!("[SCAN_THREAD] Cleaned up scan key after panic: {}", key_for_cleanup);
                     }
 
                     // Attempt to clear scan status in DB
@@ -139,11 +153,13 @@ impl ScanningService {
                             None,
                             Some("Scan thread panicked - check logs"),
                         );
+                        debug!("[SCAN_THREAD] Set scan status to error after panic");
                     }
                 }
             }
         });
 
+        debug!("[START_SCAN] Thread spawned successfully, returning Ok");
         Ok(())
     }
 
@@ -180,6 +196,16 @@ impl ScanningService {
             .map_err(|e| e.to_string())
     }
 
+    /// Check if a scan is currently active for the given source
+    pub fn is_scan_active(&self, space_id: &str, source_path: &str) -> bool {
+        let key = format!("{}:{}", space_id, source_path);
+        if let Ok(active_scans) = self.active_scans.lock() {
+            active_scans.contains_key(&key)
+        } else {
+            false
+        }
+    }
+
     /// Main scanning logic for a single source
     fn scan_source(
         active_scans: Arc<Mutex<HashMap<String, ScanHandle>>>,
@@ -188,31 +214,42 @@ impl ScanningService {
         source_path: String,
         cancel_flag: Arc<AtomicBool>,
     ) {
+        debug!("[SCAN_SOURCE] Entered scan_source for {}", source_path);
+        
         // Check if source still exists and is active
         let source_opt = {
             let db_lock = db.lock().unwrap();
             match db_lock.get_source_scan_status(&space_id, &source_path) {
-                Ok(Some(src)) => Some(src),
-                Ok(None) => None,
-                Err(_) => None,
+                Ok(Some(src)) => {
+                    debug!("[SCAN_SOURCE] Found source: is_active={}, scan_recursively={}", src.is_active, src.scan_recursively);
+                    Some(src)
+                },
+                Ok(None) => {
+                    error!("[SCAN_SOURCE] Source not found in DB: {} in space {}", source_path, space_id);
+                    None
+                },
+                Err(e) => {
+                    error!("[SCAN_SOURCE] Error querying source status: {}", e);
+                    None
+                }
             }
         };
 
         if source_opt.is_none() {
-            error!("Source not found: {} in space {}", source_path, space_id);
+            error!("[SCAN_SOURCE] Aborting: source not found");
             return;
         }
 
         let source = source_opt.unwrap();
         if !source.is_active {
-            info!("Source is inactive, skipping scan: {}", source_path);
+            info!("[SCAN_SOURCE] Source is inactive, skipping scan: {}", source_path);
             return;
         }
 
         // Perform the scan
         let path = Path::new(&source_path);
         if !path.exists() {
-            error!("Source path does not exist: {}", source_path);
+            error!("[SCAN_SOURCE] Source path does not exist: {}", source_path);
             let _ = db.lock().unwrap().set_source_scan_status(
                 &space_id,
                 &source_path,
@@ -224,10 +261,13 @@ impl ScanningService {
             return;
         }
 
-        debug!("Starting scan of source: {}", source_path);
+        debug!("[SCAN_SOURCE] Starting scan of source: {}", source_path);
+        debug!("[SCAN_SOURCE] Path exists, is_active=true, scan_recursively={:?}", source.scan_recursively);
 
         // Scan directory
         let scan_result = Self::perform_scan(path, &source, &cancel_flag);
+        
+        debug!("[SCAN_SOURCE] perform_scan returned: {:?}", scan_result);
 
         match scan_result {
             Ok((games, total_games)) => {
@@ -433,6 +473,9 @@ impl ScanningService {
         source: &SpaceSource,
         cancel_flag: &AtomicBool,
     ) -> Result<(Vec<ScannedGame>, usize), String> {
+        debug!("[PERFORM_SCAN] Starting perform_scan for path: {:?}", path);
+        debug!("[PERFORM_SCAN] Source: is_active={}, scan_recursively={:?}", source.is_active, source.scan_recursively);
+
         // Build config from constants (background service uses fixed config)
         let config = ScanConfig {
             max_scan_depth: if source.scan_recursively {
@@ -469,7 +512,24 @@ impl ScanningService {
                 .collect(),
         };
 
-        scanner::scan_directory(path, &config, Some(cancel_flag))
+        debug!("[PERFORM_SCAN] Config: max_scan_depth={}", config.max_scan_depth);
+        
+        let result = scanner::scan_directory(path, &config, Some(cancel_flag));
+        
+        match &result {
+            Ok((games, count)) => {
+                debug!("[PERFORM_SCAN] Scan successful: found {} games", count);
+                for (i, game) in games.iter().enumerate() {
+                    debug!("[PERFORM_SCAN] Game {}: title='{}', path='{}', exe={:?}",
+                        i+1, game.title, game.path, game.executable);
+                }
+            }
+            Err(e) => {
+                debug!("[PERFORM_SCAN] Scan failed: {}", e);
+            }
+        }
+        
+        result
     }
 
     /// Compute fingerprint for a scanned game
