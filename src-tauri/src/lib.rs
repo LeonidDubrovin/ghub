@@ -100,6 +100,7 @@ pub fn run() {
             commands::fetch_and_update_game_metadata,
             commands::backup_database,
             commands::log_frontend,
+            commands::reveal_in_explorer,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
