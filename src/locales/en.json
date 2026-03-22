@@ -9,7 +9,11 @@
     "search": "Search...",
     "all": "All games",
     "favorites": "Favorites",
-    "optional": "optional"
+    "optional": "optional",
+    "sort": "Sort",
+    "sortBy": "Sort by",
+    "sortAsc": "Ascending",
+    "sortDesc": "Descending"
   },
   "sidebar": {
     "spaces": "Spaces",
@@ -207,5 +211,14 @@
     "sourceLinks": "Source links",
     "refreshMetadata": "Refresh metadata",
     "refreshFromLocal": "Refresh from local"
+  },
+  "sort": {
+    "title": "Title",
+    "lastPlayed": "Last played",
+    "playtime": "Playtime",
+    "addedOn": "Date added",
+    "developer": "Developer",
+    "asc": "Ascending",
+    "desc": "Descending"
   }
 }

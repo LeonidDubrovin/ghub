@@ -14,18 +14,20 @@
   
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 14px;
+    height: 14px;
   }
-  
+   
   ::-webkit-scrollbar-track {
     @apply bg-surface-400;
   }
-  
+   
   ::-webkit-scrollbar-thumb {
     @apply bg-surface-100 rounded-full;
+    min-width: 40px;
+    min-height: 40px;
   }
-  
+   
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-600;
   }

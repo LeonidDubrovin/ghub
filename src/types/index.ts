@@ -1,3 +1,6 @@
+export type SortField = 'title' | 'last_played' | 'playtime' | 'added_at' | 'developer';
+export type SortOrder = 'asc' | 'desc';
+
 export interface Space {
   id: string;
   name: string;

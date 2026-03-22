@@ -13,7 +13,7 @@ import ContextMenu, { ContextMenuItem } from './components/ContextMenu';
 import ResizeHandle from './components/ResizeHandle';
 import { useSpaces, useDeleteSpace } from './hooks/useSpaces';
 import { useGames, useDeleteGame } from './hooks/useGames';
-import type { Game, Space, SelectedSource } from './types';
+import type { Game, Space, SelectedSource, SortField, SortOrder } from './types';
 import { createLoggerForComponent } from './lib/logger';
 
 import DownloadLinksView from './components/DownloadLinksView';
@@ -46,6 +46,8 @@ function App() {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>(() => (localStorage.getItem('selectedFilter') as FilterType) || 'all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem('viewMode') as ViewMode) || 'details');
+  const [sortBy, setSortBy] = useState<SortField>(() => (localStorage.getItem('sortBy') as SortField) || 'title');
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => (localStorage.getItem('sortOrder') as SortOrder) || 'asc');
   const [showAddSpace, setShowAddSpace] = useState(false);
   const [showAddLink, setShowAddLink] = useState(false);
   const [showScan, setShowScan] = useState(false);
@@ -95,6 +97,14 @@ function App() {
   }, [viewMode]);
 
   useEffect(() => {
+    localStorage.setItem('sortBy', sortBy);
+  }, [sortBy]);
+
+  useEffect(() => {
+    localStorage.setItem('sortOrder', sortOrder);
+  }, [sortOrder]);
+
+  useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => { e.preventDefault(); };
     document.addEventListener('contextmenu', handleContextMenu);
     return () => document.removeEventListener('contextmenu', handleContextMenu);
@@ -135,16 +145,37 @@ function App() {
     } else if (selectedFilter === 'recent') {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      result = result
-        .filter(game => game.last_played_at && new Date(game.last_played_at) > weekAgo)
-        .sort((a, b) => {
+      result = result.filter(game => game.last_played_at && new Date(game.last_played_at) > weekAgo);
+    }
+
+    // Apply sorting
+    result = [...result].sort((a, b) => {
+      const multiplier = sortOrder === 'asc' ? 1 : -1;
+      
+      switch (sortBy) {
+        case 'title':
+          return multiplier * (a.title || '').localeCompare(b.title || '');
+        case 'last_played': {
           const dateA = a.last_played_at ? new Date(a.last_played_at).getTime() : 0;
           const dateB = b.last_played_at ? new Date(b.last_played_at).getTime() : 0;
-          return dateB - dateA;
-        });
-    }
+          return multiplier * (dateA - dateB);
+        }
+        case 'playtime':
+          return multiplier * (a.total_playtime_seconds - b.total_playtime_seconds);
+        case 'added_at': {
+          const dateA = new Date(a.added_at).getTime();
+          const dateB = new Date(b.added_at).getTime();
+          return multiplier * (dateA - dateB);
+        }
+        case 'developer':
+          return multiplier * (a.developer || '').localeCompare(b.developer || '');
+        default:
+          return 0;
+      }
+    });
+
     return result;
-  }, [games, searchQuery, selectedFilter]);
+  }, [games, searchQuery, selectedFilter, sortBy, sortOrder]);
 
   const favoritesCount = useMemo(() => games.filter(g => g.is_favorite).length, [games]);
   const recentCount = useMemo(() => {
@@ -266,6 +297,17 @@ function App() {
       setViewMode('links');
     } else if (viewMode === 'links') {
       setViewMode('details');
+    }
+  };
+
+  const handleSortChange = (field: SortField) => {
+    if (sortBy === field) {
+      // Toggle direction if same field
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, default to ascending
+      setSortBy(field);
+      setSortOrder('asc');
     }
   };
 
@@ -456,6 +498,9 @@ function App() {
             });
           }}
           selectedSource={selectedSource}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSortChange={handleSortChange}
         />
         
         {/* Selected Source Bar - displays below header when a source is selected */}

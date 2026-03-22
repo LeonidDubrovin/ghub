@@ -1,4 +1,4 @@
-use crate::models::{Game, CreateGameRequest, CreateGameLinkRequest, UpdateGameRequest, MetadataSearchResult};
+use crate::models::{Game, CreateGameRequest, CreateGameLinkRequest, UpdateGameRequest, MetadataSearchResult, GameLink};
 use crate::AppState;
 use crate::meta_service;
 use tauri::State;
@@ -188,4 +188,35 @@ pub fn update_game(state: State<AppState>, request: UpdateGameRequest) -> Result
 pub fn delete_game(state: State<AppState>, id: String) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.delete_game(&id).map_err(|e| e.to_string())
+}
+
+// ============ GAME LINKS ============
+
+#[allow(dead_code)]
+#[tauri::command]
+pub fn get_game_links(state: State<AppState>, game_id: String) -> Result<Vec<GameLink>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.get_game_links(&game_id).map_err(|e: rusqlite::Error| e.to_string())
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub fn add_game_link(
+    state: State<AppState>,
+    game_id: String,
+    url: String,
+    title: Option<String>,
+    source_type: Option<String>,
+) -> Result<GameLink, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let link_id = uuid::Uuid::new_v4().to_string();
+    db.create_game_link(&link_id, &game_id, &url, title.as_deref(), source_type.as_deref())
+        .map_err(|e: rusqlite::Error| e.to_string())
+}
+
+#[allow(dead_code)]
+#[tauri::command]
+pub fn remove_game_link(state: State<AppState>, link_id: String) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.delete_game_link(&link_id).map_err(|e: rusqlite::Error| e.to_string())
 }
