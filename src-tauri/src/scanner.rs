@@ -1,4 +1,4 @@
-/// Shared scanning logic used by both synchronous and background scanning implementations.
+﻿/// Shared scanning logic used by both synchronous and background scanning implementations.
 /// Provides a single source of truth for all scanning operations.
 
 use crate::models::ScannedGame;
@@ -213,7 +213,7 @@ pub fn scan_directory(
 }
 
 /// Check if folder name matches exclusion patterns
-fn is_folder_excluded(dir_name: &str, patterns: &[Regex]) -> bool {
+pub fn is_folder_excluded(dir_name: &str, patterns: &[Regex]) -> bool {
     patterns.iter().any(|pattern| pattern.is_match(dir_name))
 }
 
@@ -344,7 +344,7 @@ fn find_all_executables(dir: &Path, config: &ScanConfig) -> Vec<String> {
 }
 
 /// Pick the best executable from the list
-fn pick_best_executable(dir: &Path, executables: &[String]) -> Option<String> {
+pub fn pick_best_executable(dir: &Path, executables: &[String]) -> Option<String> {
     if executables.is_empty() {
         return None;
     }

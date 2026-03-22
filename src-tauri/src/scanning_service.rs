@@ -1,4 +1,4 @@
-use crate::database::Database;
+﻿use crate::database::Database;
 use crate::models::{ScannedGame, SpaceSource};
 use crate::scanner::{self, ScanConfig};
 use lazy_static::lazy_static;
@@ -635,7 +635,7 @@ impl ScanningService {
     }
 
     /// Compute fingerprint for a scanned game
-    fn compute_fingerprint(scanned_game: &ScannedGame) -> String {
+    pub fn compute_fingerprint(scanned_game: &ScannedGame) -> String {
         if let Some(exe) = &scanned_game.executable {
             // Use file size + modification time as simple fingerprint
             // This is stable for unchanged files and detects modifications
@@ -661,6 +661,7 @@ impl ScanningService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::scanner::{is_folder_excluded, pick_best_executable};
     use regex::Regex;
 
     #[test]
@@ -724,7 +725,11 @@ mod tests {
             cover_candidates: vec![],
             exe_metadata: None,
         };
-        let fp = compute_fingerprint(&scanned_game);
+        let fp = ScanningService::compute_fingerprint(&scanned_game);
         assert_eq!(fp, "Test Game");
     }
 }
+
+
+
+

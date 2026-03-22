@@ -119,7 +119,10 @@ pub fn start_source_scan(
         "start_source_scan: space={}, source={}",
         space_id, source_path
     );
-    let scanning_service = state.scanning_service.lock().map_err(|e| e.to_string())?;
+    let scanning_service = match state.scanning_service.lock() {
+        Ok(guard) => guard,
+        Err(e) => return Err(e.to_string()),
+    };
     let db = state.db.clone();
     scanning_service.start_scan(db, space_id, source_path)?;
     Ok(())
@@ -135,7 +138,10 @@ pub fn get_source_scan_status(
         "get_source_scan_status: space={}, source={}",
         space_id, source_path
     );
-    let scanning_service = state.scanning_service.lock().map_err(|e| e.to_string())?;
+    let scanning_service = match state.scanning_service.lock() {
+        Ok(guard) => guard,
+        Err(e) => return Err(e.to_string()),
+    };
 
     // Check if there's an actual active scan for this source using the public method
     let has_active_scan = scanning_service.is_scan_active(&space_id, &source_path);
@@ -179,7 +185,10 @@ pub fn cancel_source_scan(
         "cancel_source_scan: space={}, source={}",
         space_id, source_path
     );
-    let scanning_service = state.scanning_service.lock().map_err(|e| e.to_string())?;
+    let scanning_service = match state.scanning_service.lock() {
+        Ok(guard) => guard,
+        Err(e) => return Err(e.to_string()),
+    };
     scanning_service.cancel_scan(&state.db, &space_id, &source_path)?;
     Ok(())
 }
