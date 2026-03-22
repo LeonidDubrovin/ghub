@@ -109,7 +109,7 @@ pub fn run() {
 fn init_logger() {
     #[cfg(debug_assertions)]
     {
-        // Development: logs in project directory ./logs/ghub.log
+        // Development: logs in project directory ./logs/ with timestamped filenames
         use std::env::current_dir;
         use std::fs;
         
@@ -146,8 +146,10 @@ fn init_logger() {
             return;
         }
         
-        let log_file = log_dir.join("ghub.log");
-        let error_file = log_dir.join("error.log");
+        // Generate timestamp for log filenames
+        let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+        let log_file = log_dir.join(format!("ghub_{}.log", timestamp));
+        let error_file = log_dir.join(format!("error_{}.log", timestamp));
         
         // Configure fern for development
         let mut dispatch = fern::Dispatch::new()
@@ -189,7 +191,7 @@ fn init_logger() {
     
     #[cfg(not(debug_assertions))]
     {
-        // Release: file-based logging beside the executable
+        // Release: file-based logging beside the executable with timestamped filenames
         use std::env::current_exe;
         use std::fs;
         
@@ -217,8 +219,10 @@ fn init_logger() {
             return;
         }
         
-        let log_file = log_dir.join("ghub.log");
-        let error_file = log_dir.join("error.log");
+        // Generate timestamp for log filenames
+        let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+        let log_file = log_dir.join(format!("ghub_{}.log", timestamp));
+        let error_file = log_dir.join(format!("error_{}.log", timestamp));
         
         // Configure fern for release
         let mut dispatch = fern::Dispatch::new()
