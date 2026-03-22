@@ -79,8 +79,19 @@
     "scanning": "Сканирование...",
     "cancelScan": "Отменить сканирование",
     "startScan": "Начать сканирование",
+    "scan": "Сканировать",
+    "remove": "Удалить",
+    "sourceInactiveWarning": "Этот источник неактивен и не может быть отсканирован.",
     "addSource": "Добавить источник",
-    "addFolder": "Добавить папку"
+    "addFolder": "Добавить папку",
+    "readyToScan": "Готов к сканированию",
+    "scanningProgress": "Сканирование... {{progress}}/{{total}} ({{percent}}%)",
+    "scanCompleted": "Сканирование завершено",
+    "scanError": "Ошибка сканирования",
+    "cancelScanError": "Не удалось отменить сканирование",
+    "confirmCancelScan": "Отменить текущее сканирование?",
+    "scanAll": "Сканировать все",
+    "scanAllError": "Не удалось сканировать источники пространства"
   },
   "spaces": {
     "confirmDeleteTitle": "Удалить пространство?",
@@ -89,14 +100,13 @@
   "scan": {
     "title": "Сканирование папки",
     "selectFolder": "Выберите папку",
+    "scanManual": "Сканировать",
     "scanning": "Сканирование...",
     "foundGames": "Найдено: {{count}}",
     "noGamesFound": "Игры не найдены",
     "targetSpace": "Пространство",
     "fetchMetadata": "Автоматически искать метаданные",
     "addSelected": "Добавить выбранные",
-    "customScan": "Ручное сканирование",
-    "spaceSourcesScan": "Каталоги: {{space}}",
     "showDetails": "Показать детали",
     "selectExecutable": "Исполняемый файл",
     "selectCover": "Обложка",
@@ -107,7 +117,8 @@
     "fileDescription": "Описание",
     "fileVersion": "Версия",
     "editTitle": "Редактировать название",
-    "noSpacesWarning": "Сначала создайте пространство для добавления игр"
+    "noSpacesWarning": "Сначала создайте пространство для добавления игр",
+    "selectFolderHint": "Выберите папку с играми для сканирования"
   },
   "edit": {
     "title": "Редактирование",

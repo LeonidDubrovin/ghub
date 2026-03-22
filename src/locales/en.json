@@ -81,8 +81,19 @@
     "scanning": "Scanning...",
     "cancelScan": "Cancel scan",
     "startScan": "Start scan",
+    "scan": "Scan",
+    "remove": "Remove",
+    "sourceInactiveWarning": "This source is inactive and cannot be scanned.",
     "addSource": "Add source",
-    "addFolder": "Add folder"
+    "addFolder": "Add folder",
+    "readyToScan": "Ready to scan",
+    "scanningProgress": "Scanning... {{progress}}/{{total}} ({{percent}}%)",
+    "scanCompleted": "Scan completed",
+    "scanError": "Scan error",
+    "cancelScanError": "Failed to cancel scan",
+    "scanAll": "Scan all",
+    "scanAllError": "Failed to scan space sources",
+    "confirmCancelScan": "Cancel the current scan?"
   },
   "spaces": {
     "confirmDeleteTitle": "Delete space?",
@@ -91,12 +102,10 @@
   "scan": {
     "title": "Scan folder",
     "selectFolder": "Select a folder to scan",
-    "pathPlaceholder": "Enter folder path, e.g. D:\\Games",
-    "scanManual": "Scan entered path",
+    "scanManual": "Scan",
     "scanning": "Scanning...",
     "foundGames": "Found: {{count}}",
     "noGamesFound": "No games found in this folder",
-    "noSpacesWarning": "Create a space first to add games",
     "targetSpace": "Add to space",
     "fetchMetadata": "Automatically fetch metadata",
     "addSelected": "Add selected",
@@ -112,9 +121,8 @@
     "companyName": "Developer",
     "fileDescription": "Description",
     "fileVersion": "Version",
-    "customScan": "Custom scan",
-    "spaceSourcesScan": "Space: {{space}} sources",
-    "noSpacesWarning": "Create a space first to add games"
+    "noSpacesWarning": "Create a space first to add games",
+    "selectFolderHint": "Select a folder containing games to scan"
   },
   "edit": {
     "title": "Edit game",

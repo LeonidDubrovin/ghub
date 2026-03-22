@@ -14,7 +14,7 @@ interface SidebarProps {
   selectedSourcePath: string | null;
   onSelectSpace: (id: string | null) => void;
   onSelectFilter: (filter: FilterType) => void;
-  onSelectSource: (path: string | null) => void;
+  onSelectSource: (spaceId: string, path: string | null) => void;
   onAddSpace: () => void;
   onAddLink: () => void;
   onDeleteSpace?: (space: Space) => void;

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
+import type { SelectedSource } from '../types';
 
-type ViewMode = 'grid' | 'list' | 'details' | 'links'; // Updated
+type ViewMode = 'grid' | 'list' | 'details' | 'links';
 
 interface HeaderProps {
   searchQuery: string;
@@ -9,8 +10,9 @@ interface HeaderProps {
   onViewModeChange: (mode: ViewMode) => void;
   onScan: () => void;
   gameCount: number;
-  isSelectionMode?: boolean; // Added
-  onToggleSelectionMode?: () => void; // Added
+  isSelectionMode?: boolean;
+  onToggleSelectionMode?: () => void;
+  selectedSource?: SelectedSource | null;
 }
 
 export default function Header({
@@ -22,6 +24,7 @@ export default function Header({
   gameCount,
   isSelectionMode,
   onToggleSelectionMode,
+  selectedSource,
 }: HeaderProps) {
   const { t } = useTranslation();
 
@@ -67,9 +70,17 @@ export default function Header({
             {isSelectionMode ? '✓' : '☐'}
           </button>
         )}
-        <button onClick={onScan} className="btn btn-primary text-sm">
-          {t('actions.scanFolder')}
-        </button>
+        
+        {/* Scan folder button - only shown when no source is selected */}
+        {!selectedSource && (
+          <button
+            onClick={onScan}
+            className="btn btn-primary text-sm"
+            title={t('actions.scanFolder')}
+          >
+            {t('actions.scanFolder')}
+          </button>
+        )}
 
         {/* View mode toggle - 3 buttons */}
         <div className="flex bg-surface-200 rounded-lg p-1">

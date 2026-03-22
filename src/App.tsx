@@ -13,10 +13,12 @@ import ContextMenu, { ContextMenuItem } from './components/ContextMenu';
 import ResizeHandle from './components/ResizeHandle';
 import { useSpaces, useDeleteSpace } from './hooks/useSpaces';
 import { useGames, useDeleteGame } from './hooks/useGames';
-import type { Game, Space } from './types';
+import type { Game, Space, SelectedSource } from './types';
 
 import DownloadLinksView from './components/DownloadLinksView';
 import BatchMetadataDialog from './components/BatchMetadataDialog';
+import SelectedSourceToolbar from './components/SelectedSourceToolbar';
+import { useStartSourceScan } from './hooks/useScanning';
 
 type ViewMode = 'grid' | 'list' | 'details' | 'links';
 type FilterType = 'all' | 'favorites' | 'recent' | 'links';
@@ -29,7 +31,16 @@ const GAME_LIST_MAX = 500;
 function App() {
   const { t } = useTranslation();
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(() => localStorage.getItem('selectedSpaceId') || null);
-  const [selectedSourcePath, setSelectedSourcePath] = useState<string | null>(() => localStorage.getItem('selectedSourcePath') || null);
+  const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(() => {
+    const saved = localStorage.getItem('selectedSourcePath');
+    if (saved) {
+      const parts = saved.split(':', 2);
+      if (parts.length === 2) {
+        return { spaceId: parts[0], sourcePath: parts[1] };
+      }
+    }
+    return null;
+  });
   const [selectedFilter, setSelectedFilter] = useState<FilterType>(() => (localStorage.getItem('selectedFilter') as FilterType) || 'all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem('viewMode') as ViewMode) || 'details');
@@ -53,9 +64,12 @@ function App() {
   const [gameListWidth, setGameListWidth] = useState(280);
 
   const { data: spaces = [], isLoading: spacesLoading } = useSpaces();
-  const { data: games = [], isLoading: gamesLoading, refetch: refetchGames } = useGames(selectedSpaceId, selectedSourcePath || undefined);
+  const { data: games = [], isLoading: gamesLoading, refetch: refetchGames } = useGames(selectedSpaceId, selectedSource?.sourcePath || undefined);
   const deleteSpaceMutation = useDeleteSpace();
   const deleteGameMutation = useDeleteGame();
+  
+  // Scanning hooks
+  const startSourceScan = useStartSourceScan();
 
   useEffect(() => {
     if (selectedSpaceId) localStorage.setItem('selectedSpaceId', selectedSpaceId);
@@ -63,9 +77,12 @@ function App() {
   }, [selectedSpaceId]);
 
   useEffect(() => {
-    if (selectedSourcePath) localStorage.setItem('selectedSourcePath', selectedSourcePath);
-    else localStorage.removeItem('selectedSourcePath');
-  }, [selectedSourcePath]);
+    if (selectedSource) {
+      localStorage.setItem('selectedSourcePath', `${selectedSource.spaceId}:${selectedSource.sourcePath}`);
+    } else {
+      localStorage.removeItem('selectedSourcePath');
+    }
+  }, [selectedSource]);
 
   useEffect(() => {
     localStorage.setItem('selectedFilter', selectedFilter);
@@ -141,20 +158,17 @@ function App() {
     const currentIndex = filteredGames.findIndex(g => g.id === gameId);
 
     if (shiftKey && lastIndex !== -1 && currentIndex !== -1) {
-      // Range selection: select all games between last selected and current
       const startIndex = Math.min(lastIndex, currentIndex);
       const endIndex = Math.max(lastIndex, currentIndex);
 
       setSelectedGameIds(prev => {
         const next = new Set(prev);
-        // Add all games in the range
         for (let i = startIndex; i <= endIndex; i++) {
           next.add(filteredGames[i].id);
         }
         return next;
       });
     } else {
-      // Single toggle
       setSelectedGameIds(prev => {
         const next = new Set(prev);
         if (next.has(gameId)) next.delete(gameId);
@@ -163,7 +177,6 @@ function App() {
       });
     }
 
-    // Update last selected game
     setLastSelectedGameId(gameId);
   };
 
@@ -204,11 +217,9 @@ function App() {
     const gameIds = Array.from(selectedGameIds);
     if (gameIds.length === 0) return;
 
-    // Mark all as updating
     setUpdatingGameIds(prev => new Set([...prev, ...gameIds]));
 
     try {
-      // Refresh all in parallel
       await Promise.all(
         gameIds.map(gameId =>
           invoke('refresh_game_from_local', { gameId }).catch(err => {
@@ -220,7 +231,6 @@ function App() {
     } catch (err) {
       console.error('Batch refresh failed:', err);
     } finally {
-      // Clear updating status after a delay to show completion
       setTimeout(() => setUpdatingGameIds(prev => {
         const next = new Set(prev);
         gameIds.forEach(id => next.delete(id));
@@ -239,7 +249,7 @@ function App() {
 
   const handleSelectFilter = (filter: FilterType) => {
     setSelectedFilter(filter);
-    setSelectedSourcePath(null); // Clear source selection when changing filter
+    setSelectedSource(null);
     if (filter === 'links') {
       setViewMode('links');
     } else if (viewMode === 'links') {
@@ -249,11 +259,15 @@ function App() {
 
   const handleSelectSpace = (spaceId: string | null) => {
     setSelectedSpaceId(spaceId);
-    setSelectedSourcePath(null); // Clear source selection when changing space
+    setSelectedSource(null);
   };
 
-  const handleSelectSource = (sourcePath: string | null) => {
-    setSelectedSourcePath(sourcePath);
+  const handleSelectSource = (spaceId: string, sourcePath: string | null) => {
+    if (sourcePath) {
+      setSelectedSource({ spaceId, sourcePath });
+    } else {
+      setSelectedSource(null);
+    }
   };
 
   const handleEditGame = (game: Game) => setEditingGame(game);
@@ -342,7 +356,6 @@ function App() {
   };
 
   const getGameContextMenuItems = (game: Game): ContextMenuItem[] => {
-    // In selection mode, show batch operations
     if (isSelectionMode) {
       return [
         { label: `${t('common.selected')}: ${selectedGameIds.size}`, icon: '☑️', onClick: () => {}, disabled: true },
@@ -356,7 +369,6 @@ function App() {
       ];
     }
 
-    // Normal mode
     return [
       { label: t('actions.play'), icon: '▶', onClick: () => handlePlayGame(game), disabled: isGameRunning(game.id) },
       { separator: true, label: '', onClick: () => {} },
@@ -376,6 +388,19 @@ function App() {
     ];
   };
 
+  // Smart scan handler: if source selected, scan it; else open dialog
+  const handleSmartScan = () => {
+    if (selectedSource) {
+      startSourceScan.mutate({ 
+        spaceId: selectedSource.spaceId, 
+        sourcePath: selectedSource.sourcePath 
+      });
+    } else {
+      setShowScan(true);
+    }
+  };
+
+
   return (
     <div className="flex h-screen overflow-hidden">
       <aside 
@@ -386,7 +411,7 @@ function App() {
           spaces={spaces}
           selectedSpaceId={selectedSpaceId}
           selectedFilter={selectedFilter}
-          selectedSourcePath={selectedSourcePath}
+          selectedSourcePath={selectedSource?.sourcePath || null}
           onSelectSpace={handleSelectSpace}
           onSelectFilter={handleSelectFilter}
           onSelectSource={handleSelectSource}
@@ -402,26 +427,34 @@ function App() {
       <ResizeHandle onResize={handleSidebarResize} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
-         <Header
-           searchQuery={searchQuery}
-           onSearchChange={setSearchQuery}
-           viewMode={viewMode}
-           onViewModeChange={setViewMode}
-           onScan={() => setShowScan(true)}
-           gameCount={filteredGames.length}
-           isSelectionMode={isSelectionMode}
-           onToggleSelectionMode={() => {
-             setIsSelectionMode(prev => {
-               if (prev) {
-                 // Exiting selection mode
-                 setLastSelectedGameId(null);
-               }
-               return !prev;
-             });
-           }}
-         />
-
-
+        <Header
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onScan={handleSmartScan}
+          gameCount={filteredGames.length}
+          isSelectionMode={isSelectionMode}
+          onToggleSelectionMode={() => {
+            setIsSelectionMode(prev => {
+              if (prev) {
+                setLastSelectedGameId(null);
+              }
+              return !prev;
+            });
+          }}
+          selectedSource={selectedSource}
+        />
+        
+        {/* Selected Source Bar - displays below header when a source is selected */}
+        {selectedSource && (
+          <div className="bg-surface-300 border-b border-surface-100">
+            <SelectedSourceToolbar
+              selectedSource={selectedSource}
+              onClose={() => setSelectedSource(null)}
+            />
+          </div>
+        )}
 
         {launchError && (
           <div className="mx-6 mt-2 p-3 bg-danger/20 border border-danger/50 rounded-lg text-danger text-sm">
@@ -429,7 +462,7 @@ function App() {
           </div>
         )}
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden relative">
           {viewMode === 'links' ? (
             <DownloadLinksView />
           ) : gamesLoading ? (
@@ -439,7 +472,7 @@ function App() {
           ) : filteredGames.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400">
               <p className="text-lg mb-2">{t('games.noGames')}</p>
-              {selectedFilter === 'all' && (
+              {selectedFilter === 'all' && !selectedSource && (
                 <button onClick={() => setShowScan(true)} className="btn btn-primary mt-4">
                   {t('actions.scanFolder')}
                 </button>
@@ -451,14 +484,14 @@ function App() {
               selectedGame={selectedGameForDetails}
               selectedGames={filteredGames.filter(g => selectedGameIds.has(g.id))}
                onSelectGame={(game, shiftKey) => {
-                  if (shiftKey) {
-                    handleGameClick(game.id, true);
-                  } else if (isSelectionMode) {
-                    handleGameClick(game.id, false);
-                  } else {
-                    setSelectedGameForDetails(game);
-                  }
-                }}
+                 if (shiftKey) {
+                   handleGameClick(game.id, true);
+                 } else if (isSelectionMode) {
+                   handleGameClick(game.id, false);
+                 } else {
+                   setSelectedGameForDetails(game);
+                 }
+               }}
               onPlay={handlePlayGame}
               onEdit={handleEditGame}
               onContextMenu={handleGameContextMenu}
@@ -483,7 +516,7 @@ function App() {
                  onGameClick={handleGameClick}
                  updatingGameIds={updatingGameIds}
                />
-            </div>
+             </div>
           )}
         </div>
       </main>

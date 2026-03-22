@@ -171,3 +171,8 @@ export interface SpaceWithSources {
   space: Space;
   sources: SpaceSource[];
 }
+
+export interface SelectedSource {
+  spaceId: string;
+  sourcePath: string;
+}

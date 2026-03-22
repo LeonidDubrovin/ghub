@@ -40,7 +40,7 @@ interface SpaceItemProps {
   isSelected: boolean;
   selectedSourcePath: string | null;
   onSelectSpace: (id: string | null) => void;
-  onSelectSource: (path: string | null) => void;
+  onSelectSource: (spaceId: string, path: string | null) => void;
   onSettings: (space: Space, e: React.MouseEvent) => void;
 }
 
@@ -82,6 +82,10 @@ export default function SpaceItem({
     } catch (err) {
       console.error('Failed to select folder:', err);
     }
+  };
+
+  const handleSourceSelect = (sourcePath: string | null) => {
+    onSelectSource(space.id, sourcePath);
   };
 
   const getSpaceIcon = (type: string) => {
@@ -133,7 +137,7 @@ export default function SpaceItem({
               spaceId={space.id}
               source={source}
               isSourceSelected={selectedSourcePath === source.source_path}
-              onSelectSource={onSelectSource}
+              onSelectSource={handleSourceSelect}
             />
           ))}
 

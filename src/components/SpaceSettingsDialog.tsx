@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useSpaceSources, useAddSpaceSource, useRemoveSpaceSource, useUpdateSpaceSource } from '../hooks/useSpaces';
 import { open } from '@tauri-apps/plugin-dialog';
 import type { Space, SpaceSource } from '../types';
-import ScanDialog from './ScanDialog';
 
 interface SpaceSettingsDialogProps {
   space: Space;
@@ -18,7 +17,6 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
   const updateSpaceSource = useUpdateSpaceSource();
   
   const [isSelectingFolder, setIsSelectingFolder] = useState(false);
-  const [showScanDialog, setShowScanDialog] = useState(false);
   
   const handleSelectFolder = async () => {
     try {
@@ -68,13 +66,6 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
     refetchSources();
   };
   
-  const handleScan = () => {
-    setShowScanDialog(true);
-  };
-  
-  const handleCloseScanDialog = () => {
-    setShowScanDialog(false);
-  };
   
   return (
     <>
@@ -179,34 +170,18 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
             </div>
             
             {/* Actions */}
-            <div className="flex justify-between items-center pt-4 border-t border-surface-100">
-              <div className="text-sm text-gray-400">
+            <div className="flex justify-end items-center pt-4 border-t border-surface-100">
+              <div className="text-sm text-gray-400 mr-auto">
                 {sources.filter(s => s.is_active).length} {t('space.activeSources')}
               </div>
-              <div className="flex gap-2">
-                <button onClick={onClose} className="btn btn-secondary">
-                  {t('common.close')}
-                </button>
-                <button
-                  onClick={handleScan}
-                  className="btn btn-primary"
-                  disabled={sources.filter(s => s.is_active).length === 0}
-                >
-                  🔍 {t('scan.scanAll')}
-                </button>
-              </div>
+              <button onClick={onClose} className="btn btn-secondary">
+                {t('common.close')}
+              </button>
             </div>
           </div>
         </div>
       </div>
       
-      {/* Scan Dialog */}
-      {showScanDialog && (
-        <ScanDialog
-          spaces={[space]}
-          onClose={handleCloseScanDialog}
-        />
-      )}
     </>
   );
 }

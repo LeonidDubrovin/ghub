@@ -1,15 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useScanDirectory, useCreateGame } from '../hooks/useGames';
-import { useSpaceSources, useScanSpaceSources } from '../hooks/useSpaces';
-import type { Space, ScannedGame, SpaceSource } from '../types';
+import type { Space, ScannedGame } from '../types';
 
 interface ScanDialogProps {
   spaces: Space[];
   onClose: () => void;
-  initialMode?: 'custom' | 'space_sources';
-  initialSpaceId?: string;
 }
 
 interface EditableGame extends ScannedGame {
@@ -20,27 +17,21 @@ interface EditableGame extends ScannedGame {
 
 export default function ScanDialog({ 
   spaces, 
-  onClose, 
-  initialMode = 'custom',
-  initialSpaceId 
+  onClose 
 }: ScanDialogProps) {
   const { t } = useTranslation();
   const scanDirectory = useScanDirectory();
   const createGame = useCreateGame();
-  const scanSpaceSources = useScanSpaceSources();
   
   const [scanPath, setScanPath] = useState('');
-  const [targetSpaceId, setTargetSpaceId] = useState(initialSpaceId || spaces[0]?.id || '');
+  const [targetSpaceId, setTargetSpaceId] = useState(spaces[0]?.id || '');
   const [fetchMetadata, setFetchMetadata] = useState(false);
   const [scannedGames, setScannedGames] = useState<EditableGame[]>([]);
   const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set());
   const [isAdding, setIsAdding] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedGame, setExpandedGame] = useState<string | null>(null);
-  const [scanMode, setScanMode] = useState<'custom' | 'space_sources'>(initialMode);
-  
-  // Load space sources if using space mode
-  const { data: spaceSources = [] } = useSpaceSources(targetSpaceId);
   
   const handleSelectFolder = async () => {
     setError(null);
@@ -53,8 +44,6 @@ export default function ScanDialog({
       
       if (selected && typeof selected === 'string') {
         setScanPath(selected);
-        setScanMode('custom');
-        handleCustomScan(selected);
       }
     } catch (err) {
       console.error('Failed to open folder dialog:', err);
@@ -62,7 +51,11 @@ export default function ScanDialog({
     }
   };
   
-  const handleCustomScan = async (path: string) => {
+  const handleScan = async () => {
+    const path = scanPath.trim();
+    if (!path) return;
+    
+    setIsScanning(true);
     setError(null);
     setScannedGames([]);
     setExpandedGame(null);
@@ -80,33 +73,8 @@ export default function ScanDialog({
     } catch (err) {
       console.error('Scan failed:', err);
       setError(String(err));
-    }
-  };
-  
-  const handleScanSpaceSources = async () => {
-    setError(null);
-    setScannedGames([]);
-    setExpandedGame(null);
-    
-    try {
-      const games = await scanSpaceSources.mutateAsync(targetSpaceId);
-      const editableGames: EditableGame[] = games.map(g => ({
-        ...g,
-        edited_title: g.title,
-        selected_executable: g.executable,
-        selected_cover: g.cover_candidates[0] || null,
-      }));
-      setScannedGames(editableGames);
-      setSelectedGames(new Set(games.map(g => g.path)));
-    } catch (err) {
-      console.error('Space scan failed:', err);
-      setError(String(err));
-    }
-  };
-  
-  const handleManualScan = () => {
-    if (scanPath.trim()) {
-      handleCustomScan(scanPath.trim());
+    } finally {
+      setIsScanning(false);
     }
   };
   
@@ -174,14 +142,6 @@ export default function ScanDialog({
   };
   
   const hasNoSpaces = spaces.length === 0;
-  const activeSources = spaceSources.filter(s => s.is_active);
-  
-  // If we have an initialSpaceId, set it as target when spaces load
-  useEffect(() => {
-    if (initialSpaceId && spaces.find(s => s.id === initialSpaceId)) {
-      setTargetSpaceId(initialSpaceId);
-    }
-  }, [initialSpaceId, spaces]);
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -210,81 +170,39 @@ export default function ScanDialog({
             </div>
           )}
           
-          {/* Scan mode selector */}
-          {!hasNoSpaces && (
-            <div className="mb-4 flex gap-2">
-              <button
-                onClick={() => setScanMode('custom')}
-                className={`btn ${scanMode === 'custom' ? 'btn-primary' : 'btn-secondary'}`}
-              >
-                📁 {t('scan.customScan')}
-              </button>
-              <button
-                onClick={() => setScanMode('space_sources')}
-                className={`btn ${scanMode === 'space_sources' ? 'btn-primary' : 'btn-secondary'}`}
-                disabled={activeSources.length === 0}
-              >
-                📚 {t('scan.spaceSourcesScan', { space: spaces.find(s => s.id === targetSpaceId)?.name })}
-                {` (${activeSources.length})`}
-              </button>
-            </div>
-          )}
-          
-          {/* Folder selection (custom mode) */}
-          {scanMode === 'custom' && (
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                value={scanPath}
-                onChange={e => setScanPath(e.target.value)}
-                placeholder={t('scan.pathPlaceholder')}
-                className="flex-1 px-3 py-2 bg-surface-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                onKeyDown={e => e.key === 'Enter' && handleManualScan()}
-              />
-              <button 
-                onClick={handleManualScan}
-                disabled={!scanPath.trim() || scanDirectory.isPending}
-                className="btn btn-secondary disabled:opacity-50"
-              >
-                🔍
-              </button>
-              <button onClick={handleSelectFolder} className="btn btn-primary">
-                📁 {t('space.selectFolder')}
-              </button>
-            </div>
-          )}
-          
-          {/* Space sources info (space mode) */}
-          {scanMode === 'space_sources' && (
-            <div className="mb-4 p-3 bg-surface-400 rounded-lg">
-              <p className="text-sm text-gray-300 mb-1">{t('space.scanningSources')}:</p>
-              <ul className="text-sm text-gray-400 space-y-1">
-                {activeSources.map((source: SpaceSource) => (
-                  <li key={source.source_path} className="truncate">
-                    • {source.source_path}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={handleScanSpaceSources}
-                disabled={scanSpaceSources.isPending || activeSources.length === 0}
-                className="mt-2 btn btn-primary"
-              >
-                {scanSpaceSources.isPending ? t('scan.scanning') : t('scan.scanNow')}
-              </button>
-            </div>
-          )}
+          {/* Folder selection */}
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={scanPath}
+              onChange={e => setScanPath(e.target.value)}
+              placeholder={t('scan.pathPlaceholder')}
+              className="flex-1 px-3 py-2 bg-surface-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+              onKeyDown={e => e.key === 'Enter' && handleScan()}
+            />
+            <button
+              onClick={handleSelectFolder}
+              disabled={isScanning}
+              className="btn btn-primary"
+            >
+              📁 {t('space.browse')}
+            </button>
+            <button 
+              onClick={handleScan}
+              disabled={!scanPath.trim() || isScanning || scanDirectory.isPending}
+              className="btn btn-primary disabled:opacity-50"
+            >
+              {isScanning || scanDirectory.isPending ? t('scan.scanning') : t('scan.scanManual')}
+            </button>
+          </div>
           
           {/* Scanning state */}
-          {(scanDirectory.isPending || scanSpaceSources.isPending) && (
+          {isScanning || scanDirectory.isPending ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
               <span className="ml-3 text-gray-400">{t('scan.scanning')}</span>
             </div>
-          )}
-          
-          {/* Results */}
-          {scannedGames.length > 0 && (
+          ) : scannedGames.length > 0 ? (
             <>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-400">
@@ -316,9 +234,9 @@ export default function ScanDialog({
                       {/* Icon preview */}
                       <div className="w-10 h-10 rounded bg-surface-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {game.icon_path ? (
-                          <img 
-                            src={`file://${game.icon_path}`} 
-                            alt="" 
+                          <img
+                            src={`file://${game.icon_path}`}
+                            alt=""
                             className="w-full h-full object-contain"
                             onError={(e) => { e.currentTarget.style.display = 'none'; }}
                           />
@@ -403,7 +321,7 @@ export default function ScanDialog({
                               >
                                 {t('scan.noCover')}
                               </button>
-                              {game.cover_candidates.map((cover: string) => (
+                                                            {game.cover_candidates.map((cover: string) => (
                                 <button
                                   key={cover}
                                   onClick={() => updateGame(game.path, { selected_cover: cover })}
@@ -483,27 +401,14 @@ export default function ScanDialog({
                 </label>
               </div>
             </>
-          )}
-          
-          {/* Empty state after scan */}
-          {!scanDirectory.isPending && !scanSpaceSources.isPending && scannedGames.length === 0 && (scanPath || scanMode === 'space_sources') && !error && (
+          ) : scanPath ? (
             <div className="text-center py-8 text-gray-500">
               {t('scan.noGamesFound')}
             </div>
-          )}
-          
-          {/* Initial state */}
-          {!scanPath && scanMode === 'custom' && !scanDirectory.isPending && (
+          ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
               <span className="text-4xl mb-4">📁</span>
               <p>{t('scan.selectFolderHint')}</p>
-            </div>
-          )}
-          
-          {/* Space sources empty state */}
-          {scanMode === 'space_sources' && activeSources.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              {t('space.noSources')}
             </div>
           )}
         </div>
