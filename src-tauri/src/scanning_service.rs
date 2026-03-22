@@ -290,9 +290,24 @@ impl ScanningService {
                 // We'll unmark them as we find them
                 {
                     let mut db_lock = db.lock().unwrap();
-                    if let Ok(mut existing_installs) =
-                        db_lock.get_installs_for_source(&space_id, &source_path)
-                    {
+                    // First, delete any install that points exactly to the source directory itself
+                    // This cleans up false entries from previous scans where the source was treated as a game
+                    if let Ok(delete_count) = db_lock.conn.execute(
+                        "DELETE FROM installs WHERE space_id = ? AND install_path = ?",
+                        params![space_id, source_path],
+                    ) {
+                        if delete_count > 0 {
+                            debug!("[SCAN_SOURCE] Deleted {} false install(s) with path equal to source", delete_count);
+                            // Clean up orphaned games (those with no remaining installs)
+                            let _ = db_lock.conn.execute(
+                                "DELETE FROM games WHERE id NOT IN (SELECT DISTINCT game_id FROM installs)",
+                                [],
+                            );
+                        }
+                    }
+
+                    // Now mark remaining installs for this source as missing
+                    if let Ok(mut existing_installs) = db_lock.get_installs_for_source(&space_id, &source_path) {
                         for (idx, install) in existing_installs.iter_mut().enumerate() {
                             // Check cancellation periodically
                             if idx % 100 == 0 && cancel_flag.load(Ordering::SeqCst) {
