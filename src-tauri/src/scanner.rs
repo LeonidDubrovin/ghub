@@ -107,6 +107,7 @@ pub fn scan_directory(
         // Skip the base path itself - we only want to scan subdirectories
         // The source directory is a container, not a game
         if entry_path == base_path {
+            debug!("[SCAN_DIRECTORY] Skipping base path itself: {}", entry_path.display());
             continue;
         }
 

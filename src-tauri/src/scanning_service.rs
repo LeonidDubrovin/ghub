@@ -552,20 +552,31 @@ impl ScanningService {
         
         let result = scanner::scan_directory(path, &config, Some(cancel_flag));
         
-        match &result {
-            Ok((games, count)) => {
-                debug!("[PERFORM_SCAN] Scan successful: found {} games", count);
-                for (i, game) in games.iter().enumerate() {
-                    debug!("[PERFORM_SCAN] Game {}: title='{}', path='{}', exe={:?}",
-                        i+1, game.title, game.path, game.executable);
+        match result {
+            Ok((mut games, count)) => {
+                // Defensive filter: remove any game whose path equals the source path itself
+                // This should never happen due to scanner skipping base path, but we guard against it
+                let original_len = games.len();
+                games.retain(|game| {
+                    let game_path = Path::new(&game.path);
+                    if game_path == path {
+                        debug!("[PERFORM_SCAN] Filtered out game that is the source directory itself: {}", game.path);
+                        false
+                    } else {
+                        true
+                    }
+                });
+                let filtered_len = games.len();
+                if filtered_len != original_len {
+                    debug!("[PERFORM_SCAN] Filtered out {} games (source directory entries)", original_len - filtered_len);
                 }
+                Ok((games, filtered_len))
             }
             Err(e) => {
                 debug!("[PERFORM_SCAN] Scan failed: {}", e);
+                Err(e)
             }
         }
-        
-        result
     }
 
     /// Compute fingerprint for a scanned game
