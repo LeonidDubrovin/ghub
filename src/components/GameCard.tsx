@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import { convertFileSrc } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-shell';
 import type { Game } from '../types';
 
 const getCoverUrl = (cover: string | null): string | null => {
@@ -117,9 +118,13 @@ export default function GameCard({
             </button>
             {game.install_path && (
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
-                  invoke('reveal_in_explorer', { path: game.install_path as string }).catch(console.error);
+                  try {
+                    await open(game.install_path!);
+                  } catch (error) {
+                    console.error('Failed to open folder:', error);
+                  }
                 }}
                 className="w-full btn flex items-center justify-center gap-1 btn-outline"
               >

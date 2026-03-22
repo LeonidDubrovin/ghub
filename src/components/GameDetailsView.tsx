@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import { convertFileSrc } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-shell';
 import type { Game } from '../types';
 import ResizeHandle from './ResizeHandle';
 
@@ -218,7 +219,13 @@ export default function GameDetailsView({
                       <span className="text-gray-400 text-sm">{t('details.installPath')}:</span>
                       <span className="text-white text-sm font-mono flex-1 truncate">{selectedGame.install_path}</span>
                       <button
-                        onClick={() => invoke('reveal_in_explorer', { path: selectedGame.install_path! }).catch(console.error)}
+                        onClick={async () => {
+                          try {
+                            await open(selectedGame.install_path!);
+                          } catch (error) {
+                            console.error('Failed to open folder:', error);
+                          }
+                        }}
                         className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded text-xs flex items-center gap-1 transition-colors"
                         title={t('actions.openFolder')}
                       >
