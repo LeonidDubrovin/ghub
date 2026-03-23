@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-import type { Game } from '../types';
+import type { Game, GameLink } from '../types';
 import ResizeHandle from './ResizeHandle';
 
 interface Props {
@@ -54,6 +54,7 @@ export default function GameDetailsView({
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const [hov, setHov] = useState<string | null>(null);
+  const [gameLinks, setGameLinks] = useState<GameLink[]>([]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -75,6 +76,24 @@ export default function GameDetailsView({
 
   useEffect(() => { if (!selectedGame && games.length) onSelectGame(games[0]); }, [games, selectedGame, onSelectGame]);
 
+  // Fetch game links when selected game changes
+  useEffect(() => {
+    const fetchLinks = async () => {
+      if (selectedGame) {
+        try {
+          const links = await invoke<GameLink[]>('get_game_links', { gameId: selectedGame.id });
+          setGameLinks(links);
+        } catch (error) {
+          console.error('Failed to fetch game links:', error);
+          setGameLinks([]);
+        }
+      } else {
+        setGameLinks([]);
+      }
+    };
+    fetchLinks();
+  }, [selectedGame]);
+
   const bg = selectedGame?.cover_image ? coverUrl(selectedGame.cover_image) : null;
   const run = selectedGame ? isGameRunning?.(selectedGame.id) ?? false : false;
   const isUpdating = selectedGame ? updatingGameIds?.has(selectedGame.id) : false;
@@ -85,6 +104,27 @@ export default function GameDetailsView({
     } catch (e) {
       console.error('Failed to open link:', e);
     }
+  };
+
+  const getSourceIcon = (sourceType: string | null) => {
+    switch (sourceType) {
+      case 'steam':
+        return '🎮';
+      case 'itch':
+        return '🎨';
+      case 'gog':
+        return '🛡️';
+      case 'epic':
+        return '⚔️';
+      default:
+        return '🔗';
+    }
+  };
+
+  const getSourceLabel = (link: GameLink) => {
+    if (link.title) return link.title;
+    const sourceKey = link.source_type?.toLowerCase() || 'other';
+    return t(`sources.${sourceKey}`, link.source_type || 'Other');
   };
 
   return (
@@ -162,37 +202,40 @@ export default function GameDetailsView({
                   </div>
                   <h1 className="text-4xl font-bold text-white mb-2">{selectedGame.title}</h1>
                   <div className="text-gray-400 mb-6 text-sm">{selectedGame.developer}{selectedGame.publisher && ` | ${selectedGame.publisher}`}</div>
-                  <div className="flex gap-3 flex-wrap">
-                    <button 
-                      onClick={() => onPlay(selectedGame)} 
-                      disabled={run} 
-                      className={`px-8 py-3 rounded-lg font-semibold flex items-center gap-2 ${run ? 'bg-green-600' : 'bg-accent hover:bg-accent-hover'} text-white`}
-                    >
-                      <PlayIcon/> {run ? t('details.running') : t('details.play')}
-                    </button>
-                    {selectedGame.external_link && (
-                      <button 
-                        onClick={() => openExternalLink(selectedGame.external_link!)} 
-                        className="px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg flex items-center gap-2"
-                      >
-                        🔗 Link
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => onEdit(selectedGame)} 
-                      className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
-                    >
-                      {t('details.edit')}
-                    </button>
-                    <button 
-                      onClick={() => onRefreshFromLocal?.(selectedGame)} 
-                      disabled={isUpdating}
-                      className={`px-6 py-3 rounded-lg flex items-center gap-2 ${isUpdating ? 'bg-purple-500/30 cursor-wait' : 'bg-purple-500/20 hover:bg-purple-500/30'} text-purple-300`}
-                    >
-                      {isUpdating ? '⏳' : '🔄'} 
-                      {isUpdating ? t('details.updating') : t('details.refreshMetadata')}
-                    </button>
-                  </div>
+                   <div className="flex gap-3 flex-wrap">
+                     <button 
+                       onClick={() => onPlay(selectedGame)} 
+                       disabled={run} 
+                       className={`px-8 py-3 rounded-lg font-semibold flex items-center gap-2 ${run ? 'bg-green-600' : 'bg-accent hover:bg-accent-hover'} text-white`}
+                     >
+                       <PlayIcon/> {run ? t('details.running') : t('details.play')}
+                     </button>
+                     {gameLinks.length > 0 && gameLinks.map(link => (
+                       <button
+                         key={link.id}
+                         onClick={() => openExternalLink(link.url)}
+                         className="px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg flex items-center gap-2 text-sm"
+                         title={link.url}
+                       >
+                         <span>{getSourceIcon(link.source_type)}</span>
+                         <span>{getSourceLabel(link)}</span>
+                       </button>
+                     ))}
+                     <button 
+                       onClick={() => onEdit(selectedGame)} 
+                       className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
+                     >
+                       {t('details.edit')}
+                     </button>
+                     <button 
+                       onClick={() => onRefreshFromLocal?.(selectedGame)} 
+                       disabled={isUpdating}
+                       className={`px-6 py-3 rounded-lg flex items-center gap-2 ${isUpdating ? 'bg-purple-500/30 cursor-wait' : 'bg-purple-500/20 hover:bg-purple-500/30'} text-purple-300`}
+                     >
+                       {isUpdating ? '⏳' : '🔄'} 
+                       {isUpdating ? t('details.updating') : t('details.refreshMetadata')}
+                     </button>
+                   </div>
                 </div>
               </div>
               <div className="flex gap-4 mb-8">
@@ -246,18 +289,27 @@ export default function GameDetailsView({
                   <p className="text-gray-500 text-sm">{t('details.noInstallPath')}</p>
                 )}
                 
-                {selectedGame.external_link && (
-                  <div className="mt-4 pt-4 border-t border-white/10">
-                    <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2">{t('details.sourceLinks')}</h3>
-                    <button 
-                      onClick={() => openExternalLink(selectedGame.external_link!)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm transition-colors"
-                    >
-                      <span>🔗</span>
-                      <span>{selectedGame.external_link}</span>
-                    </button>
-                  </div>
-                )}
+                 {gameLinks.length > 0 && (
+                   <div className="mt-4 pt-4 border-t border-white/10">
+                     <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2">{t('details.sourceLinks')}</h3>
+                     <div className="space-y-2">
+                       {gameLinks.map(link => (
+                         <button
+                           key={link.id}
+                           onClick={() => openExternalLink(link.url)}
+                           className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm transition-colors w-full text-left"
+                           title={link.url}
+                         >
+                           <span className="text-base">{getSourceIcon(link.source_type)}</span>
+                           <div className="flex-1 min-w-0">
+                             <div className="truncate">{getSourceLabel(link)}</div>
+                             <div className="text-xs text-blue-200/60 truncate">{link.url}</div>
+                           </div>
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+                 )}
               </div>
               
               {selectedGame.description && (

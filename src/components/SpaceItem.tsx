@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next';
 import type { Space } from '../types';
 import clsx from 'clsx';
 import { useSpaceSources } from '../hooks/useSpaces';
-import { useAddSpaceSource } from '../hooks/useSpaces';
-import { open } from '@tauri-apps/plugin-dialog';
 import SourceItem from './SourceItem';
 
 // Icon components
@@ -54,36 +52,12 @@ export default function SpaceItem({
 }: SpaceItemProps) {
   const { t } = useTranslation();
   const { data: sources = [] } = useSpaceSources(space.id);
-  const addSpaceSource = useAddSpaceSource();
 
   const activeSourceCount = useMemo(() =>
     sources.filter(s => s.is_active).length,
     [sources]
   );
   
-  const handleAddSource = async () => {
-    try {
-      const selected = await open({
-        directory: true,
-        multiple: true,
-        title: t('space.selectFolders'),
-      });
-      
-      if (selected && Array.isArray(selected)) {
-        // Add each selected path as a source
-        for (const path of selected) {
-          await addSpaceSource.mutateAsync({
-            space_id: space.id,
-            source_path: path,
-            scan_recursively: true,
-          });
-        }
-      }
-    } catch (err) {
-      console.error('Failed to select folder:', err);
-    }
-  };
-
   const handleSourceSelect = (sourcePath: string | null) => {
     onSelectSource(space.id, sourcePath);
   };

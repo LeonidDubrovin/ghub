@@ -175,6 +175,15 @@ export interface SpaceWithSources {
   sources: SpaceSource[];
 }
 
+export interface GameLink {
+  id: string;
+  game_id: string;
+  url: string;
+  title: string | null;
+  source_type: string | null;
+  created_at: string;
+}
+
 export interface SelectedSource {
   spaceId: string;
   sourcePath: string;

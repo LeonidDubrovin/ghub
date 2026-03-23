@@ -208,5 +208,12 @@
     "developer": "Разработчик",
     "asc": "По возрастанию",
     "desc": "По убыванию"
+  },
+  "sources": {
+    "steam": "Steam",
+    "itch": "itch.io",
+    "gog": "GOG",
+    "epic": "Epic Games",
+    "other": "Другое"
   }
 }

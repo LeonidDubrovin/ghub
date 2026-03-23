@@ -1,4 +1,4 @@
-use crate::models::{Game, Install, Setting, Space, SpaceSource};
+use crate::models::{Game, Install, Setting, Space, SpaceSource, GameLink};
 use rusqlite::{params, params_from_iter, Connection, Result};
 use serde_json;
 use std::path::Path;
@@ -142,6 +142,19 @@ impl Database {
                 status          TEXT DEFAULT 'pending', -- pending, downloaded, archived
                 added_at        TEXT DEFAULT (datetime('now'))
             );
+
+            -- Game links table (for external sources like Steam, itch.io, etc.)
+            CREATE TABLE IF NOT EXISTS game_links (
+                id              TEXT PRIMARY KEY,
+                game_id         TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                url             TEXT NOT NULL,
+                title           TEXT,
+                source_type     TEXT, -- 'steam', 'itch', 'gog', 'epic', etc.
+                created_at      TEXT DEFAULT (datetime('now')),
+                UNIQUE(game_id, url)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_game_links_game ON game_links(game_id);
 
             -- Indexes
             CREATE INDEX IF NOT EXISTS idx_games_title ON games(title COLLATE NOCASE);
@@ -1279,6 +1292,60 @@ impl Database {
     pub fn delete_download_link(&self, id: &str) -> Result<()> {
         self.conn
             .execute("DELETE FROM download_links WHERE id = ?", [id])?;
+        Ok(())
+    }
+
+    // ============ GAME LINKS ============
+
+    pub fn get_game_links(&self, game_id: &str) -> Result<Vec<GameLink>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, game_id, url, title, source_type, created_at 
+             FROM game_links 
+             WHERE game_id = ? 
+             ORDER BY created_at DESC"
+        )?;
+
+        let links = stmt
+            .query_map([game_id], |row| {
+                Ok(GameLink {
+                    id: row.get(0)?,
+                    game_id: row.get(1)?,
+                    url: row.get(2)?,
+                    title: row.get(3)?,
+                    source_type: row.get(4)?,
+                    created_at: row.get(5)?,
+                })
+            })?
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(links)
+    }
+
+    pub fn create_game_link(
+        &self,
+        id: &str,
+        game_id: &str,
+        url: &str,
+        title: Option<&str>,
+        source_type: Option<&str>,
+    ) -> Result<GameLink> {
+        self.conn.execute(
+            "INSERT INTO game_links (id, game_id, url, title, source_type) VALUES (?, ?, ?, ?, ?)",
+            params![id, game_id, url, title, source_type],
+        )?;
+
+        Ok(GameLink {
+            id: id.to_string(),
+            game_id: game_id.to_string(),
+            url: url.to_string(),
+            title: title.map(String::from),
+            source_type: source_type.map(String::from),
+            created_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        })
+    }
+
+    pub fn delete_game_link(&self, id: &str) -> Result<()> {
+        self.conn.execute("DELETE FROM game_links WHERE id = ?", [id])?;
         Ok(())
     }
 

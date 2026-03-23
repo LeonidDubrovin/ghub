@@ -167,6 +167,16 @@ pub struct DownloadLink {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GameLink {
+    pub id: String,
+    pub game_id: String,
+    pub url: String,
+    pub title: Option<String>,
+    pub source_type: Option<String>, // 'steam', 'itch', 'gog', etc.
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetadataSearchResult {
     pub id: String,
     pub name: String,

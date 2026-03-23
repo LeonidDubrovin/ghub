@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
-import type { Game } from '../types';
+import type { Game, GameLink } from '../types';
 import { createLoggerForComponent } from '../lib/logger';
 
 interface EditGameDialogProps {
@@ -37,17 +37,25 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
   const [completionStatus, setCompletionStatus] = useState(game.completion_status);
   const [userRating, setUserRating] = useState(game.user_rating || 0);
    
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Metadata search
-  const [searchQuery, setSearchQuery] = useState(game.title);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<MetadataSearchResult[]>([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [activeSources, setActiveSources] = useState({ steam: true, itch: true });
+   const [isSaving, setIsSaving] = useState(false);
+   const [isDeleting, setIsDeleting] = useState(false);
+   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+   const [error, setError] = useState<string | null>(null);
+   
+   // Game links management
+   const [gameLinks, setGameLinks] = useState<GameLink[]>([]);
+   const [newLinkUrl, setNewLinkUrl] = useState('');
+   const [newLinkTitle, setNewLinkTitle] = useState('');
+   const [newLinkSource, setNewLinkSource] = useState<string>('other');
+   const [isAddingLink, setIsAddingLink] = useState(false);
+   const [isDeletingLink, setIsDeletingLink] = useState<string | null>(null);
+
+   // Metadata search
+   const [searchQuery, setSearchQuery] = useState(game.title);
+   const [isSearching, setIsSearching] = useState(false);
+   const [searchResults, setSearchResults] = useState<MetadataSearchResult[]>([]);
+   const [showSearchResults, setShowSearchResults] = useState(false);
+   const [activeSources, setActiveSources] = useState({ steam: true, itch: true });
   
   // Metadata preview & selection
   const [previewResult, setPreviewResult] = useState<MetadataSearchResult | null>(null);
@@ -105,31 +113,86 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
     }
   };
    
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    
-    setIsSearching(true);
-    setError(null);
-    setShowSearchResults(true);
-    setSearchResults([]);
-    
-    const sources = [];
-    if (activeSources.steam) sources.push('steam');
-    if (activeSources.itch) sources.push('itch');
-    
-    try {
-      const results = await invoke<MetadataSearchResult[]>('search_game_metadata', {
-        query: searchQuery.trim(),
-        sources
-      });
-      setSearchResults(results);
-    } catch (err) {
-      logger.error('Search failed:', err);
-      setError(String(err));
-    } finally {
-      setIsSearching(false);
-    }
-  };
+   const handleSearch = async () => {
+     if (!searchQuery.trim()) return;
+     
+     setIsSearching(true);
+     setError(null);
+     setShowSearchResults(true);
+     setSearchResults([]);
+     
+     const sources = [];
+     if (activeSources.steam) sources.push('steam');
+     if (activeSources.itch) sources.push('itch');
+     
+     try {
+       const results = await invoke<MetadataSearchResult[]>('search_game_metadata', {
+         query: searchQuery.trim(),
+         sources
+       });
+       setSearchResults(results);
+     } catch (err) {
+       logger.error('Search failed:', err);
+       setError(String(err));
+     } finally {
+       setIsSearching(false);
+     }
+   };
+
+   // Fetch game links on mount
+   useEffect(() => {
+     const fetchLinks = async () => {
+       try {
+         const links = await invoke<GameLink[]>('get_game_links', { gameId: game.id });
+         setGameLinks(links);
+       } catch (error) {
+         logger.error('Failed to fetch game links:', error);
+       }
+     };
+     fetchLinks();
+   }, [game.id]);
+
+   const handleAddLink = async () => {
+     if (!newLinkUrl.trim()) return;
+     
+     setIsAddingLink(true);
+     setError(null);
+     
+     try {
+       await invoke('add_game_link', {
+         gameId: game.id,
+         url: newLinkUrl.trim(),
+         title: newLinkTitle.trim() || null,
+         sourceType: newLinkSource === 'other' ? null : newLinkSource
+       });
+       setNewLinkUrl('');
+       setNewLinkTitle('');
+       setNewLinkSource('other');
+       // Refresh links
+       const links = await invoke<GameLink[]>('get_game_links', { gameId: game.id });
+       setGameLinks(links);
+     } catch (err) {
+       logger.error('Add link failed:', err);
+       setError(String(err));
+     } finally {
+       setIsAddingLink(false);
+     }
+   };
+
+   const handleDeleteLink = async (linkId: string) => {
+     setIsDeletingLink(linkId);
+     setError(null);
+     
+     try {
+       await invoke('remove_game_link', { linkId });
+       setGameLinks(prev => prev.filter(l => l.id !== linkId));
+     } catch (err) {
+       logger.error('Delete link failed:', err);
+       setError(String(err));
+     } finally {
+       setIsDeletingLink(null);
+     }
+   };
   
   const handleResultClick = (result: MetadataSearchResult) => {
     setPreviewResult(result);
@@ -262,10 +325,81 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
                 <div>
                    <label className="block text-sm font-medium mb-1 text-gray-400">{t('edit.description')}</label>
                    <textarea value={description} onChange={e => setDescription(e.target.value)} rows={6} className="w-full px-3 py-2 bg-surface-200 rounded-lg focus:ring-1 focus:ring-accent outline-none resize-none text-sm leading-relaxed" />
-                </div>
-              </div>
-            </div>
-          </div>
+                 </div>
+
+                 {/* External Links Section */}
+                 <div className="pt-4 border-t border-surface-100">
+                   <label className="block text-sm font-medium mb-2 text-gray-400">{t('details.sourceLinks')}</label>
+                   
+                   {/* Existing links list */}
+                   {gameLinks.length > 0 && (
+                     <div className="space-y-2 mb-3">
+                       {gameLinks.map(link => (
+                         <div key={link.id} className="flex items-center gap-2 p-2 bg-surface-200 rounded-lg">
+                           <span className="text-sm">
+                             {link.source_type === 'steam' ? '🎮' : 
+                              link.source_type === 'itch' ? '🎨' : 
+                              link.source_type === 'gog' ? '🛡️' : 
+                              link.source_type === 'epic' ? '⚔️' : '🔗'}
+                           </span>
+                           <div className="flex-1 min-w-0">
+                             <div className="text-sm text-gray-200 truncate">{link.title || link.url}</div>
+                             <div className="text-xs text-gray-500 truncate">{link.url}</div>
+                           </div>
+                           <button
+                             onClick={() => handleDeleteLink(link.id)}
+                             disabled={isDeletingLink === link.id}
+                             className="text-danger hover:text-red-400 text-sm px-2 py-1"
+                             title={t('common.delete')}
+                           >
+                             {isDeletingLink === link.id ? '...' : '🗑️'}
+                           </button>
+                         </div>
+                       ))}
+                     </div>
+                   )}
+
+                   {/* Add new link form */}
+                   <div className="space-y-2">
+                     <input
+                       type="text"
+                       value={newLinkUrl}
+                       onChange={e => setNewLinkUrl(e.target.value)}
+                       placeholder="https://..."
+                       className="w-full px-3 py-2 bg-surface-200 rounded-lg text-sm focus:ring-1 focus:ring-accent outline-none"
+                     />
+                     <div className="flex gap-2">
+                       <input
+                         type="text"
+                         value={newLinkTitle}
+                         onChange={e => setNewLinkTitle(e.target.value)}
+                         placeholder={t('edit.gameTitle') + ' (optional)'}
+                         className="flex-1 px-3 py-2 bg-surface-200 rounded-lg text-sm focus:ring-1 focus:ring-accent outline-none"
+                       />
+                       <select
+                         value={newLinkSource}
+                         onChange={e => setNewLinkSource(e.target.value)}
+                         className="px-3 py-2 bg-surface-200 rounded-lg text-sm focus:ring-1 focus:ring-accent outline-none"
+                       >
+                         <option value="steam">Steam</option>
+                         <option value="itch">itch.io</option>
+                         <option value="gog">GOG</option>
+                         <option value="epic">Epic</option>
+                         <option value="other">{t('sources.other')}</option>
+                       </select>
+                       <button
+                         onClick={handleAddLink}
+                         disabled={isAddingLink || !newLinkUrl.trim()}
+                         className="btn btn-sm btn-primary"
+                       >
+                         {isAddingLink ? '...' : t('common.add')}
+                       </button>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           </div>
           
           {/* Metadata Sidebar */}
           <div className="w-[350px] bg-surface-200 flex flex-col border-l border-surface-100">
