@@ -1,0 +1,3930 @@
+[
+  {
+    "name": "Ada Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Ada-KSDemo",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Ada-KSDemo/Ada.exe",
+    "itch_io_url": "https://hazygd.itch.io/ada",
+    "steam_url": ""
+  },
+  {
+    "name": "1RMRPG",
+    "path": "E:/games_genre/games_tmp_for_dev/1RMRPGWindows/1RMRPG",
+    "engine": "NW.js",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/1RMRPGWindows/1RMRPG/Game.exe",
+    "itch_io_url": "https://artrexgaming.itch.io/the-one-room",
+    "steam_url": ""
+  },
+  {
+    "name": "Abyssal Somewhere",
+    "path": "E:/games_genre/games_tmp_for_dev/0_abyssalSomewhere_x64/0_abyssalSomewhere",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/0_abyssalSomewhere_x64/0_abyssalSomewhere/0_abyssalSomewhere.exe",
+    "itch_io_url": "https://nonoise.itch.io/abyssalsomewhere",
+    "steam_url": ""
+  },
+  {
+    "name": "Roulette Knight",
+    "path": "E:/games_genre/games_tmp_for_dev/_LD41_Roulette_Knight",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/_LD41_Roulette_Knight/RouletteKnight.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Archtower Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Archtower v0.6.12.0 demo",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Archtower v0.6.12.0 demo/Archtower.exe",
+    "itch_io_url": "",
+    "steam_url": "https://store.steampowered.com/app/1837690/Archtower/"
+  },
+  {
+    "name": "Bane and Valor Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Bane and Valor_Demo_0.1.1",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Bane and Valor_Demo_0.1.1/Bane and Valor.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "A Quiet Place",
+    "path": "E:/games_genre/games_tmp_for_dev/A Quiet Place",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/A Quiet Place/A Quiet Place.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Abodtion",
+    "path": "E:/games_genre/games_tmp_for_dev/Abodtion",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Abodtion/Abodtion.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Project Troll",
+    "path": "E:/games_genre/games_tmp_for_dev/(Win)Project Troll v2.2",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/(Win)Project Troll v2.2/Project Troll v2.2.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Glorysmith Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/0.0.15c demo",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/0.0.15c demo/Glorysmith.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Roguelike",
+    "path": "E:/games_genre/games_tmp_for_dev/0.2.9a",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/0.2.9a/Roguelike.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Echoes of the Architects Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/1.2_Demo_DRM-free_Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/1.2_Demo_DRM-free_Windows/Echoes of the Architects.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Diesel Mechs",
+    "path": "E:/games_genre/games_tmp_for_dev/2023-05-28",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/2023-05-28/diesel_mechs.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Project Advanced",
+    "path": "E:/games_genre/games_tmp_for_dev/20_ProjectAdvanced_Build",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/20_ProjectAdvanced_Build/ProjectAdvanced.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "A Night Around The Fire",
+    "path": "E:/games_genre/games_tmp_for_dev/A Night Around The Fire_2022Update",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/A Night Around The Fire_2022Update/A Night Around The Fire.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Abyss Delvers",
+    "path": "E:/games_genre/games_tmp_for_dev/AbyssDelversLauncher",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/AbyssDelversLauncher/AbyssDelvers.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "A City Under Siege",
+    "path": "E:/games_genre/games_tmp_for_dev/ACityUnderSiege",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ACityUnderSiege/Jame Gam.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Adam and Ricky",
+    "path": "E:/games_genre/games_tmp_for_dev/Adam and Ricky-win64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Adam and Ricky-win64/Adam and Ricky.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Auto Dungeon Monsters Pre-Alpha Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/ADM PreAlpha Demo/PreAlpha Demo",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ADM PreAlpha Demo/PreAlpha Demo/Auto Dungeon Monsters.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Ancient Dungeon",
+    "path": "E:/games_genre/games_tmp_for_dev/advr_pcvr_b091",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/advr_pcvr_b091/Ancient_Dungeon.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Alchemists Alcove Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/AlchemistsAlcoveDemo",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/AlchemistsAlcoveDemo/AlchemistsAlcoveDemo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Alomany Factory",
+    "path": "E:/games_genre/games_tmp_for_dev/Alomany Factory_3",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Alomany Factory_3/Alomany Factory.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Crypto Miner",
+    "path": "E:/games_genre/games_tmp_for_dev/alpha-3",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/alpha-3/Crypto Miner.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Approach Mode",
+    "path": "E:/games_genre/games_tmp_for_dev/ApproachMode Win64 0112/ApproachMode_Win64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ApproachMode Win64 0112/ApproachMode_Win64/ApproachMode.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Appulse",
+    "path": "E:/games_genre/games_tmp_for_dev/Appulse/Windows",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Appulse/Windows/Appulse.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Arena",
+    "path": "E:/games_genre/games_tmp_for_dev/Arena - v0.14",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Arena - v0.14/Arena.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Armaphract",
+    "path": "E:/games_genre/games_tmp_for_dev/armaphract_0.D_rc4",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/armaphract_0.D_rc4/armaphract.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Artificial Death",
+    "path": "E:/games_genre/games_tmp_for_dev/ArtificialDeath",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ArtificialDeath/ArtificialDeath.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Astro Prospector Prologue",
+    "path": "E:/games_genre/games_tmp_for_dev/Astro Prospector Prologue - Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Astro Prospector Prologue - Windows/Astro Prospector Prologue.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Auto Heroes",
+    "path": "E:/games_genre/games_tmp_for_dev/AutoHeroes",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/AutoHeroes/AutoHeroes.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Autonomy",
+    "path": "E:/games_genre/games_tmp_for_dev/AutonomyStandalone",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/AutonomyStandalone/Autonomy.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Axu",
+    "path": "E:/games_genre/games_tmp_for_dev/axu-rl-win64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/axu-rl-win64/Axu.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Backpack Battles",
+    "path": "E:/games_genre/games_tmp_for_dev/backpack-battles-windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/backpack-battles-windows/BackpackBattles.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bad Day On Majoris VIII",
+    "path": "E:/games_genre/games_tmp_for_dev/bad-day-on-majoris-viii-win/WindowsNoEditor",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/bad-day-on-majoris-viii-win/WindowsNoEditor/MJ77_RyanMike.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bag Of Holding",
+    "path": "E:/games_genre/games_tmp_for_dev/BagOfHolding_Desktop_Win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BagOfHolding_Desktop_Win/BagOfHolding.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Balance'em",
+    "path": "E:/games_genre/games_tmp_for_dev/Balance'em/WindowsClient",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Balance'em/WindowsClient/Balance'em.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mesh Voxels",
+    "path": "E:/games_genre/games_tmp_for_dev/BarelyFunctionalVoxelEngine_v0.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BarelyFunctionalVoxelEngine_v0.1/MeshVoxels.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Battle of Battles Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/Battle of Battles a01 Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Battle of Battles a01 Windows/Battle of Battles.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Beacon's End",
+    "path": "E:/games_genre/games_tmp_for_dev/Beacon'sEnd_Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Beacon'sEnd_Win/Beacon'sEnd.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bear Attack Simulator",
+    "path": "E:/games_genre/games_tmp_for_dev/BearAttackSimulator_WINDOWS",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BearAttackSimulator_WINDOWS/BearAttackSimulator.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Behold",
+    "path": "E:/games_genre/games_tmp_for_dev/Behold 0.0.1 Main Menu Fix",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Behold 0.0.1 Main Menu Fix/Behold.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Beholdin",
+    "path": "E:/games_genre/games_tmp_for_dev/beholdin_1_21_WIN",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/beholdin_1_21_WIN/Beholdin.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bell Rock",
+    "path": "E:/games_genre/games_tmp_for_dev/Bell Rock Post Jam 1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Bell Rock Post Jam 1/Bell Rock.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bikrash",
+    "path": "E:/games_genre/games_tmp_for_dev/Bikrash_0.6",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Bikrash_0.6/Bikrash.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Billion Bounces",
+    "path": "E:/games_genre/games_tmp_for_dev/Billion Bounces - Latest Version (win)",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Billion Bounces - Latest Version (win)/Billion Bounces.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Billy's Nightmare",
+    "path": "E:/games_genre/games_tmp_for_dev/Billy's Nightmare",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Billy's Nightmare/Billy's Nightmare.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bio Evil 4",
+    "path": "E:/games_genre/games_tmp_for_dev/BioEvil4-0.2.5a/Bio Evil 4",
+    "engine": "NW.js",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BioEvil4-0.2.5a/Bio Evil 4/BioEvil4-0.2.5a.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bird Game",
+    "path": "E:/games_genre/games_tmp_for_dev/birdgame-win-0-0-2",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/birdgame-win-0-0-2/birdgame.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "BL0W-UP Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/BL0W-UP DEMO V3 ITCH_1_patch_windows_64/BL0W-UP DEMO V3 ITCH_windows_64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BL0W-UP DEMO V3 ITCH_1_patch_windows_64/BL0W-UP DEMO V3 ITCH_windows_64/BL0W-UP DEMO.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Blackbird",
+    "path": "E:/games_genre/games_tmp_for_dev/blackbird",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/blackbird/blackbird.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Blast Tournament",
+    "path": "E:/games_genre/games_tmp_for_dev/Blast Tournament - Version (3.0.0)",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Blast Tournament - Version (3.0.0)/Blast Tournament.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Blastronaut Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/BlastronautDemo02",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BlastronautDemo02/Blastronaut.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Blobfrog",
+    "path": "E:/games_genre/games_tmp_for_dev/Blobfrog",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Blobfrog/Froge.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Blood Countess Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/BloodCountess_Alpha_1.1.0.0_Windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BloodCountess_Alpha_1.1.0.0_Windows/BloodCountess_Alpha_1.1.0.0_Windows.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bloop",
+    "path": "E:/games_genre/games_tmp_for_dev/BLOOP/Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BLOOP/Windows/BLOOP.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Boat Cats",
+    "path": "E:/games_genre/games_tmp_for_dev/Boat Cats Windows/Boat Cats",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Boat Cats Windows/Boat Cats/Boat Cats.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bonefighters",
+    "path": "E:/games_genre/games_tmp_for_dev/Bonefighters for Windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Bonefighters for Windows/Bonefighters.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bootloop",
+    "path": "E:/games_genre/games_tmp_for_dev/BOOTLOOP",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BOOTLOOP/bootloop.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bottle of Sickness",
+    "path": "E:/games_genre/games_tmp_for_dev/Bottle of Sickness1.1.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Bottle of Sickness1.1.1/Bottle of Sickness.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Breaker",
+    "path": "E:/games_genre/games_tmp_for_dev/BREAKER",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BREAKER/BREAKER.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Brew & Boom",
+    "path": "E:/games_genre/games_tmp_for_dev/Brew&Boom",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Brew&Boom/Brew&Boom.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bridgebourn Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Bridgebourn Demo Win64 v0-6-29",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Bridgebourn Demo Win64 v0-6-29/Bridgebourn.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Broken Through",
+    "path": "E:/games_genre/games_tmp_for_dev/BrokenThrough/WindowsNoEditor",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/BrokenThrough/WindowsNoEditor/BrokenThrough.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Build & Grow Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Build&Grow Demo (Windows)",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Build&Grow Demo (Windows)/Build&Grow.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bukibuki",
+    "path": "E:/games_genre/games_tmp_for_dev/bukibuki",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/bukibuki/bukibuki.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "C137",
+    "path": "E:/games_genre/games_tmp_for_dev/C137",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/C137/C137.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cafe Simulator",
+    "path": "E:/games_genre/games_tmp_for_dev/Cafe Simulator",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Cafe Simulator/Cafe Simulator.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Call Of DOTS Zombies",
+    "path": "E:/games_genre/games_tmp_for_dev/CallOfDOTS-Zombies-x64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CallOfDOTS-Zombies-x64/CallOfDOTS-Zombies-Project.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Carbon Steel",
+    "path": "E:/games_genre/games_tmp_for_dev/Carbon Steel v1.2",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Carbon Steel v1.2/CARBON STEEL.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Carcass",
+    "path": "E:/games_genre/games_tmp_for_dev/Carcass",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Carcass/CARCASS.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cards N Varmints Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/cards_n_varmints-v0.41.1-demo-windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/cards_n_varmints-v0.41.1-demo-windows/CardsNVarmints.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cat Cafe Simulator",
+    "path": "E:/games_genre/games_tmp_for_dev/CatCafeSimulator",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CatCafeSimulator/cat-cafe.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "CCI Crime Connect Investigation",
+    "path": "E:/games_genre/games_tmp_for_dev/CCICrimeConnectInvestigation",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CCICrimeConnectInvestigation/CCICrimeConnectInvestigation.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Charon's Obol",
+    "path": "E:/games_genre/games_tmp_for_dev/charons-obol-windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/charons-obol-windows/charons_obol.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cheeky Dice",
+    "path": "E:/games_genre/games_tmp_for_dev/cheekydice-gmtk",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/cheekydice-gmtk/gmtk-2022.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Chibilization",
+    "path": "E:/games_genre/games_tmp_for_dev/Chibilization 0.18 [WIN]",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Chibilization 0.18 [WIN]/Chibilization.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Chicken Luck",
+    "path": "E:/games_genre/games_tmp_for_dev/ChickenLuck_Windows/ChickenLuck",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ChickenLuck_Windows/ChickenLuck/ChickenLuck.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Chop Chop",
+    "path": "E:/games_genre/games_tmp_for_dev/ChopChop_Data",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ChopChop_Data/ChopChop.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Circle Of Life",
+    "path": "E:/games_genre/games_tmp_for_dev/circle-of-life_v1.1.1_windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/circle-of-life_v1.1.1_windows/Circle of Life.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Clatter Throne",
+    "path": "E:/games_genre/games_tmp_for_dev/Clatter Throne v0.4.4 - Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Clatter Throne v0.4.4 - Windows/Clatter Throne.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cleaning Redville",
+    "path": "E:/games_genre/games_tmp_for_dev/CleaningRedVille/FINAL_cr_PC",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CleaningRedVille/FINAL_cr_PC/CleaningRedville.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Clockwork Cleanup",
+    "path": "E:/games_genre/games_tmp_for_dev/ClockworkCleanup-v1.0.4",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ClockworkCleanup-v1.0.4/ClockworkCleanup.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cloud Keeper Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/cloudkeeper_windows_demo",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/cloudkeeper_windows_demo/CloudKeeper.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cold Vengeance Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/ColdVengeanceDemoWindows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ColdVengeanceDemoWindows/ColdVengeanceDemoBuild.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Kriegsfront Tactics Prologue",
+    "path": "E:/games_genre/games_tmp_for_dev/COMPRESSED KFT DRMFREE - Prologue 1.0.1.6 [DRM Free]/KFT - Prologue [DRM Free]",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/COMPRESSED KFT DRMFREE - Prologue 1.0.1.6 [DRM Free]/KFT - Prologue [DRM Free]/Kriegsfront Tactics - Prologue.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Concrete Veil Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Concrete Veil Demo v1.2",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Concrete Veil Demo v1.2/Concrete Veil Demo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Containment",
+    "path": "E:/games_genre/games_tmp_for_dev/Containment",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Containment/Containment.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "COOK n RUN",
+    "path": "E:/games_genre/games_tmp_for_dev/COOKnRUN_1.1",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/COOKnRUN_1.1/COOKnRUN.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Coop Crawler",
+    "path": "E:/games_genre/games_tmp_for_dev/CoopCrawler_02_Win64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CoopCrawler_02_Win64/CoopCrawler.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Couch Combat",
+    "path": "E:/games_genre/games_tmp_for_dev/Couch Combat Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Couch Combat Windows/Couch Combat.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Count Together",
+    "path": "E:/games_genre/games_tmp_for_dev/CountTogether0.13(Windows)Global",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CountTogether0.13(Windows)Global/Count Together.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cozy Space Survivors",
+    "path": "E:/games_genre/games_tmp_for_dev/cozy-space-survivors-windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/cozy-space-survivors-windows/cozy_space_survivors.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cozy Park",
+    "path": "E:/games_genre/games_tmp_for_dev/CozyPark",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CozyPark/Cozy Park.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Crawlscape",
+    "path": "E:/games_genre/games_tmp_for_dev/crawlscape-win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/crawlscape-win/crawlscape.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cricetus Apparatus",
+    "path": "E:/games_genre/games_tmp_for_dev/Cricetus Apparatus Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Cricetus Apparatus Win/ludum-dare-47.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Critical Mass",
+    "path": "E:/games_genre/games_tmp_for_dev/CriticalMassWindows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CriticalMassWindows/CriticalMass.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Crypto Clickers",
+    "path": "E:/games_genre/games_tmp_for_dev/CryptoClickers",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CryptoClickers/CryptoClickers.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Crytter Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/Crytter_a0.24.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Crytter_a0.24.1/Crytter.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Claim Thy Land",
+    "path": "E:/games_genre/games_tmp_for_dev/CTL_Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CTL_Win/Claim thy Land.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cut The Scrap",
+    "path": "E:/games_genre/games_tmp_for_dev/CutTheScrap/Final Build",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/CutTheScrap/Final Build/CutTheScrap.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Cyrith",
+    "path": "E:/games_genre/games_tmp_for_dev/Cyrith - v0.0.4 - Windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Cyrith - v0.0.4 - Windows/Cyrith - V0.0.4.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dangeon",
+    "path": "E:/games_genre/games_tmp_for_dev/Dangeon_11b",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dangeon_11b/Dangeon.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dangerous Animals",
+    "path": "E:/games_genre/games_tmp_for_dev/Dangerous Animals",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dangerous Animals/Dangerous Animals.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dark County",
+    "path": "E:/games_genre/games_tmp_for_dev/Dark County",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dark County/Dark County.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dark Descent",
+    "path": "E:/games_genre/games_tmp_for_dev/DarkDescent",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/DarkDescent/Dark Descent.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dark Facility",
+    "path": "E:/games_genre/games_tmp_for_dev/dark_facility_v1.1.1",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/dark_facility_v1.1.1/dark_facility.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dash & Blast Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Dash & Blast",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dash & Blast/DashBlast (Demo version 0.0.01).exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dead Of Night Supermarket",
+    "path": "E:/games_genre/games_tmp_for_dev/dead-of-night-supermarket-windows",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/dead-of-night-supermarket-windows/Dead of Night Supermarket.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dead Express",
+    "path": "E:/games_genre/games_tmp_for_dev/DeadExpress",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/DeadExpress/DeadExpress.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Deadhand",
+    "path": "E:/games_genre/games_tmp_for_dev/DeadHand_v2_win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/DeadHand_v2_win/Deadhand.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Deadlocked",
+    "path": "E:/games_genre/games_tmp_for_dev/deadlocked_patched_win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/deadlocked_patched_win/deadlocked.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Deadly Boat",
+    "path": "E:/games_genre/games_tmp_for_dev/Deadly Boat (new build)",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Deadly Boat (new build)/deadlyboat.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Deathmoon",
+    "path": "E:/games_genre/games_tmp_for_dev/deathmoon build v0.1p",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/deathmoon build v0.1p/DEATHMOON.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Death Sketchbook",
+    "path": "E:/games_genre/games_tmp_for_dev/DeathSketchbook_1.1/DeathSketchbook",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/DeathSketchbook_1.1/DeathSketchbook/Death Sketchbook.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Debts In The Depths",
+    "path": "E:/games_genre/games_tmp_for_dev/DebtsInTheDepths_Win",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/DebtsInTheDepths_Win/Debts in the Depths.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "DEFCON Xenos Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/DEFCON Xenos 0.4-demo",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/DEFCON Xenos 0.4-demo/DEFCON Xenos.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Torso Tennis",
+    "path": "E:/games_genre/games_tmp_for_dev/demo 1-0-01",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/demo 1-0-01/TORSO TENNIS.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Area 86 Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Demo_Win_SimDevs_Area_86",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Demo_Win_SimDevs_Area_86/Area 86.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Descending",
+    "path": "E:/games_genre/games_tmp_for_dev/Descending",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Descending/Descending.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Destroy The Monoliths",
+    "path": "E:/games_genre/games_tmp_for_dev/destroy-the-monoliths-win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/destroy-the-monoliths-win/DestroyTheMonoliths.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Devyard",
+    "path": "E:/games_genre/games_tmp_for_dev/Devyard v1.7",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Devyard v1.7/Devyard.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dla3D",
+    "path": "E:/games_genre/games_tmp_for_dev/Dla3D",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dla3D/Dla3D.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dice N Dungeons",
+    "path": "E:/games_genre/games_tmp_for_dev/DnDBuild",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/DnDBuild/DiceNDungeons.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dodgeball Overdrive",
+    "path": "E:/games_genre/games_tmp_for_dev/Dodgeball_Overdrive",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dodgeball_Overdrive/DodgeballOverdrive.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dolly",
+    "path": "E:/games_genre/games_tmp_for_dev/DOLLY",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/DOLLY/DOLLY.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Don't Implode",
+    "path": "E:/games_genre/games_tmp_for_dev/Dont implode 0.1.4",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dont implode 0.1.4/DONT IMPLODE.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Don't Bite Me Bro",
+    "path": "E:/games_genre/games_tmp_for_dev/dont-bite-me-bro-windows/DontBiteMeBro_v113_PC",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/dont-bite-me-bro-windows/DontBiteMeBro_v113_PC/DontBiteMeBro_PC.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Don't Stare",
+    "path": "E:/games_genre/games_tmp_for_dev/dont-stare",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/dont-stare/dont-stare.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dot Defence",
+    "path": "E:/games_genre/games_tmp_for_dev/dot_defence",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/dot_defence/dot_defence.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dr. Langeskov",
+    "path": "E:/games_genre/games_tmp_for_dev/Dr. Langeskov - PC",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dr. Langeskov - PC/DrLangeskov.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dream Cat",
+    "path": "E:/games_genre/games_tmp_for_dev/Dream Cat v0.14 WINDOWS",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dream Cat v0.14 WINDOWS/Project Dream Cat.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Driving Me Crazy",
+    "path": "E:/games_genre/games_tmp_for_dev/DrivingMeCrazy_Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/DrivingMeCrazy_Windows/Driving Me Crazy.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Droid Fortress",
+    "path": "E:/games_genre/games_tmp_for_dev/Droid Fortress v1.2",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Droid Fortress v1.2/Droid Fortress.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Drop Off",
+    "path": "E:/games_genre/games_tmp_for_dev/Drop off",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Drop off/Drop off.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Ducksoup Dungeon",
+    "path": "E:/games_genre/games_tmp_for_dev/ducksoupDungeon Windows",
+    "engine": "NW.js",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ducksoupDungeon Windows/ducksoup dungeon.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dummies Squad",
+    "path": "E:/games_genre/games_tmp_for_dev/Dummies Squad",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dummies Squad/Dummies Squad.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dungeon Concierge Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Dungeon Concierge Demo/Dungeon Concierge Demo 0.4",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dungeon Concierge Demo/Dungeon Concierge Demo 0.4/Dungeon Concierge.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dungeon Deck Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Dungeon Deck DEMO 1-2-1",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dungeon Deck DEMO 1-2-1/Dungeon Deck.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dungeon Gunner",
+    "path": "E:/games_genre/games_tmp_for_dev/Dungeon Gunner Win Game",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dungeon Gunner Win Game/Dungeon Gunner.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dungeon Hackerer 2",
+    "path": "E:/games_genre/games_tmp_for_dev/Dungeon Hackerer 2 Win Jam",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dungeon Hackerer 2 Win Jam/Dungeon Hackerer 2.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dungeon Raid",
+    "path": "E:/games_genre/games_tmp_for_dev/Dungeon Raid [Win]",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dungeon Raid [Win]/DungeonRaid.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dungeon Nightmares",
+    "path": "E:/games_genre/games_tmp_for_dev/DungeonNightmares_Win_v1-4",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/DungeonNightmares_Win_v1-4/DungeonNightmares.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dustbowl Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Dustbowl_demo",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dustbowl_demo/Dustbowl - DEMO.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Dworf's Forbidden Gold Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Dworf's Forbidden Gold Demo V0.1.12",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Dworf's Forbidden Gold Demo V0.1.12/Dworf's Forbidden Gold.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Echoes In The Dark",
+    "path": "E:/games_genre/games_tmp_for_dev/EchoesInTheDark2",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/EchoesInTheDark2/EchoesInTheDark.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Edible Places",
+    "path": "E:/games_genre/games_tmp_for_dev/Edible Places 01.6 (Win)",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Edible Places 01.6 (Win)/Edible.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Egg",
+    "path": "E:/games_genre/games_tmp_for_dev/egg_windows_v11",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/egg_windows_v11/egg.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Elektro Knight 2",
+    "path": "E:/games_genre/games_tmp_for_dev/ElektroKnight2_3",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ElektroKnight2_3/ElektroKnight2_3.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Elevator Nightmare",
+    "path": "E:/games_genre/games_tmp_for_dev/ElevatorNightmare(1.0.2)/ElevatorNightmare",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ElevatorNightmare(1.0.2)/ElevatorNightmare/Elevator Nightmare.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Elysis Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Elysis Demo 3b",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Elysis Demo 3b/Elysis Demo 3b.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Emily Is Away",
+    "path": "E:/games_genre/games_tmp_for_dev/emilyisaway1.1 pc",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/emilyisaway1.1 pc/emily is away.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Evil Egg",
+    "path": "E:/games_genre/games_tmp_for_dev/evil-egg-windows-nodrm/Evil Egg",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/evil-egg-windows-nodrm/Evil Egg/Evil Egg.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Executable Education",
+    "path": "E:/games_genre/games_tmp_for_dev/Executable Education",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Executable Education/Executable Education.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Existential Treads Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Existential Treads_Demo_Win_2025-11-13/ET Demo itch Win64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Existential Treads_Demo_Win_2025-11-13/ET Demo itch Win64/Existential Treads.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Exostructure",
+    "path": "E:/games_genre/games_tmp_for_dev/Exostructure_0.1.2/Exostructure",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Exostructure_0.1.2/Exostructure/Exostructure.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Extraneum Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/extraneum-demo-win-x64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/extraneum-demo-win-x64/Extraneum.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Fallen Slayers Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Fallen Slayers Demo",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Fallen Slayers Demo/FallenSlayers.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Scale Farm",
+    "path": "E:/games_genre/games_tmp_for_dev/FarmPC",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/FarmPC/ScaleFarm.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Fate Shift",
+    "path": "E:/games_genre/games_tmp_for_dev/FateShiftWin (0.15p)/FateShiftWin",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/FateShiftWin (0.15p)/FateShiftWin/FateShift.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Feed The Furnace Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Feed the Furnace DEMO",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Feed the Furnace DEMO/Feed the Furnace DEMO.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Fideos",
+    "path": "E:/games_genre/games_tmp_for_dev/FIDEOS 1.0.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/FIDEOS 1.0.1/FIDEOS.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Fiends Isle",
+    "path": "E:/games_genre/games_tmp_for_dev/fiends_isle[windows]_v0_6_6_DEBUG",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/fiends_isle[windows]_v0_6_6_DEBUG/fiends_isle[windows]_v0_6_6_DEBUG.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Final Days Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/final-days-demo-win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/final-days-demo-win/FinalDays.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Five Suns",
+    "path": "E:/games_genre/games_tmp_for_dev/fivesuns_win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/fivesuns_win/fivesuns.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Flapi Bull",
+    "path": "E:/games_genre/games_tmp_for_dev/FlappiBulle",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/FlappiBulle/FlapiBull.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Flappy Waves",
+    "path": "E:/games_genre/games_tmp_for_dev/FlappyWaves_1.00c",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/FlappyWaves_1.00c/FlappyWaves_1.00c.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Floodworks",
+    "path": "E:/games_genre/games_tmp_for_dev/Floodworks",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Floodworks/Floodworks.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Bubble City",
+    "path": "E:/games_genre/games_tmp_for_dev/Flotation Engineer - Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Flotation Engineer - Win/Bubble City.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Folded Voices",
+    "path": "E:/games_genre/games_tmp_for_dev/Folded Voices/Game",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Folded Voices/Game/Folded Voices.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "For The Entity",
+    "path": "E:/games_genre/games_tmp_for_dev/For The Entity",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/For The Entity/for The Entity.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Forbudlys",
+    "path": "E:/games_genre/games_tmp_for_dev/Forbudlys",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Forbudlys/Forbudlys.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Forest Food Chain",
+    "path": "E:/games_genre/games_tmp_for_dev/ForestGameAPT2020",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ForestGameAPT2020/ForestFoodChain.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Forklift Mayhem",
+    "path": "E:/games_genre/games_tmp_for_dev/Forklift Mayhem V.2.1.2 (Release)",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Forklift Mayhem V.2.1.2 (Release)/Forklift Mayhem.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Frail Shells",
+    "path": "E:/games_genre/games_tmp_for_dev/Frail Shells Win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Frail Shells Win/Frail Shells.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Fred's Bits and Parts",
+    "path": "E:/games_genre/games_tmp_for_dev/Fred's Bits and Parts",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Fred's Bits and Parts/Fred's Bits and Parts.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Fridge Life",
+    "path": "E:/games_genre/games_tmp_for_dev/FridgeLife_PostJam_BugFix/FridgeLife",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/FridgeLife_PostJam_BugFix/FridgeLife/Fridge Life.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Frontline Command Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/frontline-command-demo-1-windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/frontline-command-demo-1-windows/Frontline Command.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Frosty Frontlines",
+    "path": "E:/games_genre/games_tmp_for_dev/FrostyFrontlines",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/FrostyFrontlines/Frosty Frontlines.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Fujinomiya Station",
+    "path": "E:/games_genre/games_tmp_for_dev/Fujinomiya_Station_v1.1",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Fujinomiya_Station_v1.1/Fujinomiya_Station.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Full Life Clicker",
+    "path": "E:/games_genre/games_tmp_for_dev/Full-Life Clickered/Windows",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Full-Life Clickered/Windows/FullLife_Clicker.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Stuck In The Sea",
+    "path": "E:/games_genre/games_tmp_for_dev/GameJam2021_StuckInTheSea",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GameJam2021_StuckInTheSea/GameJam2021.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Gatotag",
+    "path": "E:/games_genre/games_tmp_for_dev/GATOTAG_Windows",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GATOTAG_Windows/GATOTAG.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Gauntlet Of Power Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/gauntlet-of-power-win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/gauntlet-of-power-win/heroesofloot3demo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Valkyr",
+    "path": "E:/games_genre/games_tmp_for_dev/GauntValkyr25",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GauntValkyr25/Valkyr.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Genomancer",
+    "path": "E:/games_genre/games_tmp_for_dev/GenomancerWindowsBuild",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GenomancerWindowsBuild/Genomancer.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Ghoast",
+    "path": "E:/games_genre/games_tmp_for_dev/GhoastWindows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GhoastWindows/GhoastWindows.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Glass And Dust",
+    "path": "E:/games_genre/games_tmp_for_dev/Glass and Dust",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Glass and Dust/Glass and Dust.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "GMTK 2020",
+    "path": "E:/games_genre/games_tmp_for_dev/GMTK2020-Project",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GMTK2020-Project/GMTK2020-Project.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Underlevel",
+    "path": "E:/games_genre/games_tmp_for_dev/GMTK2023",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GMTK2023/UNDERLEVEL.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "GMTK 2025",
+    "path": "E:/games_genre/games_tmp_for_dev/GMTK2025/Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GMTK2025/Win/GMTK2025.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Goblin King",
+    "path": "E:/games_genre/games_tmp_for_dev/GoblinKing_win64/GoblinKing",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GoblinKing_win64/GoblinKing/GoblinKing.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Ludum Dare 56",
+    "path": "E:/games_genre/games_tmp_for_dev/gobol_win_0.1.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/gobol_win_0.1.1/ludumdare56.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Goga Boba",
+    "path": "E:/games_genre/games_tmp_for_dev/goga-boba-v1.1-windows/windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/goga-boba-v1.1-windows/windows/gogodotjam3.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Good Morning",
+    "path": "E:/games_genre/games_tmp_for_dev/good morning/windows x64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/good morning/windows x64/good morning.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Greeded",
+    "path": "E:/games_genre/games_tmp_for_dev/GREEDED",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GREEDED/Greeded.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Greedy Miners",
+    "path": "E:/games_genre/games_tmp_for_dev/Greedy Miners - Win64/Greedy Miners",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Greedy Miners - Win64/Greedy Miners/Greedy Miners.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Greedy Goblin",
+    "path": "E:/games_genre/games_tmp_for_dev/GreedyGoblinSteamBuild",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GreedyGoblinSteamBuild/Greedy Goblin.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Gun Knight",
+    "path": "E:/games_genre/games_tmp_for_dev/GUN KNIGHT",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GUN KNIGHT/GUN KNIGHT.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Gun In The Dancefloor",
+    "path": "E:/games_genre/games_tmp_for_dev/GunInTheGungefloor",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GunInTheGungefloor/Gun In The Dancefloor.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Gunstable Mayhem",
+    "path": "E:/games_genre/games_tmp_for_dev/GUNSTABLE MAYHEM v1.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/GUNSTABLE MAYHEM v1.1/GUNSTABLE MAYHEM.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Halavein",
+    "path": "E:/games_genre/games_tmp_for_dev/halavein-windows",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/halavein-windows/Halavein.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hammer Keep",
+    "path": "E:/games_genre/games_tmp_for_dev/Hammer Keep",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Hammer Keep/Hammer Keep.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Happy Bees",
+    "path": "E:/games_genre/games_tmp_for_dev/Happy Bees 1.0.1 Windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Happy Bees 1.0.1 Windows/Happy Bees 1.0.1 Windows.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Happy Death",
+    "path": "E:/games_genre/games_tmp_for_dev/HappyDeath_230622_v2/HappyDeath_230622",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/HappyDeath_230622_v2/HappyDeath_230622/HappyDeath.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hard Glide Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/HardGlideDemo-0.1.3",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/HardGlideDemo-0.1.3/HardGlide.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Harventure",
+    "path": "E:/games_genre/games_tmp_for_dev/Harventure/Desktop",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Harventure/Desktop/Harventure.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hearts Ablaze",
+    "path": "E:/games_genre/games_tmp_for_dev/HeartsAblazeWindows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/HeartsAblazeWindows/HeartsAblaze.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hero's Warband Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Hero's Warband V0.2/Windows Build Demo V0.2",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Hero's Warband V0.2/Windows Build Demo V0.2/Hero's Warband.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hexa Fortress",
+    "path": "E:/games_genre/games_tmp_for_dev/HexaFortress_1.0/HexaFortress",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/HexaFortress_1.0/HexaFortress/HexaFortress.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hex Breaker",
+    "path": "E:/games_genre/games_tmp_for_dev/hexBreaker/hexBreaker_3-3",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/hexBreaker/hexBreaker_3-3/Hex Breaker.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hive Preserver",
+    "path": "E:/games_genre/games_tmp_for_dev/Hive_Preserver_Jam_v10b",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Hive_Preserver_Jam_v10b/Hive Preserver.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hoard It",
+    "path": "E:/games_genre/games_tmp_for_dev/HoardIt",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/HoardIt/Hoard_It.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Honk",
+    "path": "E:/games_genre/games_tmp_for_dev/HONK_LD45_PostJam",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/HONK_LD45_PostJam/HONK.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hoping For A Home",
+    "path": "E:/games_genre/games_tmp_for_dev/Hoping for a Home 1.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Hoping for a Home 1.1/Hoping for a Home.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Horde Of Distraction",
+    "path": "E:/games_genre/games_tmp_for_dev/Horde of Distraction",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Horde of Distraction/Horde of Distraction.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hotel Otel",
+    "path": "E:/games_genre/games_tmp_for_dev/Hotel Otel-win64",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Hotel Otel-win64/hotel.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hotel Paradise",
+    "path": "E:/games_genre/games_tmp_for_dev/HotelParadise v1.1 WIN",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/HotelParadise v1.1 WIN/HotelParadise v1.1 WIN.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "House Of Atmos",
+    "path": "E:/games_genre/games_tmp_for_dev/house_of_atmos_v0.3.1",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/house_of_atmos_v0.3.1/house_of_atmos.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hyper Jump",
+    "path": "E:/games_genre/games_tmp_for_dev/HYPER_JUMP",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/HYPER_JUMP/HYPER_JUMP.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "I Am Not Infected",
+    "path": "E:/games_genre/games_tmp_for_dev/IAmNotInfected",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/IAmNotInfected/IAmNotInfected.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Idle Sands",
+    "path": "E:/games_genre/games_tmp_for_dev/Idle Sands V1.0.32.2 - Windows (ReleaseBuild)",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Idle Sands V1.0.32.2 - Windows (ReleaseBuild)/Idle Sands.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Idle Dyson Swarm",
+    "path": "E:/games_genre/games_tmp_for_dev/idle-dyson-swarm-windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/idle-dyson-swarm-windows/Idle Dyson Swarm.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Idlemon",
+    "path": "E:/games_genre/games_tmp_for_dev/Idlemon_0.17b",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Idlemon_0.17b/Idlemon.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "If It Gets Too Scary Press F",
+    "path": "E:/games_genre/games_tmp_for_dev/IF_IT_GETS_TOO_SCARY_PRESS_F_WINDOWS_1.0",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/IF_IT_GETS_TOO_SCARY_PRESS_F_WINDOWS_1.0/IF_IT_GETS_TOO_SCARY_PRESS_F_WINDOWS_1.0.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Ignis Universia",
+    "path": "E:/games_genre/games_tmp_for_dev/Ignis DX - windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Ignis DX - windows/Ignis Universia.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Immunica",
+    "path": "E:/games_genre/games_tmp_for_dev/immunica-v0.5.0",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/immunica-v0.5.0/Immunica.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Infinite Neural",
+    "path": "E:/games_genre/games_tmp_for_dev/Infineural",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Infineural/Infineural.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Infinite Pizza",
+    "path": "E:/games_genre/games_tmp_for_dev/InfinitePizza",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/InfinitePizza/InfinitePizza.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Insatiable",
+    "path": "E:/games_genre/games_tmp_for_dev/Insatiable 64bit",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Insatiable 64bit/Insatiable.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Integer",
+    "path": "E:/games_genre/games_tmp_for_dev/integer",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/integer/integer.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Invade",
+    "path": "E:/games_genre/games_tmp_for_dev/Invade_Win64_20190406/Win64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Invade_Win64_20190406/Win64/Invade.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "IRIS",
+    "path": "E:/games_genre/games_tmp_for_dev/IRIS_Windows_0.4.7",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/IRIS_Windows_0.4.7/IRIS_windows_0.4.7.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "IVOR",
+    "path": "E:/games_genre/games_tmp_for_dev/IVOR-MGC25-ITCH",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/IVOR-MGC25-ITCH/IVOR.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Jabba",
+    "path": "E:/games_genre/games_tmp_for_dev/Jabba",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Jabba/Jabba.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Joe & Jim",
+    "path": "E:/games_genre/games_tmp_for_dev/Joe&Jim",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Joe&Jim/Joe&Jim.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Jollibae",
+    "path": "E:/games_genre/games_tmp_for_dev/Jollibae (2024)",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Jollibae (2024)/Jollibae (2024).exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Jump N Bump Remastered",
+    "path": "E:/games_genre/games_tmp_for_dev/jump-n-bump-remastered-windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/jump-n-bump-remastered-windows/JumpBumpRemastered.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Junk Raider Prototype",
+    "path": "E:/games_genre/games_tmp_for_dev/JunkRaiders_Prototype_V0.11/JunkRaider",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/JunkRaiders_Prototype_V0.11/JunkRaider/JunkRaider.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "JunkTown Bolt Down",
+    "path": "E:/games_genre/games_tmp_for_dev/JunkTownBoltDown",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/JunkTownBoltDown/My project.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Karawan",
+    "path": "E:/games_genre/games_tmp_for_dev/Karawan",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Karawan/Karawan.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "KBD18",
+    "path": "E:/games_genre/games_tmp_for_dev/KBD18",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/KBD18/KBD18.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Key Cars",
+    "path": "E:/games_genre/games_tmp_for_dev/KeyCars_WIN_1.3",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/KeyCars_WIN_1.3/KeyCars.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "KILLOVER",
+    "path": "E:/games_genre/games_tmp_for_dev/KILLOVERv4_0windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/KILLOVERv4_0windows/KILLOVER.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Kill The KOTH",
+    "path": "E:/games_genre/games_tmp_for_dev/KillTheKOTHWindows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/KillTheKOTHWindows/KillTheKOTH.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Kings Field Remade",
+    "path": "E:/games_genre/games_tmp_for_dev/KINGSFIELDREMADE_090/Windows",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/KINGSFIELDREMADE_090/Windows/KingsField.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Kitchened",
+    "path": "E:/games_genre/games_tmp_for_dev/kitchened",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/kitchened/kitchened.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Knight In The Dungeon",
+    "path": "E:/games_genre/games_tmp_for_dev/Knight In The Dungeon",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Knight In The Dungeon/Knight In The Dungeon.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Knightin'",
+    "path": "E:/games_genre/games_tmp_for_dev/Knightin'",
+    "engine": "NW.js",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Knightin'/nw.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Laser Guy",
+    "path": "E:/games_genre/games_tmp_for_dev/LaserGuy-1.2_Windows/SbGames-Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/LaserGuy-1.2_Windows/SbGames-Windows/LaserGame.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Last Castle Guardians",
+    "path": "E:/games_genre/games_tmp_for_dev/Last Castle Guardians",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Last Castle Guardians/LastCastleGuardians.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Legend Of Xenia 3D",
+    "path": "E:/games_genre/games_tmp_for_dev/Legend of Xenia 3D - 1.1.2",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Legend of Xenia 3D - 1.1.2/Legend of Xenia 3D.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Legends Of Rahnok",
+    "path": "E:/games_genre/games_tmp_for_dev/legends-of-rahnok-windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/legends-of-rahnok-windows/LegendsOfRahnok.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Let It Consume",
+    "path": "E:/games_genre/games_tmp_for_dev/let-it-consume-windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/let-it-consume-windows/let-it-consume.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Library Of Blabber",
+    "path": "E:/games_genre/games_tmp_for_dev/LibraryOfBlabber_016_win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/LibraryOfBlabber_016_win/LibraryOfBlabber.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Liminal Gallery",
+    "path": "E:/games_genre/games_tmp_for_dev/Liminal Gallery_1.2v/Liminal Gallery",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Liminal Gallery_1.2v/Liminal Gallery/Liminal Gallery.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Little Repair Shop",
+    "path": "E:/games_genre/games_tmp_for_dev/LittleRepairShop_Windows_1.4/Windows",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/LittleRepairShop_Windows_1.4/Windows/LittleRepairShop.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Littlewood",
+    "path": "E:/games_genre/games_tmp_for_dev/Littlewood Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Littlewood Windows/Littlewood.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Lock Walk",
+    "path": "E:/games_genre/games_tmp_for_dev/Lock Walk",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Lock Walk/Lock Walk.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Loops Of Hell",
+    "path": "E:/games_genre/games_tmp_for_dev/LoopsOfHell",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/LoopsOfHell/Loops Of Hell.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Loot & Looter",
+    "path": "E:/games_genre/games_tmp_for_dev/Loot&Looter WIN",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Loot&Looter WIN/Loot&Looter.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Lootbane",
+    "path": "E:/games_genre/games_tmp_for_dev/lootbane",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/lootbane/lootbane.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Lose 95",
+    "path": "E:/games_genre/games_tmp_for_dev/lose95",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/lose95/lose95.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Lost Abroad Cafe",
+    "path": "E:/games_genre/games_tmp_for_dev/Lost Abroad Cafe",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Lost Abroad Cafe/Lost Abroad.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Lurking Spiders",
+    "path": "E:/games_genre/games_tmp_for_dev/lurking",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/lurking/spiders.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Lutum",
+    "path": "E:/games_genre/games_tmp_for_dev/LutumPC/PC",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/LutumPC/PC/Lutum.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Maelstrom",
+    "path": "E:/games_genre/games_tmp_for_dev/maelstrom/windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/maelstrom/windows/maelstrom_exe.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Manic Miners",
+    "path": "E:/games_genre/games_tmp_for_dev/ManicMinersV1.0/ManicMinersV1.0.4",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ManicMinersV1.0/ManicMinersV1.0.4/ManicMiners.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mars Happy Life Inc",
+    "path": "E:/games_genre/games_tmp_for_dev/mars-happy-life-inc_win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/mars-happy-life-inc_win/mars-happy-life-inc.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "MASS Builder Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/MASS_Builder_Client_V0004_Demo_0.0.4",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/MASS_Builder_Client_V0004_Demo_0.0.4/MASS_Builder.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mech-Zed",
+    "path": "E:/games_genre/games_tmp_for_dev/Mech-Zed v1.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Mech-Zed v1.1/Mech-Zed.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mecha Market",
+    "path": "E:/games_genre/games_tmp_for_dev/mecha-market-windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/mecha-market-windows/mecha_market_windows_v1_0.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mecha Mice",
+    "path": "E:/games_genre/games_tmp_for_dev/MechaMice-win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/MechaMice-win/MechaMice.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mechana",
+    "path": "E:/games_genre/games_tmp_for_dev/Mechana",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Mechana/Mechana.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mecha Roguelike",
+    "path": "E:/games_genre/games_tmp_for_dev/mecha_roguelike_game",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/mecha_roguelike_game/mecha_roguelike.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mech Engineer",
+    "path": "E:/games_genre/games_tmp_for_dev/Mech_Engineer_standalone v2",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Mech_Engineer_standalone v2/Mech_Engineer.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Meet The Bird",
+    "path": "E:/games_genre/games_tmp_for_dev/MeetTheBird_Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/MeetTheBird_Windows/Meet the Bird that still sings to the stars.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mencabrona Stealing Simulator",
+    "path": "E:/games_genre/games_tmp_for_dev/Mencabrona",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Mencabrona/Mencabrona Stealing Simulator.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Metal Mania",
+    "path": "E:/games_genre/games_tmp_for_dev/MetalManiav0.2",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/MetalManiav0.2/MetalManiav0.2.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Micro TD",
+    "path": "E:/games_genre/games_tmp_for_dev/micro-td-v1_0_1-win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/micro-td-v1_0_1-win/micro-td.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Midnight Stand",
+    "path": "E:/games_genre/games_tmp_for_dev/Midnigth Stand",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Midnigth Stand/Midnight Stand.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Miner Troubles",
+    "path": "E:/games_genre/games_tmp_for_dev/Miner Troubles",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Miner Troubles/Miner Troubles.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Miner 2149",
+    "path": "E:/games_genre/games_tmp_for_dev/Miner2149_v2-1-2_PC_Build",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Miner2149_v2-1-2_PC_Build/Miner 2149.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Minionator",
+    "path": "E:/games_genre/games_tmp_for_dev/Minionator",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Minionator/Minionator.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mini Mayhem",
+    "path": "E:/games_genre/games_tmp_for_dev/mini_mayhem_v0.1/windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/mini_mayhem_v0.1/windows/lowrezjam2022.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Minotaur Madness",
+    "path": "E:/games_genre/games_tmp_for_dev/minotaur-madness-windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/minotaur-madness-windows/minotaur_madness.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Misty Garden",
+    "path": "E:/games_genre/games_tmp_for_dev/MistyGardenBuild_v0.2.2/MistyGardenBuild",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/MistyGardenBuild_v0.2.2/MistyGardenBuild/Misty Garden.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mitten",
+    "path": "E:/games_genre/games_tmp_for_dev/Mitten - PC",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Mitten - PC/Mitten.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Monkey On A Rock",
+    "path": "E:/games_genre/games_tmp_for_dev/MONKEY ON A ROCK",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/MONKEY ON A ROCK/MONKEY_ON_A_ROCK.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Monster Bonds",
+    "path": "E:/games_genre/games_tmp_for_dev/MonsterBonds",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/MonsterBonds/Monster.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Moss Destruction",
+    "path": "E:/games_genre/games_tmp_for_dev/MossDestruction_windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/MossDestruction_windows/MossDestruction.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Mr Magpie's Card Game",
+    "path": "E:/games_genre/games_tmp_for_dev/mr-magpies-harmless-card-game-windows-x86",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/mr-magpies-harmless-card-game-windows-x86/Mr. Magpie's Harmless Card Game.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Neco Arc",
+    "path": "E:/games_genre/games_tmp_for_dev/NecoArc 0.3.1 win64/NecoArc 0.3.1",
+    "engine": "NW.js",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/NecoArc 0.3.1 win64/NecoArc 0.3.1/NecoArc.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Neo Siege",
+    "path": "E:/games_genre/games_tmp_for_dev/Neo-Siege/Windows",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Neo-Siege/Windows/SiegeoftheAges.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "New Babylon",
+    "path": "E:/games_genre/games_tmp_for_dev/NewBabylon  v.1.3",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/NewBabylon  v.1.3/NewBabylon  v.1.3.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Night In Tent",
+    "path": "E:/games_genre/games_tmp_for_dev/NightInTent",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/NightInTent/Night In Tent.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "NTABS Battle Simulator",
+    "path": "E:/games_genre/games_tmp_for_dev/NTABS 0.21 (WIndows 64-bit)",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/NTABS 0.21 (WIndows 64-bit)/Totally Not Accurate Battle Simulator.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Nymphiad",
+    "path": "E:/games_genre/games_tmp_for_dev/Nymphiad",
+    "engine": "NW.js",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Nymphiad/nw.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Observer",
+    "path": "E:/games_genre/games_tmp_for_dev/Observer",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Observer/Observer.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Oh Crab",
+    "path": "E:/games_genre/games_tmp_for_dev/OhCrabSprint4Build2",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/OhCrabSprint4Build2/OhCrab.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Old Berserker",
+    "path": "E:/games_genre/games_tmp_for_dev/OLDBERSERKER",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/OLDBERSERKER/OldBerserker.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Once Upon A Blop",
+    "path": "E:/games_genre/games_tmp_for_dev/Once Upon A Blop 1.17 [WIN]",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Once Upon A Blop 1.17 [WIN]/Once Upon A Blop.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "One Monke",
+    "path": "E:/games_genre/games_tmp_for_dev/One Monke",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/One Monke/One Monke.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "One Man Factory",
+    "path": "E:/games_genre/games_tmp_for_dev/OneManFactory_Windows_2.0",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/OneManFactory_Windows_2.0/OneManFactory_Windows.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Orbital Margins Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/orbital-margins-windows-alpha",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/orbital-margins-windows-alpha/orbital_margins.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Oubliette",
+    "path": "E:/games_genre/games_tmp_for_dev/Oubliette_9a",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Oubliette_9a/Oubliette.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Outcast",
+    "path": "E:/games_genre/games_tmp_for_dev/outcast",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/outcast/outcast.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Overforged",
+    "path": "E:/games_genre/games_tmp_for_dev/Overforged V1.1 - Windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Overforged V1.1 - Windows/overforged.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Ozone Lands",
+    "path": "E:/games_genre/games_tmp_for_dev/ozone_lands_windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ozone_lands_windows/ozone_lands.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Paint Defense",
+    "path": "E:/games_genre/games_tmp_for_dev/Paint Defense",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Paint Defense/Paint Defense.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Paint Watch",
+    "path": "E:/games_genre/games_tmp_for_dev/Paint Watch - EmAyKoSi",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Paint Watch - EmAyKoSi/Paint Watch.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Paint Over",
+    "path": "E:/games_genre/games_tmp_for_dev/PaintOver",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PaintOver/PaintOver.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Paper Soldiers",
+    "path": "E:/games_genre/games_tmp_for_dev/Paper Soldiers",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Paper Soldiers/Paper Soldiers.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Party Killer",
+    "path": "E:/games_genre/games_tmp_for_dev/Party Killer Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Party Killer Windows/Party Killer.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Peasant Nightmare",
+    "path": "E:/games_genre/games_tmp_for_dev/PEASANTNIGHTMARE_Windows_v2.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PEASANTNIGHTMARE_Windows_v2.1/PEASANTNIGHTMARE.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Persist",
+    "path": "E:/games_genre/games_tmp_for_dev/Persist/PersistGoldBuild",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Persist/PersistGoldBuild/Persist.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Personal Space Station",
+    "path": "E:/games_genre/games_tmp_for_dev/PersonalSpaceStation",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PersonalSpaceStation/PersonalSpaceStation.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pet The Pup",
+    "path": "E:/games_genre/games_tmp_for_dev/PetThePupPC",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PetThePupPC/PetThePup.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pick Me Up",
+    "path": "E:/games_genre/games_tmp_for_dev/pick_me_up_windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/pick_me_up_windows/pick_me_up_windows.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Piece By Piece",
+    "path": "E:/games_genre/games_tmp_for_dev/PieceByPiece",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PieceByPiece/PieceByPiece.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pink River",
+    "path": "E:/games_genre/games_tmp_for_dev/Pink River-0.3",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Pink River-0.3/Pink River.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pinned Ball",
+    "path": "E:/games_genre/games_tmp_for_dev/Pinned ball/Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Pinned ball/Win/Pinned ball.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pit Of Genesis",
+    "path": "E:/games_genre/games_tmp_for_dev/Pit of Genesis",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Pit of Genesis/Pit of Genesis.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pixel Orbit",
+    "path": "E:/games_genre/games_tmp_for_dev/Pixel Orbit",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Pixel Orbit/Pixel Orbit.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pizza City",
+    "path": "E:/games_genre/games_tmp_for_dev/PizzaCityWindows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PizzaCityWindows/PizzaCity.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Plonk",
+    "path": "E:/games_genre/games_tmp_for_dev/Plonk - HeKoJaAy v0.1.4",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Plonk - HeKoJaAy v0.1.4/Plonk.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pluto's Revolution",
+    "path": "E:/games_genre/games_tmp_for_dev/Pluto's Revolution - Windows/Pluto's Revolution",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Pluto's Revolution - Windows/Pluto's Revolution/Lunar.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pocket Nuance",
+    "path": "E:/games_genre/games_tmp_for_dev/Pocket Nuance",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Pocket Nuance/Pocket Nuance.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pondlings",
+    "path": "E:/games_genre/games_tmp_for_dev/PONDLINGS_1.0.2/PONDLINGS",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PONDLINGS_1.0.2/PONDLINGS/PONDLINGS.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Potion Master",
+    "path": "E:/games_genre/games_tmp_for_dev/PotionMaster WIN v1.0.0",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PotionMaster WIN v1.0.0/PotionMaster.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Power Of Ten Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/power-of-ten-0.13.5-windows-nosteam",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/power-of-ten-0.13.5-windows-nosteam/Power of Ten Demo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pretend It's Not There",
+    "path": "E:/games_genre/games_tmp_for_dev/PretendItsNotThere_Win64_1.3",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PretendItsNotThere_Win64_1.3/Pretend It's Not There.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Princess Paladin",
+    "path": "E:/games_genre/games_tmp_for_dev/Princess Paladin",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Princess Paladin/Princess Paladin.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Print It Please",
+    "path": "E:/games_genre/games_tmp_for_dev/Print it Please/Build PC",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Print it Please/Build PC/Print it Please.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Prismarine",
+    "path": "E:/games_genre/games_tmp_for_dev/prismarine-x64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/prismarine-x64/Prismarine.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Prison Brawl",
+    "path": "E:/games_genre/games_tmp_for_dev/PrisonBrawl 2/PrisonBrawl",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PrisonBrawl 2/PrisonBrawl/PrisonBrawl_32bit.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Procgun",
+    "path": "E:/games_genre/games_tmp_for_dev/procgun_v030",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/procgun_v030/procgun_v030.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Protect The Cargo",
+    "path": "E:/games_genre/games_tmp_for_dev/Protect the cargo - version 1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Protect the cargo - version 1/Protect the cargo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Proto Boxing",
+    "path": "E:/games_genre/games_tmp_for_dev/ProtoBoxing_v013_2",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ProtoBoxing_v013_2/ProtoBoxing.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pseudo Summon",
+    "path": "E:/games_genre/games_tmp_for_dev/Pseudo Summon_Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Pseudo Summon_Windows/Pseudo Summon.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Protect The Pit",
+    "path": "E:/games_genre/games_tmp_for_dev/ptp_win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ptp_win/Protect the Pit.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Pajamas Through Space",
+    "path": "E:/games_genre/games_tmp_for_dev/Pts_Crowd_Update_2_Windows/Pts_Crowd_Update_2_Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Pts_Crowd_Update_2_Windows/Pts_Crowd_Update_2_Windows/Pajamas through space.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Purr Pawer",
+    "path": "E:/games_genre/games_tmp_for_dev/PURR_PAWER",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/PURR_PAWER/Purr_Pawer.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Duck Clicker",
+    "path": "E:/games_genre/games_tmp_for_dev/QuackClicker (english)",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/QuackClicker (english)/DuckClicker.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Rabid-Rabbit Rice Cooker",
+    "path": "E:/games_genre/games_tmp_for_dev/Rabid-Rabbit Rice Cooker",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Rabid-Rabbit Rice Cooker/rabbit-mini-jam.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Racoon Rascal",
+    "path": "E:/games_genre/games_tmp_for_dev/RacconRascal",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/RacconRascal/RacoonRascal.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Rerun",
+    "path": "E:/games_genre/games_tmp_for_dev/re",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/re/RERUN.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "ReCharger",
+    "path": "E:/games_genre/games_tmp_for_dev/ReCharger_v1.12_PC/ReCharger_v1.12",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ReCharger_v1.12_PC/ReCharger_v1.12/ReCharger.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Rected",
+    "path": "E:/games_genre/games_tmp_for_dev/RECTED_Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/RECTED_Win/RECTED.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Redline Express",
+    "path": "E:/games_genre/games_tmp_for_dev/Redline Express (PC)",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Redline Express (PC)/Redline Express.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Renovation Sim Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/renovationsimdemo",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/renovationsimdemo/MyProject.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Reposition Defense Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Reposition_defense_Demo",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Reposition_defense_Demo/Reposition defense Demo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Requiem",
+    "path": "E:/games_genre/games_tmp_for_dev/requiem-1998-win/Windows",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/requiem-1998-win/Windows/Requiem.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Resurgence",
+    "path": "E:/games_genre/games_tmp_for_dev/Resurgence",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Resurgence/Resurgence.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Rewinder",
+    "path": "E:/games_genre/games_tmp_for_dev/Rewinder_win64/win64",
+    "engine": "NW.js",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Rewinder_win64/win64/Rewinder.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Robot Ultrarena",
+    "path": "E:/games_genre/games_tmp_for_dev/robot-ultrarena-windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/robot-ultrarena-windows/RobotUltrarena.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Roboteur",
+    "path": "E:/games_genre/games_tmp_for_dev/roboteur_0.06/roboteur",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/roboteur_0.06/roboteur/roboteur.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Robo Virus Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/robovirus-win64-demo",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/robovirus-win64-demo/RoboVirus.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Rock Bottom",
+    "path": "E:/games_genre/games_tmp_for_dev/Rock Bottom Windows April 19/RB Final",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Rock Bottom Windows April 19/RB Final/Rock Bottom.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Rococo",
+    "path": "E:/games_genre/games_tmp_for_dev/Rococo_WIN_Build02",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Rococo_WIN_Build02/Rococo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Rodent Retribution",
+    "path": "E:/games_genre/games_tmp_for_dev/Rodent Retribution",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Rodent Retribution/Rodent Retribution.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Roguelike Survivor",
+    "path": "E:/games_genre/games_tmp_for_dev/roguelike-survivor_v0.2",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/roguelike-survivor_v0.2/Roguelike Survivor.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Roll Die Go Home",
+    "path": "E:/games_genre/games_tmp_for_dev/Roll, Die, Go Home",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Roll, Die, Go Home/Roll, Die, Go Home.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Roots",
+    "path": "E:/games_genre/games_tmp_for_dev/Roots_Win_1.5",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Roots_Win_1.5/Roots.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Roulette Hero",
+    "path": "E:/games_genre/games_tmp_for_dev/RouletteHero_Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/RouletteHero_Windows/Roulette Hero.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Santa's Risky Ride",
+    "path": "E:/games_genre/games_tmp_for_dev/Santa's Risky Ride (Windows 64bit)",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Santa's Risky Ride (Windows 64bit)/Santa's Risky Ride.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Scare Tactics",
+    "path": "E:/games_genre/games_tmp_for_dev/ScareTactics/windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ScareTactics/windows/ScareTactics.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "SD-SEPT12",
+    "path": "E:/games_genre/games_tmp_for_dev/SD-KS-V5.1",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SD-KS-V5.1/SD-SEPT12.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sea Loot",
+    "path": "E:/games_genre/games_tmp_for_dev/SeaLoot_Win",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SeaLoot_Win/SeaLoot.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Seaway",
+    "path": "E:/games_genre/games_tmp_for_dev/Seaway",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Seaway/Seaway.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sector Six Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Sector Six 1.6.1 Itch.io Demo",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Sector Six 1.6.1 Itch.io Demo/SectorSix.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sentinels Of The Lost",
+    "path": "E:/games_genre/games_tmp_for_dev/sentinels-of-the-lost-windows-release",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/sentinels-of-the-lost-windows-release/SOTL.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Settler's Dawn",
+    "path": "E:/games_genre/games_tmp_for_dev/Settler'sDawn",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Settler'sDawn/Settler'sDawn.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Ship IT",
+    "path": "E:/games_genre/games_tmp_for_dev/ShipIT",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ShipIT/ShipIT.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Shogun Showdown",
+    "path": "E:/games_genre/games_tmp_for_dev/ShogunShowdown_Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ShogunShowdown_Win/ShogunShowdown.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "SHOOTOUT Inc",
+    "path": "E:/games_genre/games_tmp_for_dev/SHOOTOUT_Inc-r002-win64",
+    "engine": "NW.js",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SHOOTOUT_Inc-r002-win64/SHOOTOUT_Inc.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Shotgun Samurai",
+    "path": "E:/games_genre/games_tmp_for_dev/ShotgunSamurai",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ShotgunSamurai/Capstone Project.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Shroud Revival",
+    "path": "E:/games_genre/games_tmp_for_dev/Shroud_2",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Shroud_2/Shroud Revival.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Spark In The Dark Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/SID-0.017.7-itch/SID-0.017.7-ITCH",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SID-0.017.7-itch/SID-0.017.7-ITCH/Spark in the Dark.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sisyphean Struggle",
+    "path": "E:/games_genre/games_tmp_for_dev/SisypheanStruggle",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SisypheanStruggle/Sisyphean Struggle.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Six Cats Under",
+    "path": "E:/games_genre/games_tmp_for_dev/Six Cats Under - Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Six Cats Under - Windows/Six Cats Under.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Slash N Pack",
+    "path": "E:/games_genre/games_tmp_for_dev/SlashNPack",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SlashNPack/QuarantineJam2020.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sleepy Bunny",
+    "path": "E:/games_genre/games_tmp_for_dev/SleepyBunny",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SleepyBunny/SleepyBunny.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Slide In The Woods",
+    "path": "E:/games_genre/games_tmp_for_dev/Slide in the Woods WINDOWS",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Slide in the Woods WINDOWS/Slide in the woods.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Slime Store Simulator",
+    "path": "E:/games_genre/games_tmp_for_dev/Slime Store Simulator",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Slime Store Simulator/My project.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Slime Store Simulator 2024",
+    "path": "E:/games_genre/games_tmp_for_dev/Slime Store Simulator 2024",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Slime Store Simulator 2024/Slime Store Simulator 2024.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Smalls Island Woes",
+    "path": "E:/games_genre/games_tmp_for_dev/Smalls Island Woes 2.01",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Smalls Island Woes 2.01/SmallsIslandWoes.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Some Assembly Required Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/SomeAssemblyRequiredDemo",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SomeAssemblyRequiredDemo/SomeAssemblyRequired.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Space Cleaners!",
+    "path": "E:/games_genre/games_tmp_for_dev/SpaceCleaners",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SpaceCleaners/Space Cleaners!.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Spacehog",
+    "path": "E:/games_genre/games_tmp_for_dev/SPACEHOG",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SPACEHOG/SPACEHOG.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Spaceship Looter Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Spaceship_Looter_Demo",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Spaceship_Looter_Demo/Spaceship_Looter_Demo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Space Slink",
+    "path": "E:/games_genre/games_tmp_for_dev/SpaceSlink",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SpaceSlink/SpaceSlink.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Space Ghosts Can't Kill You",
+    "path": "E:/games_genre/games_tmp_for_dev/space_ghosts_cant_kill_you_windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/space_ghosts_cant_kill_you_windows/7DRL.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Spall Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Spall Demo",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Spall Demo/Spall.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Speedza",
+    "path": "E:/games_genre/games_tmp_for_dev/speedza-win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/speedza-win/speedza.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Spell Sling",
+    "path": "E:/games_genre/games_tmp_for_dev/Spell Sling post jam",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Spell Sling post jam/Spell Sling.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Spellsworn",
+    "path": "E:/games_genre/games_tmp_for_dev/spellsworn_win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/spellsworn_win/SPELLSWORN.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Spiral Spire",
+    "path": "E:/games_genre/games_tmp_for_dev/Spiral Spire",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Spiral Spire/Spiral Spire.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Spirit Rover",
+    "path": "E:/games_genre/games_tmp_for_dev/Spirit Rover (win)/Spirit Rover",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Spirit Rover (win)/Spirit Rover/Spirit Rover.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Spit It Lama!",
+    "path": "E:/games_genre/games_tmp_for_dev/SPIT_IT_LAMA-PENNE",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SPIT_IT_LAMA-PENNE/Spit It Lama!.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Stack Protocol",
+    "path": "E:/games_genre/games_tmp_for_dev/Stack Prootocol",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Stack Prootocol/Stack Prootocol.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Stackrifice Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/Stackrifice_alpha",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Stackrifice_alpha/Stackrifice_alpha.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Stardust Arena Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/stardust-arena-alpha-win",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/stardust-arena-alpha-win/stardust arena.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Steambrawl",
+    "path": "E:/games_genre/games_tmp_for_dev/Steambrawl (2)",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Steambrawl (2)/AMB.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Stein World",
+    "path": "E:/games_genre/games_tmp_for_dev/stein.world-win32-x64-0.3.29",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/stein.world-win32-x64-0.3.29/stein.world.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sthell",
+    "path": "E:/games_genre/games_tmp_for_dev/Sthell",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Sthell/Steel.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Stormbridge Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Stormbridge Windows v0.83.1_Demo",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Stormbridge Windows v0.83.1_Demo/StormbridgeDemo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Stroll Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/STROLL Windows v0.03c/STROLL_windows_alpha",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/STROLL Windows v0.03c/STROLL_windows_alpha/Stroll.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Stylon",
+    "path": "E:/games_genre/games_tmp_for_dev/Stylon",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Stylon/Stylon.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sucker Munch",
+    "path": "E:/games_genre/games_tmp_for_dev/SuckerMunch Win32",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SuckerMunch Win32/SuckerMunch.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sully's Ascension",
+    "path": "E:/games_genre/games_tmp_for_dev/sullys-ascension-win-64/Sully'sAscension",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/sullys-ascension-win-64/Sully'sAscension/Sully's Ascension.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Summon Dice",
+    "path": "E:/games_genre/games_tmp_for_dev/SUMMonDICE",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SUMMonDICE/SUMMonDICE.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sumwaah",
+    "path": "E:/games_genre/games_tmp_for_dev/Sumwaah",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Sumwaah/Sumwaah.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sunburn",
+    "path": "E:/games_genre/games_tmp_for_dev/Sunburn - PC",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Sunburn - PC/Sunburn.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Sunken",
+    "path": "E:/games_genre/games_tmp_for_dev/Sunken_V1_Windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Sunken_V1_Windows/Sunken_V1.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Super Bash Goats",
+    "path": "E:/games_genre/games_tmp_for_dev/Super Bash Goats 64-bit",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Super Bash Goats 64-bit/SuperBashGoats.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Super Bean Isle",
+    "path": "E:/games_genre/games_tmp_for_dev/Super Bean Isle Windows/1.2.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Super Bean Isle Windows/1.2.1/Super Bean Isle.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Super Item RPG",
+    "path": "E:/games_genre/games_tmp_for_dev/Super item RPG",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Super item RPG/Super item RPG.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Superfluous Sand Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/superfluous-sand-windows",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/superfluous-sand-windows/Sand Alpha.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Super Weird Game Kit",
+    "path": "E:/games_genre/games_tmp_for_dev/SuperWEIRDGameKit_Playable_Windows/SuperWEIRDGameKit",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SuperWEIRDGameKit_Playable_Windows/SuperWEIRDGameKit/SuperWEIRDGameKit.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "System Upkeep",
+    "path": "E:/games_genre/games_tmp_for_dev/SYSTEM UPKEEP",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/SYSTEM UPKEEP/SYSTEM UPKEEP.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Takume",
+    "path": "E:/games_genre/games_tmp_for_dev/takume-windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/takume-windows/Takume.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Terminal Colony",
+    "path": "E:/games_genre/games_tmp_for_dev/Terminal Colony Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Terminal Colony Win/Terminal Colony.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Terminal Verdicts",
+    "path": "E:/games_genre/games_tmp_for_dev/Terminal Verdicts",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Terminal Verdicts/Terminal Verdicts.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Terminus",
+    "path": "E:/games_genre/games_tmp_for_dev/Terminus-13",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Terminus-13/terminus.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Butterfly",
+    "path": "E:/games_genre/games_tmp_for_dev/THE BUTTERFLY v1.0.8",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/THE BUTTERFLY v1.0.8/THE BUTTERFLY.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Fertile Crescent",
+    "path": "E:/games_genre/games_tmp_for_dev/The Fertile Crescent",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/The Fertile Crescent/The Fertile Crescent Launcher.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Highway Gambit",
+    "path": "E:/games_genre/games_tmp_for_dev/The Highway Gambit",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/The Highway Gambit/The Highway Gambit.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Open House",
+    "path": "E:/games_genre/games_tmp_for_dev/The Open House WIN",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/The Open House WIN/The Open House.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Petrified King",
+    "path": "E:/games_genre/games_tmp_for_dev/The Petrified King - Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/The Petrified King - Win/The Petrified King.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Snow Of Basidia",
+    "path": "E:/games_genre/games_tmp_for_dev/The Snow of Basidia v1.1/The Snow of Basidia",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/The Snow of Basidia v1.1/The Snow of Basidia/The Snow of Basidia.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Sweet Spot Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/The Sweet Spot Demo v0.4.0 Windows 64-bit",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/The Sweet Spot Demo v0.4.0 Windows 64-bit/The Sweet Spot Demo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Wanted Merchant",
+    "path": "E:/games_genre/games_tmp_for_dev/The Wanted Merchant Win v2.0",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/The Wanted Merchant Win v2.0/The Wanted Merchant.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Mutated Reality",
+    "path": "E:/games_genre/games_tmp_for_dev/the-mutated-reality-0.1.7548.38025",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/the-mutated-reality-0.1.7548.38025/TheMutatedReality.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Banshee",
+    "path": "E:/games_genre/games_tmp_for_dev/TheBanshee_Win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TheBanshee_Win/The Banshee.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Final Descent",
+    "path": "E:/games_genre/games_tmp_for_dev/TheFinalDescent_BugFixes_3",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TheFinalDescent_BugFixes_3/ProjectLegion.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The King's Smithy",
+    "path": "E:/games_genre/games_tmp_for_dev/TheKingsSmithy",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TheKingsSmithy/TheKingsSmithy.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Legend Of Kassappa",
+    "path": "E:/games_genre/games_tmp_for_dev/TheLegendOfKassappa-v06-WinAndMac/Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TheLegendOfKassappa-v06-WinAndMac/Windows/TheLegendOfKassappa-v06.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Mystery Cleaner",
+    "path": "E:/games_genre/games_tmp_for_dev/TheMysteryCleaner (2)",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TheMysteryCleaner (2)/The Mystery Cleaner.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Protectorate",
+    "path": "E:/games_genre/games_tmp_for_dev/TheProtectorate",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TheProtectorate/TheProtectorate.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Third Wish",
+    "path": "E:/games_genre/games_tmp_for_dev/TheThirdWish_Win_v14",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TheThirdWish_Win_v14/The Third Wish.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Wickedness",
+    "path": "E:/games_genre/games_tmp_for_dev/TheWickedness",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TheWickedness/JamGame.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Desperation Of Benjamin Corbit",
+    "path": "E:/games_genre/games_tmp_for_dev/The_Desperation_of_Benjamin_Corbit_0.37",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/The_Desperation_of_Benjamin_Corbit_0.37/The Desperation of Benjamin Corbit.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Time To Strike Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/TimeToStrikeDemo-0.4.2-Build",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TimeToStrikeDemo-0.4.2-Build/Time to Strike Demo.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Tiny Rogues",
+    "path": "E:/games_genre/games_tmp_for_dev/Tiny Rogues",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Tiny Rogues/Tiny Rogues.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Tiny Universe",
+    "path": "E:/games_genre/games_tmp_for_dev/Tiny Universe - Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Tiny Universe - Windows/Tiny Universe.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Tiny Orb",
+    "path": "E:/games_genre/games_tmp_for_dev/TinyOrb_10_Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TinyOrb_10_Windows/Tiny Orb.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Tiny Towns",
+    "path": "E:/games_genre/games_tmp_for_dev/TinyTowns_Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TinyTowns_Windows/Tiny Towns.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Tiny Wreckers",
+    "path": "E:/games_genre/games_tmp_for_dev/TinyWreckersWindows",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TinyWreckersWindows/TinyWreckers.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Tiny Town",
+    "path": "E:/games_genre/games_tmp_for_dev/Tiny_Town/Windows",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Tiny_Town/Windows/TinyTown.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Totem Tower",
+    "path": "E:/games_genre/games_tmp_for_dev/TotemTower/TotemTower",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TotemTower/TotemTower/TotemTower.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Tower Of Pertho",
+    "path": "E:/games_genre/games_tmp_for_dev/Tower of Pertho V1.0.6",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Tower of Pertho V1.0.6/Tower of Pertho.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Toybox Tower",
+    "path": "E:/games_genre/games_tmp_for_dev/Toybox-Tower",
+    "engine": "Unreal",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Toybox-Tower/GMTK_INTRINSIC.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Toy Kingdom",
+    "path": "E:/games_genre/games_tmp_for_dev/ToyKingdom2/ToyKingdom2 BackUpBuild",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ToyKingdom2/ToyKingdom2 BackUpBuild/Toy Kingdom.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Trails Of Tenere Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/trails-of-tenere-windows-alpha",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/trails-of-tenere-windows-alpha/TrailsOfTenere.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Data Defense",
+    "path": "E:/games_genre/games_tmp_for_dev/TrainJamBuild",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TrainJamBuild/DataDefense.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Trash Empire",
+    "path": "E:/games_genre/games_tmp_for_dev/TrashEmpire",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TrashEmpire/TrashEmpire.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Tsunami",
+    "path": "E:/games_genre/games_tmp_for_dev/Tsunami",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Tsunami/Tsunami.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Turbo Island Purger",
+    "path": "E:/games_genre/games_tmp_for_dev/TurboIslandPurger",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/TurboIslandPurger/Turbo Island Purger.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Two-Timin' Towers",
+    "path": "E:/games_genre/games_tmp_for_dev/Two Timin' Towers 1.21 - Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Two Timin' Towers 1.21 - Windows/Two-Timin' Towers.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Undaunted Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/Undaunted_v0.0.2b_AlphaBuild",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Undaunted_v0.0.2b_AlphaBuild/Undaunted.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Undead Valley",
+    "path": "E:/games_genre/games_tmp_for_dev/Undead Valley v0.0.5.1",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Undead Valley v0.0.5.1/Undead Valley v0.0.5.1.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Unmortis",
+    "path": "E:/games_genre/games_tmp_for_dev/Unmortis_Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Unmortis_Windows/Unmortis.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Unshine Arcade",
+    "path": "E:/games_genre/games_tmp_for_dev/unshine-arcade-windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/unshine-arcade-windows/Unshine Arcade.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Circularis",
+    "path": "E:/games_genre/games_tmp_for_dev/Upload_Build_Circularis",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Upload_Build_Circularis/Circularis.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Vengeance Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/Vengeance (ALPHA)",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Vengeance (ALPHA)/Vengeance.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Hell Diggers",
+    "path": "E:/games_genre/games_tmp_for_dev/ViciousCircle/Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ViciousCircle/Windows/HellDiggers.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Void Pachinko",
+    "path": "E:/games_genre/games_tmp_for_dev/VoidPachinkoITCHIO",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/VoidPachinkoITCHIO/VoidPachinkoITCHIO.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Void Salvage",
+    "path": "E:/games_genre/games_tmp_for_dev/void_salvage_04",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/void_salvage_04/void_salvage_04.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Warnet Bocil Simulator",
+    "path": "E:/games_genre/games_tmp_for_dev/Warnet 3",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Warnet 3/Warnet Bocil Simulator.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "The Waystone's Toll",
+    "path": "E:/games_genre/games_tmp_for_dev/WaystonesTollWindows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/WaystonesTollWindows/The Waystone's Toll.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "War Drive",
+    "path": "E:/games_genre/games_tmp_for_dev/wd203_drmfree",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/wd203_drmfree/warDrive.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "We Don't Talk About It",
+    "path": "E:/games_genre/games_tmp_for_dev/WeDontTalkAboutIt",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/WeDontTalkAboutIt/WeDontTalkAboutIt.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "We Have A Frog Problem",
+    "path": "E:/games_genre/games_tmp_for_dev/WeHaveAFrogProblem",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/WeHaveAFrogProblem/We Have a Frog Problem.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Westcraft",
+    "path": "E:/games_genre/games_tmp_for_dev/Westcraft_v03",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Westcraft_v03/Westcraft.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Whack The Infected",
+    "path": "E:/games_genre/games_tmp_for_dev/WhackTheInfected_win",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/WhackTheInfected_win/Whack The Infected.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "What Lurks Below",
+    "path": "E:/games_genre/games_tmp_for_dev/What.Lurks.Below.Windows.v1.3/What Lurks Below",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/What.Lurks.Below.Windows.v1.3/What Lurks Below/What Lurks Below.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Whatta Horrible Year Early Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/Whatta Horrible Year EARLY DEMO v2",
+    "engine": "GameMaker",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Whatta Horrible Year EARLY DEMO v2/Whatta Horrible Year EARLY DEMO v2.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Whoppits",
+    "path": "E:/games_genre/games_tmp_for_dev/Whoppits",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Whoppits/Whoppits.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Wildfire",
+    "path": "E:/games_genre/games_tmp_for_dev/WildFire v1.1.2.2 Windows",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/WildFire v1.1.2.2 Windows/WILDFIRE.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Robot Evolution Fight",
+    "path": "E:/games_genre/games_tmp_for_dev/win64 (1)/win64",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/win64 (1)/win64/Robot Evolution Fight.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Warriors",
+    "path": "E:/games_genre/games_tmp_for_dev/windows_0.0.3a_custom/war.0.0.3a",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/windows_0.0.3a_custom/war.0.0.3a/Warriors.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "WitchWay",
+    "path": "E:/games_genre/games_tmp_for_dev/WitchWay0721io",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/WitchWay0721io/WitchWay.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Wreck Arena",
+    "path": "E:/games_genre/games_tmp_for_dev/Wreck Arena 0.1.0 Windows/Wreck Arena 0.1.0",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Wreck Arena 0.1.0 Windows/Wreck Arena 0.1.0/WreckArena.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "WWF (LD45)",
+    "path": "E:/games_genre/games_tmp_for_dev/WWF_v0.6_WIN64",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/WWF_v0.6_WIN64/LD45.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "XMechina",
+    "path": "E:/games_genre/games_tmp_for_dev/XMechina_V0.10a/XMechina_V0.1a",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/XMechina_V0.10a/XMechina_V0.1a/XMechina - MechGameJam 2023.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Yakoana Demo",
+    "path": "E:/games_genre/games_tmp_for_dev/yakoana-windows-demo",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/yakoana-windows-demo/Yakoana.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Zeitgeist",
+    "path": "E:/games_genre/games_tmp_for_dev/Zeitgeist 0.3.5",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Zeitgeist 0.3.5/Zeitgeist.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "ZpellCatz Pumpkin Prologue",
+    "path": "E:/games_genre/games_tmp_for_dev/ZpellCatz Pumpkin Prologue",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/ZpellCatz Pumpkin Prologue/ZpellCatz Pumpkin Prologue.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Zumbi Blocks 2 Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/Zumbi Blocks 2.1.1.1_open_alpha_itch (64bit)/Zumbi Blocks 2.1.1.1_itch_alpha (64bit)",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/Zumbi Blocks 2.1.1.1_open_alpha_itch (64bit)/Zumbi Blocks 2.1.1.1_itch_alpha (64bit)/ZumbiBlocks2.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Epiphany Alpha",
+    "path": "E:/games_genre/games_tmp_for_dev/[Alpha v0.0.2] Epiphany - Windows",
+    "engine": "Unknown",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/[Alpha v0.0.2] Epiphany - Windows/Epiphany.exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  },
+  {
+    "name": "Terminal",
+    "path": "E:/games_genre/games_tmp_for_dev/[TERMINAL]",
+    "engine": "Unity",
+    "executable_path": "E:/games_genre/games_tmp_for_dev/[TERMINAL]/[TERMINAL].exe",
+    "itch_io_url": "",
+    "steam_url": ""
+  }
+]
