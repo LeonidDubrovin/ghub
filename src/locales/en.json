@@ -39,7 +39,8 @@
     "count_other": "games"
   },
   "errors": {
-    "gameAlreadyRunning": "{{title}} is already running"
+    "gameAlreadyRunning": "{{title}} is already running",
+    "noInstallFound": "No install found for {{title}}"
   },
   "actions": {
     "play": "Play",

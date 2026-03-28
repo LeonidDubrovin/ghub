@@ -149,7 +149,11 @@ export default function GameDetailsView({
               onContextMenu={e => onContextMenu?.(e, g)}
               onMouseEnter={() => setHov(g.id)}
               onMouseLeave={() => setHov(null)}
-              className={`flex items-center gap-3 mx-2 px-2 py-2 rounded-lg cursor-pointer select-none ${isSelected ? 'bg-accent/30 ring-1 ring-accent' : hov === g.id ? 'bg-surface-200/70' : 'hover:bg-surface-200/40'} ${r && !isSelected ? 'bg-green-500/10' : ''} ${updating ? 'bg-yellow-500/20 animate-pulse' : ''}`}>
+              className={`flex items-center gap-3 mx-2 px-2 py-2 rounded-lg cursor-pointer select-none
+                ${isSelected ? 'bg-accent/30 ring-1 ring-accent' : hov === g.id ? 'bg-surface-200/70' : 'hover:bg-surface-200/40'}
+                ${g.times_launched === 0 && !isSelected && !r && !updating ? 'bg-surface-100/50 border-l-4 border-solid border-gray-500' : ''}
+                ${r && !isSelected ? 'bg-green-500/10' : ''}
+                ${updating ? 'bg-yellow-500/20 animate-pulse' : ''}`}>
               
               {isSelectionMode && (
                 <div className="flex-shrink-0 mr-1">

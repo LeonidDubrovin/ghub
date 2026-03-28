@@ -332,11 +332,18 @@ function App() {
       setTimeout(() => setLaunchError(null), 3000);
       return;
     }
-    const spaceId = selectedSpaceId || spaces[0]?.id;
-    if (!spaceId) return;
+    // Use the game's own space_id from its install, not the UI selected space
+    const spaceId = game.space_id || selectedSpaceId || spaces[0]?.id;
+    if (!spaceId) {
+      setLaunchError(t('errors.noInstallFound', { title: game.title }));
+      setTimeout(() => setLaunchError(null), 5000);
+      return;
+    }
     try {
       setRunningGames(prev => new Set([...prev, game.id]));
       await invoke('launch_game', { gameId: game.id, spaceId });
+      // Refetch games to update times_launched and other stats
+      refetchGames();
     } catch (err) {
       setRunningGames(prev => {
         const next = new Set(prev);

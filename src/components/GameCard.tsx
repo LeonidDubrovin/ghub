@@ -58,12 +58,12 @@ export default function GameCard({
   const coverUrl = getCoverUrl(game.cover_image);
 
   const hasBeenPlayed = game.times_launched > 0;
-  
+   
   return (
     <div
-      className={`card group cursor-pointer relative border-2 ${
-        hasBeenPlayed ? 'border-blue-500/30' : 'border-transparent'
-      } ${isRunning ? 'ring-2 ring-green-500/50' : ''} ${updating ? 'ring-2 ring-yellow-500/50' : ''}`}
+      className={`card group cursor-pointer relative ${
+        hasBeenPlayed ? 'border-2 border-blue-500/30' : 'bg-surface-100/60'
+      } ${isRunning ? 'ring-2 ring-green-500/50' : ''} ${updating ? 'ring-2 ring-yellow-500/50' : ''} ${!isRunning && !updating ? 'hover:ring-2 hover:ring-accent/30 hover:bg-surface-100/80' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu?.(e, game); }}

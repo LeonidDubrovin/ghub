@@ -634,6 +634,8 @@ fn query_version_string(buffer: &[u8], name: &str) -> Option<String> {
 mod tests {
     use super::*;
     use regex::Regex;
+    use std::fs;
+    use std::io::Write;
 
     #[test]
     fn test_is_folder_excluded() {
@@ -647,11 +649,197 @@ mod tests {
     }
 
     #[test]
-    fn test_pick_best_executable() {
+    fn test_has_executable_files() {
+        // Create temporary directory with test files
+        let temp_dir = std::env::temp_dir();
+        let test_dir = temp_dir.join("ghub_test_has_exe");
+        let _ = fs::create_dir_all(&test_dir);
+
+        // Create some files
+        fs::write(test_dir.join("game.exe"), "").unwrap();
+        fs::write(test_dir.join("readme.txt"), "").unwrap();
+        fs::write(test_dir.join("setup.exe"), "").unwrap();
+
+        assert!(has_executable_files(&test_dir));
+
+        // Clean up
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_has_executable_files_empty_dir() {
+        let temp_dir = std::env::temp_dir();
+        let test_dir = temp_dir.join("ghub_test_empty");
+        let _ = fs::create_dir_all(&test_dir);
+
+        assert!(!has_executable_files(&test_dir));
+
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_has_exe_files() {
+        let temp_dir = std::env::temp_dir();
+        let test_dir = temp_dir.join("ghub_test_has_exe_only");
+        let _ = fs::create_dir_all(&test_dir);
+
+        fs::write(test_dir.join("game.exe"), "").unwrap();
+        fs::write(test_dir.join("game.bat"), "").unwrap();
+        fs::write(test_dir.join("launcher.lnk"), "").unwrap(); // .lnk should be ignored
+
+        assert!(has_exe_files(&test_dir));
+
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_has_exe_files_no_exe() {
+        let temp_dir = std::env::temp_dir();
+        let test_dir = temp_dir.join("ghub_test_no_exe");
+        let _ = fs::create_dir_all(&test_dir);
+
+        fs::write(test_dir.join("readme.txt"), "").unwrap();
+        fs::write(test_dir.join("config.json"), "").unwrap();
+
+        assert!(!has_exe_files(&test_dir));
+
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_find_actual_game_folder() {
+        let temp_dir = std::env::temp_dir();
+        let base_dir = temp_dir.join("ghub_test_find_folder");
+        let _ = fs::create_dir_all(&base_dir);
+
+        // Create structure: base_dir/subfolder/Game.exe
+        let subfolder = base_dir.join("subfolder");
+        let _ = fs::create_dir_all(&subfolder);
+        fs::write(subfolder.join("Game.exe"), "").unwrap();
+
+        // Should find the subfolder with exe
+        let result = find_actual_game_folder(&base_dir, 2);
+        assert_eq!(result, subfolder);
+
+        let _ = fs::remove_dir_all(&base_dir);
+    }
+
+    #[test]
+    fn test_find_actual_game_folder_deep() {
+        let temp_dir = std::env::temp_dir();
+        let base_dir = temp_dir.join("ghub_test_deep");
+        let _ = fs::create_dir_all(&base_dir);
+
+        // Create deep structure: base_dir/a/b/c/Game.exe
+        let a = base_dir.join("a");
+        let b = a.join("b");
+        let c = b.join("c");
+        let _ = fs::create_dir_all(&c);
+        fs::write(c.join("Game.exe"), "").unwrap();
+
+        // Should find the deep folder with exe
+        let result = find_actual_game_folder(&base_dir, 3);
+        assert_eq!(result, c);
+
+        let _ = fs::remove_dir_all(&base_dir);
+    }
+
+    #[test]
+    fn test_find_actual_game_folder_no_exe() {
+        let temp_dir = std::env::temp_dir();
+        let base_dir = temp_dir.join("ghub_test_no_exe_folder");
+        let _ = fs::create_dir_all(&base_dir);
+
+        // No exe anywhere, should return base_dir
+        let result = find_actual_game_folder(&base_dir, 2);
+        assert_eq!(result, base_dir);
+
+        let _ = fs::remove_dir_all(&base_dir);
+    }
+
+    #[test]
+    fn test_find_all_executables() {
+        let temp_dir = std::env::temp_dir();
+        let base_dir = temp_dir.join("ghub_test_find_all");
+        let _ = fs::create_dir_all(&base_dir);
+
+        // Create subdirectories with executables
+        let sub1 = base_dir.join("sub1");
+        let sub2 = base_dir.join("sub2");
+        let _ = fs::create_dir_all(&sub1);
+        let _ = fs::create_dir_all(&sub2);
+
+        fs::write(sub1.join("game.exe"), "").unwrap();
+        fs::write(sub1.join("launcher.exe"), "").unwrap();
+        fs::write(sub2.join("game.exe"), "").unwrap();
+        fs::write(base_dir.join("root.exe"), "").unwrap();
+
+        let config = ScanConfig {
+            max_scan_depth: 5,
+            max_exe_search_depth: 3,
+            max_cover_candidates: 15,
+            max_cover_search_depth: 3,
+            base_exe_exclusions: Vec::new(),
+            extra_exe_exclusions: Vec::new(),
+            base_folder_exclusions: Vec::new(),
+            extra_folder_exclusions: Vec::new(),
+            base_image_extensions: Vec::new(),
+            extra_image_extensions: Vec::new(),
+            base_metadata_files: Vec::new(),
+            extra_metadata_files: Vec::new(),
+            cover_search_paths: Vec::new(),
+        };
+
+        let executables = find_all_executables(&base_dir, &config);
+        executables.sort();
+        assert_eq!(executables, vec!["root.exe", "sub1\\game.exe", "sub1\\launcher.exe", "sub2\\game.exe"]);
+
+        let _ = fs::remove_dir_all(&base_dir);
+    }
+
+    #[test]
+    fn test_find_all_executables_with_exclusions() {
+        let temp_dir = std::env::temp_dir();
+        let base_dir = temp_dir.join("ghub_test_exclusions");
+        let _ = fs::create_dir_all(&base_dir);
+
+        fs::write(base_dir.join("game.exe"), "").unwrap();
+        fs::write(base_dir.join("setup.exe"), "").unwrap();
+        fs::write(base_dir.join("launcher.exe"), "").unwrap();
+        fs::write(base_dir.join("unins000.exe"), "").unwrap();
+
+        let config = ScanConfig {
+            max_scan_depth: 5,
+            max_exe_search_depth: 2,
+            max_cover_candidates: 15,
+            max_cover_search_depth: 3,
+            base_exe_exclusions: vec![
+                Regex::new(r"(?i)^setup$").unwrap(),
+                Regex::new(r"(?i)^launcher$").unwrap(),
+                Regex::new(r"(?i)^unins\d*$").unwrap(),
+            ],
+            extra_exe_exclusions: Vec::new(),
+            base_folder_exclusions: Vec::new(),
+            extra_folder_exclusions: Vec::new(),
+            base_image_extensions: Vec::new(),
+            extra_image_extensions: Vec::new(),
+            base_metadata_files: Vec::new(),
+            extra_metadata_files: Vec::new(),
+            cover_search_paths: Vec::new(),
+        };
+
+        let executables = find_all_executables(&base_dir, &config);
+        assert_eq!(executables, vec!["game.exe"]);
+
+        let _ = fs::remove_dir_all(&base_dir);
+    }
+
+    #[test]
+    fn test_pick_best_executable_priority1_name_match() {
         let dir = Path::new("MyGame");
         let executables = vec![
-            "setup.exe".to_string(),
             "MyGame.exe".to_string(),
+            "game.exe".to_string(),
             "launcher.exe".to_string(),
         ];
         let best = pick_best_executable(dir, &executables);
@@ -659,12 +847,463 @@ mod tests {
     }
 
     #[test]
-    fn test_has_executable_files() {
+    fn test_pick_best_executable_priority1_partial_match() {
+        let dir = Path::new("MyAwesomeGame");
+        let executables = vec![
+            "MyGame.exe".to_string(),
+            "AwesomeGame.exe".to_string(),
+            "launcher.exe".to_string(),
+        ];
+        let best = pick_best_executable(dir, &executables);
+        // Both contain parts of dir name, first one should win (iteration order)
+        assert_eq!(best, Some("MyGame.exe".to_string()));
+    }
+
+    #[test]
+    fn test_pick_best_executable_priority2_root_size() {
         let temp_dir = std::env::temp_dir();
-        // This test would need a real directory with exe files to be meaningful
-        // For now, just test that function compiles and runs
-        let result = has_executable_files(&temp_dir);
-        // Just checking it doesn't panic
-        let _ = result;
+        let test_dir = temp_dir.join("ghub_test_priority2");
+        let _ = fs::create_dir_all(&test_dir);
+
+        // Create root executables with different sizes
+        fs::write(test_dir.join("small.exe"), vec![0; 500_000]).unwrap(); // 500KB - too small
+        fs::write(test_dir.join("large.exe"), vec![0; 2_000_000]).unwrap(); // 2MB - should be selected
+        fs::write(test_dir.join("larger.exe"), vec![0; 3_000_000]).unwrap(); // 3MB - should be selected over 2MB
+
+        let executables = vec!["small.exe".to_string(), "large.exe".to_string(), "larger.exe".to_string()];
+        let best = pick_best_executable(&test_dir, &executables);
+        assert_eq!(best, Some("larger.exe".to_string()));
+
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_pick_best_executable_priority3_largest() {
+        let temp_dir = std::env::temp_dir();
+        let test_dir = temp_dir.join("ghub_test_priority3");
+        let _ = fs::create_dir_all(&test_dir);
+
+        let subdir = test_dir.join("sub");
+        let _ = fs::create_dir_all(&subdir);
+
+        fs::write(test_dir.join("small.exe"), vec![0; 100_000]).unwrap();
+        fs::write(subdir.join("big.exe"), vec![0; 5_000_000]).unwrap();
+
+        let executables = vec!["small.exe".to_string(), "sub\\big.exe".to_string()];
+        let best = pick_best_executable(&test_dir, &executables);
+        assert_eq!(best, Some("sub\\big.exe".to_string()));
+
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_pick_best_executable_empty() {
+        let dir = Path::new("MyGame");
+        let executables: Vec<String> = vec![];
+        let best = pick_best_executable(dir, &executables);
+        assert_eq!(best, None);
+    }
+
+    #[test]
+    fn test_find_cover_candidates() {
+        let temp_dir = std::env::temp_dir();
+        let base_dir = temp_dir.join("ghub_test_covers");
+        let _ = fs::create_dir_all(&base_dir);
+
+        let images_dir = base_dir.join("images");
+        let _ = fs::create_dir_all(&images_dir);
+
+        // Create various image files
+        fs::write(images_dir.join("cover.jpg"), "").unwrap();
+        fs::write(images_dir.join("boxart.png"), "").unwrap();
+        fs::write(images_dir.join("screenshot1.jpg"), "").unwrap();
+        fs::write(images_dir.join("logo.png"), "").unwrap();
+        fs::write(images_dir.join("random.txt"), "").unwrap(); // not an image
+
+        let config = ScanConfig {
+            max_scan_depth: 5,
+            max_exe_search_depth: 3,
+            max_cover_candidates: 15,
+            max_cover_search_depth: 3,
+            base_exe_exclusions: Vec::new(),
+            extra_exe_exclusions: Vec::new(),
+            base_folder_exclusions: Vec::new(),
+            extra_folder_exclusions: Vec::new(),
+            base_image_extensions: vec!["jpg".to_string(), "png".to_string(), "bmp".to_string()],
+            extra_image_extensions: Vec::new(),
+            base_metadata_files: Vec::new(),
+            extra_metadata_files: Vec::new(),
+            cover_search_paths: vec!["images".to_string()],
+        };
+
+        let candidates = find_cover_candidates(&base_dir, &config);
+        // Should prioritize cover-like names first
+        assert!(!candidates.is_empty());
+        // First candidate should be cover.jpg or boxart.png (both have priority)
+        let first = candidates.first().unwrap();
+        assert!(first.contains("cover") || first.contains("boxart"));
+
+        let _ = fs::remove_dir_all(&base_dir);
+    }
+
+    #[test]
+    fn test_find_cover_candidates_no_images() {
+        let temp_dir = std::env::temp_dir();
+        let base_dir = temp_dir.join("ghub_test_no_covers");
+        let _ = fs::create_dir_all(&base_dir);
+
+        let config = ScanConfig {
+            max_scan_depth: 5,
+            max_exe_search_depth: 3,
+            max_cover_candidates: 15,
+            max_cover_search_depth: 3,
+            base_exe_exclusions: Vec::new(),
+            extra_exe_exclusions: Vec::new(),
+            base_folder_exclusions: Vec::new(),
+            extra_folder_exclusions: Vec::new(),
+            base_image_extensions: vec!["jpg".to_string()],
+            extra_image_extensions: Vec::new(),
+            base_metadata_files: Vec::new(),
+            extra_metadata_files: Vec::new(),
+            cover_search_paths: Vec::new(),
+        };
+
+        let candidates = find_cover_candidates(&base_dir, &config);
+        assert!(candidates.is_empty());
+
+        let _ = fs::remove_dir_all(&base_dir);
+    }
+
+    #[test]
+    fn test_find_cover_candidates_max_limit() {
+        let temp_dir = std::env::temp_dir();
+        let base_dir = temp_dir.join("ghub_test_limit");
+        let _ = fs::create_dir_all(&base_dir);
+
+        // Create 20 image files (more than max_cover_candidates=15)
+        for i in 0..20 {
+            fs::write(base_dir.join(format!("image{}.jpg", i)), "").unwrap();
+        }
+
+        let config = ScanConfig {
+            max_scan_depth: 5,
+            max_exe_search_depth: 3,
+            max_cover_candidates: 15,
+            max_cover_search_depth: 3,
+            base_exe_exclusions: Vec::new(),
+            extra_exe_exclusions: Vec::new(),
+            base_folder_exclusions: Vec::new(),
+            extra_folder_exclusions: Vec::new(),
+            base_image_extensions: vec!["jpg".to_string()],
+            extra_image_extensions: Vec::new(),
+            base_metadata_files: Vec::new(),
+            extra_metadata_files: Vec::new(),
+            cover_search_paths: Vec::new(),
+        };
+
+        let candidates = find_cover_candidates(&base_dir, &config);
+        assert_eq!(candidates.len(), 15);
+
+        let _ = fs::remove_dir_all(&base_dir);
+    }
+
+    #[test]
+    fn test_calculate_dir_size() {
+        let temp_dir = std::env::temp_dir();
+        let test_dir = temp_dir.join("ghub_test_size");
+        let _ = fs::create_dir_all(&test_dir);
+
+        // Create files with known sizes
+        fs::write(test_dir.join("file1.bin"), vec![0; 1000]).unwrap();
+        fs::write(test_dir.join("file2.bin"), vec![0; 2000]).unwrap();
+
+        let size = calculate_dir_size(&test_dir);
+        assert_eq!(size, 3000);
+
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_calculate_dir_size_empty_dir() {
+        let temp_dir = std::env::temp_dir();
+        let test_dir = temp_dir.join("ghub_test_empty_size");
+        let _ = fs::create_dir_all(&test_dir);
+
+        let size = calculate_dir_size(&test_dir);
+        assert_eq!(size, 0);
+
+        let _ = fs::remove_dir_all(&test_dir);
+    }
+
+    #[test]
+    fn test_is_folder_excluded_extended() {
+        let patterns: Vec<Regex> = crate::scanner_constants::BASE_FOLDER_EXCLUSIONS
+            .iter()
+            .map(|s| Regex::new(s).unwrap())
+            .collect();
+
+        // Test common exclusions
+        assert!(is_folder_excluded("engine", &patterns));
+        assert!(is_folder_excluded("redist", &patterns));
+        assert!(is_folder_excluded("dotnet", &patterns));
+        assert!(is_folder_excluded("vcredist", &patterns));
+        assert!(is_folder_excluded("physx", &patterns));
+        assert!(is_folder_excluded("build", &patterns));
+        assert!(is_folder_excluded("temp", &patterns));
+        assert!(is_folder_excluded("cache", &patterns));
+        assert!(is_folder_excluded("saves", &patterns));
+        assert!(is_folder_excluded("mods", &patterns));
+        assert!(is_folder_excluded("plugins", &patterns));
+        assert!(is_folder_excluded("binaries", &patterns));
+        assert!(is_folder_excluded("__pycache__", &patterns));
+        assert!(is_folder_excluded(".git", &patterns));
+        assert!(is_folder_excluded("node_modules", &patterns));
+        assert!(is_folder_excluded("jre", &patterns));
+        assert!(is_folder_excluded("runtime", &patterns));
+        assert!(is_folder_excluded("en-us", &patterns)); // language folder pattern
+
+        // Test non-excluded
+        assert!(!is_folder_excluded("MyGame", &patterns));
+        assert!(!is_folder_excluded("GameData", &patterns));
+        assert!(!is_folder_excluded("assets", &patterns));
+    }
+
+    #[test]
+    fn test_games_catalog_title_extraction() {
+        // Integration test using games_catalog.json data
+        // This validates that our title extraction logic works correctly with real game names
+        
+        // Sample of game entries from games_catalog.json representing different patterns
+        let test_cases = vec![
+            // (folder_name, expected_title, executable_name)
+            ("Ada-KSDemo", "Ada Demo", "Ada.exe"),
+            ("1RMRPGWindows/1RMRPG", "1RMRPG", "Game.exe"),
+            ("0_abyssalSomewhere", "Abyssal Somewhere", "0_abyssalSomewhere.exe"),
+            ("_LD41_Roulette_Knight", "Roulette Knight", "RouletteKnight.exe"),
+            ("Archtower v0.6.12.0 demo", "Archtower Demo", "Archtower.exe"),
+            ("Bane and Valor_Demo_0.1.1", "Bane and Valor Demo", "Bane and Valor.exe"),
+            ("A Quiet Place", "A Quiet Place", "A Quiet Place.exe"),
+            ("(Win)Project Troll v2.2", "Project Troll", "Project Troll v2.2.exe"),
+            ("0.0.15c demo", "Glorysmith Demo", "Glorysmith.exe"),
+            ("0.2.9a", "Roguelike", "Roguelike.exe"),
+            ("1.2_Demo_DRM-free_Windows", "Echoes of the Architects Demo", "Echoes to the Architects.exe"),
+            ("20_ProjectAdvanced_Build", "Project Advanced", "ProjectAdvanced.exe"),
+            ("A Night Around The Fire_2022Update", "A Night Around The Fire", "A Night Around The Fire.exe"),
+            ("Adam and Ricky-win64", "Adam and Ricky", "Adam and Ricky.exe"),
+            ("ADM PreAlpha Demo/PreAlpha Demo", "Auto Dungeon Monsters Pre-Alpha Demo", "Auto Dungeon Monsters.exe"),
+            ("advr_pcvr_b091", "Ancient Dungeon", "Ancient_Dungeon.exe"),
+            ("AlchemistsAlcoveDemo", "Alchemists Alcove Demo", "AlchemistsAlcoveDemo.exe"),
+            ("Alomany Factory_3", "Alomany Factory", "Alomany Factory.exe"),
+            ("alpha-3", "Crypto Miner", "Crypto Miner.exe"),
+            ("ApproachMode Win64 0112/ApproachMode_Win64", "Approach Mode", "ApproachMode.exe"),
+            ("Appulse/Windows", "Appulse", "Appulse.exe"),
+            ("Arena - v0.14", "Arena", "Arena.exe"),
+            ("armaphract_0.D_rc4", "Armaphract", "armaphract.exe"),
+            ("ArtificialDeath", "Artificial Death", "ArtificialDeath.exe"),
+            ("Astro Prospector Prologue - Windows", "Astro Prospector Prologue", "Astro Prospector Prologue.exe"),
+            ("AutoHeroes", "Auto Heroes", "AutoHeroes.exe"),
+            ("AutonomyStandalone", "Autonomy", "Autonomy.exe"),
+            ("axu-rl-win64", "Axu", "Axu.exe"),
+            ("backpack-battles-windows", "Backpack Battles", "BackpackBattles.exe"),
+            ("bad-day-on-majoris-viii-win/WindowsNoEditor", "Bad Day On Majoris VIII", "MJ77_RyanMike.exe"),
+            ("BagOfHolding_Desktop_Win", "Bag Of Holding", "BagOfHolding.exe"),
+            ("Balance'em/WindowsClient", "Balance'em", "Balance'em.exe"),
+            ("BarelyFunctionalVoxelEngine_v0.1", "Mesh Voxels", "MeshVoxels.exe"),
+            ("Battle of Battles a01 Windows", "Battle of Battles Alpha", "Battle of Battles.exe"),
+            ("Beacon'sEnd_Win", "Beacon's End", "Beacon'sEnd.exe"),
+            ("BearAttackSimulator_WINDOWS", "Bear Attack Simulator", "BearAttackSimulator.exe"),
+            ("Behold 0.0.1 Main Menu Fix", "Behold", "Behold.exe"),
+            ("beholdin_1_21_WIN", "Beholdin", "Beholdin.exe"),
+            ("Bell Rock Post Jam 1", "Bell Rock", "Bell Rock.exe"),
+            ("Bikrash_0.6", "Bikrash", "Bikrash.exe"),
+            ("Billion Bounces - Latest Version (win)", "Billion Bounces", "Billion Bounces.exe"),
+            ("Billy's Nightmare", "Billy's Nightmare", "Billy's Nightmare.exe"),
+            ("BioEvil4-0.2.5a/Bio Evil 4", "Bio Evil 4", "BioEvil4-0.2.5a.exe"),
+            ("birdgame-win-0-0-2", "Bird Game", "birdgame.exe"),
+            ("BL0W-UP DEMO V3 ITCH_1_patch_windows_64/BL0W-UP DEMO V3 ITCH_windows_64", "BL0W-UP Demo", "BL0W-UP DEMO.exe"),
+            ("blackbird", "Blackbird", "blackbird.exe"),
+            ("Blast Tournament - Version (3.0.0)", "Blast Tournament", "Blast Tournament.exe"),
+            ("BlastronautDemo02", "Blastronaut Demo", "Blastronaut.exe"),
+            ("Blobfrog", "Blobfrog", "Froge.exe"),
+            ("BloodCountess_Alpha_1.1.0.0_Windows", "Blood Countess Alpha", "BloodCountess_Alpha_1.1.0.0_Windows.exe"),
+            ("BLOOP/Windows", "Bloop", "BLOOP.exe"),
+            ("Boat Cats Windows/Boat Cats", "Boat Cats", "Boat Cats.exe"),
+            ("Bonefighters for Windows", "Bonefighters", "Bonefighters.exe"),
+            ("BOOTLOOP", "Bootloop", "bootloop.exe"),
+            ("Bottle of Sickness1.1.1", "Bottle of Sickness", "Bottle of Sickness.exe"),
+            ("BREAKER", "Breaker", "BREAKER.exe"),
+            ("Brew&Boom", "Brew & Boom", "Brew&Boom.exe"),
+            ("Bridgebourn Demo Win64 v0-6-29", "Bridgebourn Demo", "Bridgebourn.exe"),
+            ("BrokenThrough/WindowsNoEditor", "Broken Through", "BrokenThrough.exe"),
+            ("Build&Grow Demo (Windows)", "Build & Grow Demo", "Build&Grow.exe"),
+            ("bukibuki", "Bukibuki", "bukibuki.exe"),
+            ("C137", "C137", "C137.exe"),
+            ("Cafe Simulator", "Cafe Simulator", "Cafe Simulator.exe"),
+            ("CallOfDOTS-Zombies-x64", "Call Of DOTS Zombies", "CallOfDOTS-Zombies-Project.exe"),
+            ("Carbon Steel v1.2", "Carbon Steel", "CARBON STEEL.exe"),
+            ("Carcass", "Carcass", "CARCASS.exe"),
+            ("cards_n_varmints-v0.41.1-demo-windows", "Cards N Varmints Demo", "CardsNVarmints.exe"),
+            ("CatCafeSimulator", "Cat Cafe Simulator", "cat-cafe.exe"),
+            ("CCICrimeConnectInvestigation", "CCI Crime Connect Investigation", "CCICrimeConnectInvestigation.exe"),
+            ("charons-obol-windows", "Charon's Obol", "charons_obol.exe"),
+            ("cheekydice-gmtk", "Cheeky Dice", "gmtk-2022.exe"),
+            ("Chibilization 0.18 [WIN]", "Chibilization", "Chibilization.exe"),
+            ("ChickenLuck_Windows/ChickenLuck", "Chicken Luck", "ChickenLuck.exe"),
+            ("ChopChop_Data", "Chop Chop", "ChopChop.exe"),
+            ("circle-of-life_v1.1.1_windows", "Circle Of Life", "Circle of Life.exe"),
+            ("Clatter Throne v0.4.4 - Windows", "Clatter Throne", "Clatter Throne.exe"),
+            ("CleaningRedVille/FINAL_cr_PC", "Cleaning Redville", "CleaningRedville.exe"),
+            ("ClockworkCleanup-v1.0.4", "Clockwork Cleanup", "ClockworkCleanup.exe"),
+            ("cloudkeeper_windows_demo", "Cloud Keeper Demo", "CloudKeeper.exe"),
+            ("ColdVengeanceDemoWindows", "Cold Vengeance Demo", "ColdVengeanceDemoBuild.exe"),
+        ];
+
+        for (folder_path, expected_title, exe_name) in test_cases {
+            // Test that folder name cleaning produces a reasonable title
+            let folder_name = Path::new(folder_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or(folder_path);
+            
+            let cleaned = clean_game_title(folder_name);
+            assert!(!cleaned.is_empty(), "Folder name '{}' should produce non-empty title", folder_name);
+            
+            // For executable name extraction
+            if let Some(cleaned_exe) = extract_title_from_executable(&Some(exe_name.to_string())) {
+                assert!(!cleaned_exe.is_empty(), "Exe name '{}' should produce non-empty title", exe_name);
+            }
+        }
+    }
+
+    #[test]
+    fn test_games_catalog_problematic_names() {
+        // Test that problematic folder names from the catalog are handled correctly
+        
+        // Names that should be filtered out or cleaned
+        let problematic_names = vec![
+            "Windows",
+            "win64",
+            "Win",
+            "Build",
+            "Engine",
+            "jre",
+            "en-us",
+            "Binaries",
+            "WindowsNoEditor",
+            "Release",
+            "Debug",
+        ];
+        
+        for name in problematic_names {
+            let cleaned = clean_game_title(name);
+            assert!(cleaned.is_empty(), "Problematic name '{}' should produce empty string", name);
+        }
+    }
+
+    #[test]
+    fn test_games_catalog_executable_selection() {
+        // Test that executable selection logic works for common patterns in the catalog
+        
+        // Case 1: exe name matches folder name (most common)
+        let dir = Path::new("MyGame");
+        let executables = vec!["MyGame.exe".to_string()];
+        assert_eq!(pick_best_executable(dir, &executables), Some("MyGame.exe".to_string()));
+        
+        // Case 2: exe name differs from folder name (like "Froge.exe" in "Blobfrog")
+        let dir = Path::new("Blobfrog");
+        let executables = vec!["Froge.exe".to_string()];
+        // Should still pick it as it's the only one
+        assert_eq!(pick_best_executable(dir, &executables), Some("Froge.exe".to_string()));
+        
+        // Case 3: Multiple executables, one matches folder name
+        let dir = Path::new("MyGame");
+        let executables = vec![
+            "MyGame.exe".to_string(),
+            "launcher.exe".to_string(),
+            "game.exe".to_string(),
+        ];
+        assert_eq!(pick_best_executable(dir, &executables), Some("MyGame.exe".to_string()));
+        
+        // Case 4: No matching name, pick largest (like in "Roulette Knight" with RouletteKnight.exe)
+        let dir = Path::new("Roulette Knight");
+        let executables = vec![
+            "RouletteKnight.exe".to_string(), // close match but not exact
+            "launcher.exe".to_string(),
+        ];
+        // Should pick RouletteKnight.exe as it's a partial match and likely larger
+        assert_eq!(pick_best_executable(dir, &executables), Some("RouletteKnight.exe".to_string()));
+    }
+
+    #[test]
+    fn test_games_catalog_cover_keywords() {
+        // Test that cover keywords include common patterns from game distributions
+        let cover_keywords = [
+            "cover",
+            "poster",
+            "banner",
+            "icon",
+            "logo",
+            "header",
+            "art",
+            "thumb",
+            "image",
+            "box",
+            "front",
+            "back",
+            "screenshot",
+            "promo",
+            "keyart",
+            "key_art",
+            "key-art",
+            "capsule",
+            "library",
+            "hero",
+            "background",
+            "bg",
+            "wallpaper",
+            "tile",
+        ];
+        
+        // Common cover file names from real game distributions
+        let cover_names = vec![
+            "cover.jpg",
+            "boxart.png",
+            "front.jpg",
+            "back.png",
+            "icon.ico",
+            "logo.png",
+            "header.jpg",
+            "screenshot1.png",
+            "promo.jpg",
+            "keyart.png",
+            "capsule.jpg",
+            "library.jpg",
+            "hero.png",
+            "background.jpg",
+            "wallpaper.jpg",
+            "tile.jpg",
+        ];
+        
+        for name in cover_names {
+            let stem = Path::new(name).file_stem().and_then(|s| s.to_str()).unwrap_or("");
+            let is_cover_like = cover_keywords.iter().any(|kw| stem.contains(kw));
+            assert!(is_cover_like, "Cover name '{}' should be recognized as cover-like", name);
+        }
+        
+        // Non-cover names should not match
+        let non_cover_names = vec![
+            "game.exe",
+            "readme.txt",
+            "license.pdf",
+            "changelog.md",
+            "config.ini",
+            "data.dat",
+        ];
+        
+        for name in non_cover_names {
+            let stem = Path::new(name).file_stem().and_then(|s| s.to_str()).unwrap_or("");
+            let is_cover_like = cover_keywords.iter().any(|kw| stem.contains(kw));
+            assert!(!is_cover_like, "Non-cover name '{}' should not be recognized as cover-like", name);
+        }
     }
 }

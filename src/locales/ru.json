@@ -33,7 +33,8 @@
     "count": "игр"
   },
   "errors": {
-    "gameAlreadyRunning": "{{title}} уже запущена"
+    "gameAlreadyRunning": "{{title}} уже запущена",
+    "noInstallFound": "Не найден путь установки для {{title}}"
   },
   "actions": {
     "play": "Играть",

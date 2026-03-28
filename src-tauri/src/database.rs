@@ -1185,11 +1185,18 @@ impl Database {
 
     pub fn add_playtime(&self, game_id: &str, seconds: i64) -> Result<()> {
         self.conn.execute(
-            "UPDATE games SET total_playtime_seconds = total_playtime_seconds + ?, 
-             times_launched = times_launched + 1,
+            "UPDATE games SET total_playtime_seconds = total_playtime_seconds + ?,
              updated_at = datetime('now')
              WHERE id = ?",
             params![seconds, game_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn increment_times_launched(&self, game_id: &str) -> Result<()> {
+        self.conn.execute(
+            "UPDATE games SET times_launched = times_launched + 1, updated_at = datetime('now') WHERE id = ?",
+            params![game_id],
         )?;
         Ok(())
     }

@@ -353,13 +353,8 @@ fn read_text_metadata(file_path: &Path) -> Option<LocalMetadata> {
 
 /// Clean a game title by removing common noise
 pub fn clean_game_title(name: &str) -> String {
-    // Remove common suffixes/prefixes
+    // Start with the original name - do not remove "The " prefix as it's part of many official titles
     let mut title = name.to_string();
-
-    // Remove "The " prefix at the beginning (common article)
-    if title.to_lowercase().starts_with("the ") {
-        title = title[4..].trim().to_string();
-    }
 
     // Remove version numbers like v1.0, 1.0.0, V1.1_NEW, v012, etc.
     // Only match if preceded by separator (space, underscore, dash) to avoid matching version-only names like "0.0.15c demo"
@@ -369,10 +364,24 @@ pub fn clean_game_title(name: &str) -> String {
         title = re.replace(&title, "").to_string();
     }
 
-    // Remove platform tags (case-insensitive)
+    // Remove platform tags (case-insensitive) - expanded list
     for tag in &[
+        // Parenthesized
         "(Windows)", "(PC)", "(GOG)", "(Steam)", "[GOG]", "[Steam]", "(Mac)", "(Linux)",
-        "_Windows", "_PC", "_GOG", "_Steam", " - pc",
+        // Underscore-prefixed
+        "_Windows", "_PC", "_GOG", "_Steam", "_Mac", "_Linux",
+        // Space/dash-prefixed with various separators
+        " - Win", " - Windows", " - PC", " - Mac", " - Linux",
+        " Win", " Windows", " PC", " Mac", " Linux",
+        "_Win", "_Windows", "_Mac", "_Linux",
+        // Specific patterns from examples
+        " Win v", " Windows v", // version after platform
+        "Win64", "Win32", "MacOS", "Linux",
+        // Architecture tags
+        " 64-bit", " 32-bit", " x64", " x86", " arm64",
+        // Steam/Itch/GOG suffixes
+        " - Steam", " - Itch", " - GOG", " - Epic", " - Origin",
+        "_Steam", "_Itch", "_GOG", "_Epic", "_Origin",
     ] {
         let lower_title = title.to_lowercase();
         let lower_tag = tag.to_lowercase();
@@ -519,13 +528,46 @@ pub fn clean_game_title(name: &str) -> String {
     // Replace underscores with spaces for better readability
     title = title.replace('_', " ");
 
+    // Convert hyphens to spaces (for names like "the-mutated-reality")
+    title = title.replace('-', " ");
+
+    // Split camel case words (e.g., "TheBanshee" -> "The Banshee", "MyGame" -> "My Game")
+    // This regex inserts a space before uppercase letters that follow a lowercase letter
+    let re_camel = regex_lite::Regex::new(r"(?<=[a-z])(?=[A-Z])").ok();
+    if let Some(re) = re_camel {
+        title = re.replace_all(&title, " ").to_string();
+    }
+
     // Remove multiple spaces
     let re_spaces = regex_lite::Regex::new(r"\s+").ok();
     if let Some(re) = re_spaces {
         title = re.replace_all(&title, " ").to_string();
     }
 
-    title.trim().to_string()
+    // Apply title case: capitalize first letter of each word
+    // But preserve all-caps acronyms (like "FPS", "RPG", etc.)
+    let words: Vec<&str> = title.split_whitespace().collect();
+    let mut result = String::new();
+    for (i, word) in words.iter().enumerate() {
+        if i > 0 {
+            result.push(' ');
+        }
+        // If word is all uppercase and length > 1, keep as is (acronym)
+        // Otherwise, capitalize first letter, lowercase rest
+        if word.len() > 1 && word.chars().all(|c| c.is_uppercase()) {
+            result.push_str(word);
+        } else {
+            let mut chars = word.chars();
+            if let Some(first) = chars.next() {
+                result.push(first.to_uppercase().next().unwrap_or(first));
+                for c in chars {
+                    result.push(c.to_lowercase().next().unwrap_or(c));
+                }
+            }
+        }
+    }
+
+    result.trim().to_string()
 }
 
 /// Check if an exe product name is generic and shouldn't be used as game title
@@ -1462,5 +1504,86 @@ mod tests {
         let path = Path::new("/games/Windows/Build/Release/Data");
         let title = find_title_in_parents(path, 3);
         assert_eq!(title, None);
+    }
+
+    #[test]
+    fn test_provided_examples() {
+        // Test the 6 examples provided in the task
+
+        // Example 1: The Petrified King - Win
+        let input = "The Petrified King - Win";
+        let result = clean_game_title(input);
+        assert_eq!(result, "The Petrified King", "Failed for: {}", input);
+
+        // Example 2: The Snow of Basidia v1.1
+        let input = "The Snow of Basidia v1.1";
+        let result = clean_game_title(input);
+        assert_eq!(result, "The Snow of Basidia", "Failed for: {}", input);
+
+        // Example 3: The Sweet Spot Demo v0.4.0 Windows 64-bit
+        let input = "The Sweet Spot Demo v0.4.0 Windows 64-bit";
+        let result = clean_game_title(input);
+        assert_eq!(result, "The Sweet Spot Demo", "Failed for: {}", input);
+
+        // Example 4: The Wanted Merchant Win v2.0
+        let input = "The Wanted Merchant Win v2.0";
+        let result = clean_game_title(input);
+        assert_eq!(result, "The Wanted Merchant", "Failed for: {}", input);
+
+        // Example 5: the-mutated-reality-0.1.7548.38025
+        let input = "the-mutated-reality-0.1.7548.38025";
+        let result = clean_game_title(input);
+        assert_eq!(result, "The Mutated Reality", "Failed for: {}", input);
+
+        // Example 6: TheBanshee_Win
+        let input = "TheBanshee_Win";
+        let result = clean_game_title(input);
+        assert_eq!(result, "The Banshee", "Failed for: {}", input);
+    }
+
+    #[test]
+    fn test_edge_cases_for_examples() {
+        // Additional edge cases based on the examples
+
+        // Test that "The " is preserved
+        assert_eq!(clean_game_title("The Game"), "The Game");
+        assert_eq!(clean_game_title("The Legend of Zelda"), "The Legend of Zelda");
+
+        // Test hyphen conversion
+        assert_eq!(clean_game_title("my-awesome-game"), "My Awesome Game");
+        assert_eq!(clean_game_title("the-mutated-reality"), "The Mutated Reality");
+
+        // Test platform removal variations
+        assert_eq!(clean_game_title("MyGame - Win"), "MyGame");
+        assert_eq!(clean_game_title("MyGame_Win"), "MyGame");
+        assert_eq!(clean_game_title("MyGame Win"), "MyGame");
+        assert_eq!(clean_game_title("MyGame Windows"), "MyGame");
+        assert_eq!(clean_game_title("MyGameWin64"), "MyGameWin64"); // Should not remove if attached
+
+        // Test version removal
+        assert_eq!(clean_game_title("MyGame v1.0"), "MyGame");
+        assert_eq!(clean_game_title("MyGame_1.2.3"), "MyGame");
+        assert_eq!(clean_game_title("MyGame-2.0.0-beta"), "MyGame");
+
+        // Test title case preservation for acronyms
+        assert_eq!(clean_game_title("FPS Game"), "FPS Game");
+        assert_eq!(clean_game_title("RPG Maker"), "RPG Maker");
+
+        // Test combined: "The Sweet Spot Demo v0.4.0 Windows 64-bit"
+        // Should remove version and platform, keep "The Sweet Spot Demo"
+        assert_eq!(clean_game_title("The Sweet Spot Demo v0.4.0 Windows 64-bit"), "The Sweet Spot Demo");
+
+        // Test: "The Wanted Merchant Win v2.0"
+        // Should remove " Win" and version
+        assert_eq!(clean_game_title("The Wanted Merchant Win v2.0"), "The Wanted Merchant");
+
+        // Test: "TheBanshee_Win" -> "The Banshee"
+        // Should add space after "The" (from camel case? actually from underscore)
+        // Actually "TheBanshee" becomes "TheBanshee" then we need to split camel case?
+        // Our current implementation doesn't split camel case. Let's see:
+        // "TheBanshee_Win" -> remove "_Win" -> "TheBanshee" -> replace underscores (none) -> "TheBanshee"
+        // That's not right. We need to handle camel case or add space before capital letters?
+        // Actually the expected is "The Banshee", so we need to split "TheBanshee" into "The Banshee".
+        // This requires camel case splitting. Let's add that.
     }
 }

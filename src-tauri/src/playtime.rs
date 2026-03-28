@@ -69,13 +69,15 @@ impl PlaytimeTracker {
         let now = Utc::now();
         let now_str = now.to_rfc3339();
         
-        // Create session in DB
+        // Create session in DB and increment launch count
         {
             let db = self.db.lock().map_err(|e| e.to_string())?;
             db.create_play_session(&session_id, game_id, install_id, &now_str)
                 .map_err(|e| e.to_string())?;
             db.create_active_session(&session_id, game_id, pid, &now_str)
                 .map_err(|e| e.to_string())?;
+            // Increment times_launched exactly once when the session starts
+            db.increment_times_launched(game_id).map_err(|e| e.to_string())?;
         }
         
         // Add to in-memory tracking
