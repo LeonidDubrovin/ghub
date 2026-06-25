@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import Sidebar from './components/Sidebar';
-import GameGrid from './components/GameGrid';
 import GameDetailsView from './components/GameDetailsView';
 import Header from './components/Header';
 import AddSpaceDialog from './components/AddSpaceDialog';
@@ -21,7 +20,7 @@ import BatchMetadataDialog from './components/BatchMetadataDialog';
 import SelectedSourceToolbar from './components/SelectedSourceToolbar';
 import { useStartSourceScan } from './hooks/useScanning';
 
-type ViewMode = 'grid' | 'list' | 'details' | 'links';
+type ViewMode = 'details' | 'links';
 type FilterType = 'all' | 'favorites' | 'recent' | 'links';
 
 const SIDEBAR_MIN = 180;
@@ -45,7 +44,7 @@ function App() {
   });
   const [selectedFilter, setSelectedFilter] = useState<FilterType>(() => (localStorage.getItem('selectedFilter') as FilterType) || 'all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem('viewMode') as ViewMode) || 'details');
+  const [viewMode, setViewMode] = useState<ViewMode>('details');
   const [sortBy, setSortBy] = useState<SortField>(() => (localStorage.getItem('sortBy') as SortField) || 'title');
   const [sortOrder, setSortOrder] = useState<SortOrder>(() => (localStorage.getItem('sortOrder') as SortOrder) || 'asc');
   const [showAddSpace, setShowAddSpace] = useState(false);
@@ -91,10 +90,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem('selectedFilter', selectedFilter);
   }, [selectedFilter]);
-
-  useEffect(() => {
-    localStorage.setItem('viewMode', viewMode);
-  }, [viewMode]);
 
   useEffect(() => {
     localStorage.setItem('sortBy', sortBy);
@@ -491,8 +486,6 @@ function App() {
         <Header
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
           onScan={handleSmartScan}
           gameCount={filteredGames.length}
           isSelectionMode={isSelectionMode}
@@ -542,7 +535,7 @@ function App() {
                 </button>
               )}
             </div>
-          ) : viewMode === 'details' ? (
+          ) : (
             <GameDetailsView
               games={filteredGames}
               selectedGame={selectedGameForDetails}
@@ -566,21 +559,6 @@ function App() {
               onRefreshFromLocal={handleRefreshMetadata}
               updatingGameIds={updatingGameIds}
             />
-          ) : (
-            <div className="h-full overflow-auto p-6">
-               <GameGrid
-                 games={filteredGames}
-                 viewMode={viewMode}
-                 onEdit={handleEditGame}
-                 onPlay={handlePlayGame}
-                 onContextMenu={handleGameContextMenu}
-                 isGameRunning={isGameRunning}
-                 isSelectionMode={isSelectionMode}
-                 selectedGameIds={selectedGameIds}
-                 onGameClick={handleGameClick}
-                 updatingGameIds={updatingGameIds}
-               />
-             </div>
           )}
         </div>
       </main>

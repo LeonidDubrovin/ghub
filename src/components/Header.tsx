@@ -2,13 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SelectedSource, SortField, SortOrder } from '../types';
 
-type ViewMode = 'grid' | 'list' | 'details' | 'links';
-
 interface HeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
   onScan: () => void;
   gameCount: number;
   isSelectionMode?: boolean;
@@ -22,8 +18,6 @@ interface HeaderProps {
 export default function Header({
   searchQuery,
   onSearchChange,
-  viewMode,
-  onViewModeChange,
   onScan,
   gameCount,
   isSelectionMode,
@@ -145,41 +139,7 @@ export default function Header({
           </button>
         )}
 
-        {/* View mode toggle - 3 buttons */}
-        <div className="flex bg-surface-200 rounded-lg p-1">
-          {/* Details view */}
-          <button
-            onClick={() => onViewModeChange('details')}
-            className={`p-2 rounded ${viewMode === 'details' ? 'bg-surface-100 text-white' : 'text-gray-500 hover:text-white'}`}
-            title="Details"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M3 4a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 8a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4zm8-8a1 1 0 011-1h4a1 1 0 011 1v12a1 1 0 01-1 1h-4a1 1 0 01-1-1V4z" />
-            </svg>
-          </button>
 
-          {/* Grid view */}
-          <button
-            onClick={() => onViewModeChange('grid')}
-            className={`p-2 rounded ${viewMode === 'grid' ? 'bg-surface-100 text-white' : 'text-gray-500 hover:text-white'}`}
-            title="Grid"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-          </button>
-
-          {/* List view */}
-          <button
-            onClick={() => onViewModeChange('list')}
-            className={`p-2 rounded ${viewMode === 'list' ? 'bg-surface-100 text-white' : 'text-gray-500 hover:text-white'}`}
-            title="List"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
       </div>
     </header>
   );
