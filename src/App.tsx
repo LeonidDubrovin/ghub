@@ -285,14 +285,38 @@ function App() {
     setGameListWidth(w => Math.min(GAME_LIST_MAX, Math.max(GAME_LIST_MIN, w + delta)));
   }, []);
 
+  const clearSelection = () => {
+    setSelectedGameIds(new Set());
+    setLastSelectedGameId(null);
+    setIsSelectionMode(false);
+    setSelectedGameForDetails(null);
+  };
+
   const handleSelectFilter = (filter: FilterType) => {
     setSelectedFilter(filter);
     setSelectedSource(null);
+    clearSelection();
     if (filter === 'links') {
       setViewMode('links');
     } else if (viewMode === 'links') {
       setViewMode('details');
     }
+  };
+
+  const handleSelectSpace = (spaceId: string | null) => {
+    setSelectedSpaceId(spaceId);
+    setSelectedSource(null);
+    clearSelection();
+  };
+
+  const handleSelectSource = (spaceId: string, sourcePath: string | null) => {
+    setSelectedSpaceId(spaceId);
+    if (sourcePath) {
+      setSelectedSource({ spaceId, sourcePath });
+    } else {
+      setSelectedSource(null);
+    }
+    clearSelection();
   };
 
   const handleSortChange = (field: SortField) => {
@@ -303,19 +327,6 @@ function App() {
       // New field, default to ascending
       setSortBy(field);
       setSortOrder('asc');
-    }
-  };
-
-  const handleSelectSpace = (spaceId: string | null) => {
-    setSelectedSpaceId(spaceId);
-    setSelectedSource(null);
-  };
-
-  const handleSelectSource = (spaceId: string, sourcePath: string | null) => {
-    if (sourcePath) {
-      setSelectedSource({ spaceId, sourcePath });
-    } else {
-      setSelectedSource(null);
     }
   };
 

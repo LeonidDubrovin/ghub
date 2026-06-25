@@ -610,8 +610,7 @@ impl Database {
              FROM games g
              JOIN installs i ON g.id = i.game_id
              LEFT JOIN spaces s ON i.space_id = s.id
-             LEFT JOIN space_sources ss ON i.space_id = ss.space_id AND i.install_path = ss.source_path
-             WHERE i.space_id = ? AND g.is_hidden = 0 AND ss.source_path IS NULL
+             WHERE i.space_id = ? AND g.is_hidden = 0
              ORDER BY g.title COLLATE NOCASE"
         )?;
 
@@ -660,10 +659,7 @@ impl Database {
         } else {
             format!("{}{}", source_path, std::path::MAIN_SEPARATOR)
         };
-        
-        // Use range query for reliable prefix matching
-        let prefix_end = format!("{}~", prefix);
-        
+
         let mut stmt = self.conn.prepare(
             "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
                     g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,
@@ -674,17 +670,15 @@ impl Database {
              FROM games g
              JOIN installs i ON g.id = i.game_id
              LEFT JOIN spaces s ON i.space_id = s.id
-             LEFT JOIN space_sources ss ON i.space_id = ss.space_id AND i.install_path = ss.source_path
              WHERE i.space_id = ?
-               AND i.install_path >= ?
-               AND i.install_path < ?
+               AND i.install_path LIKE ?
                AND g.is_hidden = 0
-               AND ss.source_path IS NULL
              ORDER BY g.title COLLATE NOCASE"
         )?;
 
+        let pattern = format!("{}%", prefix);
         let games = stmt
-            .query_map(params![space_id, prefix, prefix_end], |row| {
+            .query_map(params![space_id, pattern], |row| {
                 Ok(Game {
                     id: row.get(0)?,
                     title: row.get(1)?,
