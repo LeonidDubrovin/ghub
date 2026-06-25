@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import type { Game, GameLink } from '../types';
 import ResizeHandle from './ResizeHandle';
+import MetadataSearchDialog from './MetadataSearchDialog';
 
 interface Props {
   games: Game[];
@@ -17,6 +18,7 @@ interface Props {
   onGameListResize?: (delta: number) => void;
   isSelectionMode?: boolean; // Added
   onRefreshFromLocal?: (g: Game) => void;
+  onSave?: () => void;
   updatingGameIds?: Set<string>;
 }
 
@@ -43,18 +45,20 @@ export default function GameDetailsView({
   onSelectGame, 
   onPlay, 
   onEdit, 
-  onContextMenu, 
-  isGameRunning, 
-  gameListWidth = 280, 
-  onGameListResize, 
-  isSelectionMode, 
+  onContextMenu,
+  isGameRunning,
+  gameListWidth = 280,
+  onGameListResize,
+  isSelectionMode,
   onRefreshFromLocal,
-  updatingGameIds 
+  onSave,
+  updatingGameIds
 }: Props) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const [hov, setHov] = useState<string | null>(null);
   const [gameLinks, setGameLinks] = useState<GameLink[]>([]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -225,20 +229,26 @@ export default function GameDetailsView({
                          <span>{getSourceLabel(link)}</span>
                        </button>
                      ))}
-                     <button 
-                       onClick={() => onEdit(selectedGame)} 
-                       className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
-                     >
-                       {t('details.edit')}
-                     </button>
-                     <button 
-                       onClick={() => onRefreshFromLocal?.(selectedGame)} 
-                       disabled={isUpdating}
-                       className={`px-6 py-3 rounded-lg flex items-center gap-2 ${isUpdating ? 'bg-purple-500/30 cursor-wait' : 'bg-purple-500/20 hover:bg-purple-500/30'} text-purple-300`}
-                     >
-                       {isUpdating ? '⏳' : '🔄'} 
-                       {isUpdating ? t('details.updating') : t('details.refreshMetadata')}
-                     </button>
+                      <button
+                        onClick={() => setIsSearchOpen(true)}
+                        className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg flex items-center gap-2"
+                      >
+                        🌐 {t('actions.fetchMetadata')}
+                      </button>
+                      <button
+                        onClick={() => onEdit(selectedGame)}
+                        className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
+                      >
+                        {t('details.edit')}
+                      </button>
+                      <button
+                        onClick={() => onRefreshFromLocal?.(selectedGame)}
+                        disabled={isUpdating}
+                        className={`px-6 py-3 rounded-lg flex items-center gap-2 ${isUpdating ? 'bg-purple-500/30 cursor-wait' : 'bg-purple-500/20 hover:bg-purple-500/30'} text-purple-300`}
+                      >
+                        {isUpdating ? '⏳' : '🔄'}
+                        {isUpdating ? t('details.updating') : t('details.refreshMetadata')}
+                      </button>
                    </div>
                 </div>
               </div>
@@ -333,6 +343,18 @@ export default function GameDetailsView({
           )}
         </div>
       </div>
+
+      {selectedGame && (
+        <MetadataSearchDialog
+          isOpen={isSearchOpen}
+          games={[selectedGame]}
+          onClose={() => setIsSearchOpen(false)}
+          onSave={() => {
+            setIsSearchOpen(false);
+            onSave?.();
+          }}
+        />
+      )}
     </div>
   );
 }

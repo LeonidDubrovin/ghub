@@ -132,7 +132,6 @@ pub struct CreateGameRequest {
     pub description: Option<String>,
     pub developer: Option<String>,
     pub cover_image: Option<String>,
-    pub fetch_metadata: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

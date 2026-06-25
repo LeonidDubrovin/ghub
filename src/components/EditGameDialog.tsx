@@ -11,18 +11,7 @@ interface EditGameDialogProps {
   onDelete?: () => void;
 }
 
-interface MetadataSearchResult {
-  id: string;
-  name: string;
-  cover_url: string | null;
-  release_date: string | null;
-  developer: string | null;
-  publisher: string | null;
-  description: string | null;
-  rating: number | null;
-  source: string;
-  url: string | null;
-}
+import MetadataSearchDialog from './MetadataSearchDialog';
 
 export default function EditGameDialog({ game, onClose, onSave, onDelete }: EditGameDialogProps) {
   const logger = createLoggerForComponent('EditGameDialog');
@@ -49,23 +38,7 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
    const [newLinkSource, setNewLinkSource] = useState<string>('other');
    const [isAddingLink, setIsAddingLink] = useState(false);
    const [isDeletingLink, setIsDeletingLink] = useState<string | null>(null);
-
-   // Metadata search
-   const [searchQuery, setSearchQuery] = useState(game.title);
-   const [isSearching, setIsSearching] = useState(false);
-   const [searchResults, setSearchResults] = useState<MetadataSearchResult[]>([]);
-   const [showSearchResults, setShowSearchResults] = useState(false);
-   const [activeSources, setActiveSources] = useState({ steam: true, itch: true });
-  
-  // Metadata preview & selection
-  const [previewResult, setPreviewResult] = useState<MetadataSearchResult | null>(null);
-  const [fieldsToUpdate, setFieldsToUpdate] = useState({
-    title: true,
-    description: true,
-    developer: true,
-    publisher: true,
-    cover: true,
-  });
+   const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   const handleSave = async () => {
     setIsSaving(true);
@@ -113,33 +86,12 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
     }
   };
    
-   const handleSearch = async () => {
-     if (!searchQuery.trim()) return;
-     
-     setIsSearching(true);
-     setError(null);
-     setShowSearchResults(true);
-     setSearchResults([]);
-     
-     const sources = [];
-     if (activeSources.steam) sources.push('steam');
-     if (activeSources.itch) sources.push('itch');
-     
-     try {
-       const results = await invoke<MetadataSearchResult[]>('search_game_metadata', {
-         query: searchQuery.trim(),
-         sources
-       });
-       setSearchResults(results);
-     } catch (err) {
-       logger.error('Search failed:', err);
-       setError(String(err));
-     } finally {
-       setIsSearching(false);
-     }
+   const handleSearchSave = () => {
+     onSave();
+     setIsSearchOpen(false);
    };
 
-   // Fetch game links on mount
+    // Fetch game links on mount
    useEffect(() => {
      const fetchLinks = async () => {
        try {
@@ -194,30 +146,7 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
      }
    };
   
-  const handleResultClick = (result: MetadataSearchResult) => {
-    setPreviewResult(result);
-    // Reset fields selection default
-    setFieldsToUpdate({
-      title: true,
-      description: !!result.description,
-      developer: !!result.developer,
-      publisher: !!result.publisher,
-      cover: !!result.cover_url,
-    });
-  };
 
-  const applySelectedMetadata = () => {
-    if (!previewResult) return;
-    
-    if (fieldsToUpdate.title) setTitle(previewResult.name);
-    if (fieldsToUpdate.description && previewResult.description) setDescription(previewResult.description);
-    if (fieldsToUpdate.developer && previewResult.developer) setDeveloper(previewResult.developer);
-    if (fieldsToUpdate.publisher && previewResult.publisher) setPublisher(previewResult.publisher);
-    if (fieldsToUpdate.cover && previewResult.cover_url) setCoverImage(previewResult.cover_url);
-    
-    setPreviewResult(null);
-    setShowSearchResults(false);
-  };
   
   const statusOptions = [
     { value: 'not_played', label: t('status.notPlayed') },
@@ -238,9 +167,9 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">✕</button>
         </div>
         
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden">
           {/* Main Form */}
-          <div className="flex-1 overflow-y-auto p-6 border-r border-surface-100">
+          <div className="flex-1 overflow-y-auto p-6">
              {error && (
               <div className="mb-4 p-3 bg-danger/20 border border-danger/50 rounded-lg text-danger text-sm flex items-center gap-2">
                 ⚠️ {error}
@@ -400,175 +329,36 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
                </div>
              </div>
            </div>
-          
-          {/* Metadata Sidebar */}
-          <div className="w-[350px] bg-surface-200 flex flex-col border-l border-surface-100">
-             <div className="p-4 border-b border-surface-100">
-               <label className="block text-sm font-medium mb-2 text-accent">🌐 {t('edit.searchMetadata')}</label>
-               <div className="flex gap-2 mb-2">
-                 <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} className="flex-1 px-3 py-2 bg-surface-300 rounded-lg text-sm focus:ring-1 focus:ring-accent outline-none" placeholder={t('edit.searchPlaceholder')} />
-                 <button onClick={handleSearch} disabled={isSearching || !searchQuery.trim()} className="btn btn-sm btn-primary px-3">{isSearching ? '...' : 'Go'}</button>
-               </div>
-               
-               {/* Source toggles */}
-               <div className="flex gap-3 text-xs text-gray-400">
-                 <label className="flex items-center gap-1 cursor-pointer hover:text-white">
-                   <input type="checkbox" checked={activeSources.steam} onChange={e => setActiveSources({...activeSources, steam: e.target.checked})} className="rounded bg-surface-300 border-none text-accent focus:ring-0" /> Steam
-                 </label>
-                 <label className="flex items-center gap-1 cursor-pointer hover:text-white">
-                   <input type="checkbox" checked={activeSources.itch} onChange={e => setActiveSources({...activeSources, itch: e.target.checked})} className="rounded bg-surface-300 border-none text-accent focus:ring-0" /> Itch.io
-                 </label>
-               </div>
-             </div>
-             
-             <div className="flex-1 overflow-y-auto p-2 space-y-2">
-               {isSearching && <div className="p-4 text-center text-gray-500 italic">{t('edit.searching')}</div>}
-               
-               {!isSearching && searchResults.length === 0 && showSearchResults && (
-                 <div className="p-4 text-center text-gray-500">{t('edit.noResults')}</div>
-               )}
-               
-               {searchResults.map(result => (
-                 <div key={result.id} onClick={() => handleResultClick(result)} 
-                   className="flex gap-4 p-3 rounded-xl hover:bg-surface-300 cursor-pointer transition-all group border border-transparent hover:border-surface-100 hover:shadow-lg bg-surface-200/50 mb-2">
-                   {/* Cover */}
-                   <div className="w-16 h-24 bg-black/20 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
-                     {result.cover_url ? (
-                       <img src={result.cover_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
-                     ) : (
-                       <div className="w-full h-full flex items-center justify-center text-xs opacity-30">?</div>
-                     )}
-                   </div>
-                   
-                   {/* Info */}
-                   <div className="flex-1 min-w-0 flex flex-col justify-center">
-                     <div className="font-bold text-base text-gray-100 group-hover:text-white truncate mb-1">{result.name}</div>
-                     
-                     <div className="text-xs text-gray-400 mb-2 line-clamp-2 leading-relaxed">
-                        {result.description || t('edit.noDescription')}
-                     </div>
+         </div>
 
-                     <div className="flex items-center gap-2 mt-auto">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${result.source === 'steam' ? 'bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/30' : 'bg-[#fa5c5c]/10 text-[#fa5c5c] border border-[#fa5c5c]/30'}`}>
-                          {result.source}
-                        </span>
-                        {result.developer && (
-                          <span className="text-xs text-gray-500 truncate max-w-[120px]" title={result.developer}>
-                            👤 {result.developer}
-                          </span>
-                        )}
-                        {result.release_date && (
-                          <span className="text-xs text-gray-500 truncate ml-auto">
-                            📅 {result.release_date}
-                          </span>
-                        )}
-                     </div>
-                   </div>
-                 </div>
-               ))}
-             </div>
-          </div>
-        </div>
-        
-        {/* Footer */}
-        <div className="p-4 border-t border-surface-100 flex justify-between bg-surface-400 rounded-b-xl">
-           <button onClick={() => setShowDeleteConfirm(!showDeleteConfirm)} className="text-danger hover:underline text-sm px-2">
-             {showDeleteConfirm ? t('edit.confirmDelete') : t('actions.delete')}
-           </button>
-           {showDeleteConfirm && (
-             <button onClick={handleDelete} disabled={isDeleting} className="btn btn-sm bg-danger text-white ml-2">{isDeleting ? '...' : t('common.delete')}</button>
-           )}
-           
-           <div className="flex gap-3 ml-auto">
-             <button onClick={onClose} className="btn btn-secondary">{t('common.cancel')}</button>
-             <button onClick={handleSave} disabled={isSaving} className="btn btn-primary px-6">{isSaving ? t('common.loading') : t('common.save')}</button>
-           </div>
-        </div>
-      </div>
-      
-      {/* Preview Dialog */}
-      {previewResult && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-surface-300 rounded-xl max-w-lg w-full shadow-2xl ring-1 ring-white/10 flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-surface-100 bg-surface-400 rounded-t-xl flex justify-between">
-              <h3 className="font-semibold text-white">{t('actions.updateMetadata')}</h3>
-              <button onClick={() => setPreviewResult(null)} className="text-gray-400 hover:text-white">✕</button>
+         {/* Footer */}
+         <div className="p-4 border-t border-surface-100 flex justify-between bg-surface-400 rounded-b-xl">
+            <button onClick={() => setShowDeleteConfirm(!showDeleteConfirm)} className="text-danger hover:underline text-sm px-2">
+              {showDeleteConfirm ? t('edit.confirmDelete') : t('actions.delete')}
+            </button>
+            {showDeleteConfirm && (
+              <button onClick={handleDelete} disabled={isDeleting} className="btn btn-sm bg-danger text-white ml-2">{isDeleting ? '...' : t('common.delete')}</button>
+            )}
+
+            <div className="flex gap-3 ml-auto">
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="btn btn-secondary"
+              >
+                🌐 {t('edit.searchMetadata')}
+              </button>
+              <button onClick={onClose} className="btn btn-secondary">{t('common.cancel')}</button>
+              <button onClick={handleSave} disabled={isSaving} className="btn btn-primary px-6">{isSaving ? t('common.loading') : t('common.save')}</button>
             </div>
-            
-            <div className="p-6 overflow-y-auto">
-              <div className="flex gap-4 mb-6">
-                <div className="w-24 h-32 bg-black/20 rounded overflow-hidden flex-shrink-0 shadow-lg">
-                   {previewResult.cover_url ? <img src={previewResult.cover_url} className="w-full h-full object-cover" alt="" /> : <div className="flex items-center justify-center h-full text-2xl opacity-30">?</div>}
-                </div>
-                <div>
-                  <h4 className="font-bold text-lg text-white mb-1">{previewResult.name}</h4>
-                  <p className="text-sm text-gray-400 mb-2">{previewResult.developer}</p>
-                  <a href={previewResult.url || '#'} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline flex items-center gap-1">
-                    Open in {previewResult.source} ↗
-                  </a>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select fields to update:</div>
-                
-                <label className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg cursor-pointer hover:bg-surface-100 transition-colors">
-                  <input type="checkbox" checked={fieldsToUpdate.title} onChange={e => setFieldsToUpdate({...fieldsToUpdate, title: e.target.checked})} className="rounded bg-surface-400 border-none text-accent w-5 h-5" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-200">Title</div>
-                    <div className="text-xs text-gray-500 truncate">{previewResult.name}</div>
-                  </div>
-                </label>
-                
-                {previewResult.developer && (
-                  <label className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg cursor-pointer hover:bg-surface-100 transition-colors">
-                    <input type="checkbox" checked={fieldsToUpdate.developer} onChange={e => setFieldsToUpdate({...fieldsToUpdate, developer: e.target.checked})} className="rounded bg-surface-400 border-none text-accent w-5 h-5" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-200">Developer</div>
-                      <div className="text-xs text-gray-500 truncate">{previewResult.developer}</div>
-                    </div>
-                  </label>
-                )}
-                
-                {previewResult.publisher && (
-                  <label className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg cursor-pointer hover:bg-surface-100 transition-colors">
-                    <input type="checkbox" checked={fieldsToUpdate.publisher} onChange={e => setFieldsToUpdate({...fieldsToUpdate, publisher: e.target.checked})} className="rounded bg-surface-400 border-none text-accent w-5 h-5" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-200">Publisher</div>
-                      <div className="text-xs text-gray-500 truncate">{previewResult.publisher}</div>
-                    </div>
-                  </label>
-                )}
-                
-                {previewResult.description && (
-                  <label className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg cursor-pointer hover:bg-surface-100 transition-colors">
-                    <input type="checkbox" checked={fieldsToUpdate.description} onChange={e => setFieldsToUpdate({...fieldsToUpdate, description: e.target.checked})} className="rounded bg-surface-400 border-none text-accent w-5 h-5" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-200">Description</div>
-                      <div className="text-xs text-gray-500 line-clamp-1">{previewResult.description}</div>
-                    </div>
-                  </label>
-                )}
-                
-                {previewResult.cover_url && (
-                  <label className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg cursor-pointer hover:bg-surface-100 transition-colors">
-                    <input type="checkbox" checked={fieldsToUpdate.cover} onChange={e => setFieldsToUpdate({...fieldsToUpdate, cover: e.target.checked})} className="rounded bg-surface-400 border-none text-accent w-5 h-5" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-200">Cover Image</div>
-                      <div className="text-xs text-gray-500 truncate">{previewResult.cover_url}</div>
-                    </div>
-                  </label>
-                )}
-              </div>
-            </div>
-            
-            <div className="p-4 border-t border-surface-100 bg-surface-400 rounded-b-xl flex justify-end gap-3">
-              <button onClick={() => setPreviewResult(null)} className="btn btn-secondary">Cancel</button>
-              <button onClick={applySelectedMetadata} className="btn btn-primary">Apply Selected</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+         </div>
+       </div>
+
+       <MetadataSearchDialog
+         isOpen={isSearchOpen}
+         games={[game]}
+         onClose={() => setIsSearchOpen(false)}
+         onSave={handleSearchSave}
+       />
+     </div>
+   );
+ }

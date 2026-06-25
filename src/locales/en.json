@@ -180,6 +180,36 @@
     "saved": "Saved",
     "saveAll": "Save All"
   },
+  "metadataSearch": {
+    "title": "Search Metadata",
+    "batchTitle": "Batch Metadata Update ({{current}} of {{total}})",
+    "gameName": "Game: {{name}}",
+    "placeholder": "Enter game name...",
+    "search": "Search",
+    "searching": "Searching {{source}}...",
+    "found": "{{source}}: {{count}} results",
+    "empty": "{{source}}: nothing found",
+    "error": "{{source}}: error",
+    "waiting": "{{source}}: waiting",
+    "waitingForResults": "Searching...",
+    "noResults": "Nothing found. Select a source and click Search.",
+    "selectResult": "Select a result from the list on the left",
+    "foundOn": "Found on {{source}}",
+    "openPage": "Open page",
+    "linkWillBeAdded": "A link to the source page will be attached to the game",
+    "apply": "Apply",
+    "applyAndNext": "Apply & Next",
+    "skip": "Skip",
+    "prev": "Back"
+  },
+  "metadataSelect": {
+    "fields": "Fields to update",
+    "title": "Title",
+    "developer": "Developer",
+    "publisher": "Publisher",
+    "description": "Description",
+    "cover": "Cover"
+  },
   "status": {
     "notPlayed": "Not played",
     "playing": "Playing",

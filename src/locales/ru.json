@@ -175,6 +175,36 @@
     "saved": "Сохранено",
     "saveAll": "Сохранить все"
   },
+  "metadataSearch": {
+    "title": "Поиск метаданных",
+    "batchTitle": "Массовое обновление метаданных ({{current}} из {{total}})",
+    "gameName": "Игра: {{name}}",
+    "placeholder": "Введите название игры...",
+    "search": "Искать",
+    "searching": "Ищем в {{source}}...",
+    "found": "{{source}}: {{count}} результатов",
+    "empty": "{{source}}: ничего не найдено",
+    "error": "{{source}}: ошибка",
+    "waiting": "{{source}}: ожидание",
+    "waitingForResults": "Идет поиск...",
+    "noResults": "Ничего не найдено. Выберите источник и нажмите «Искать».",
+    "selectResult": "Выберите результат из списка слева",
+    "foundOn": "Найдено в {{source}}",
+    "openPage": "Открыть страницу",
+    "linkWillBeAdded": "Ссылка на страницу источника будет прикреплена к игре",
+    "apply": "Применить",
+    "applyAndNext": "Применить и далее",
+    "skip": "Пропустить",
+    "prev": "Назад"
+  },
+  "metadataSelect": {
+    "fields": "Поля для обновления",
+    "title": "Название",
+    "developer": "Разработчик",
+    "publisher": "Издатель",
+    "description": "Описание",
+    "cover": "Обложка"
+  },
   "status": {
     "notPlayed": "Не играл",
     "playing": "Играю",

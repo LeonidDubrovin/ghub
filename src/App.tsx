@@ -568,6 +568,7 @@ function App() {
               onGameListResize={handleGameListResize}
               isSelectionMode={isSelectionMode}
               onRefreshFromLocal={handleRefreshMetadata}
+              onSave={handleGameSaved}
               updatingGameIds={updatingGameIds}
             />
           )}

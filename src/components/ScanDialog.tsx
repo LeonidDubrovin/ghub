@@ -27,7 +27,6 @@ export default function ScanDialog({
    
   const [scanPath, setScanPath] = useState('');
   const [targetSpaceId, setTargetSpaceId] = useState(spaces[0]?.id || '');
-  const [fetchMetadata, setFetchMetadata] = useState(false);
   const [scannedGames, setScannedGames] = useState<EditableGame[]>([]);
   const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set());
   const [isAdding, setIsAdding] = useState(false);
@@ -123,7 +122,6 @@ export default function ScanDialog({
           executable_path: game.selected_executable || undefined,
           cover_image: game.selected_cover || undefined,
           developer: game.exe_metadata?.company_name || undefined,
-          fetch_metadata: fetchMetadata,
         })
       ));
 
@@ -389,19 +387,6 @@ export default function ScanDialog({
                 </select>
               </div>
 
-              {/* Fetch Metadata Option */}
-              <div className="mt-4 flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="fetchMetadata"
-                  checked={fetchMetadata}
-                  onChange={e => setFetchMetadata(e.target.checked)}
-                  className="w-4 h-4 rounded accent-accent"
-                />
-                <label htmlFor="fetchMetadata" className="text-sm font-medium cursor-pointer select-none">
-                  {t('scan.fetchMetadata')} (Steam/Itch.io)
-                </label>
-              </div>
             </>
           ) : scanPath ? (
             <div className="text-center py-8 text-gray-500">

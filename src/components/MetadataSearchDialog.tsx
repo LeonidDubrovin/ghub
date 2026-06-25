@@ -1,0 +1,576 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { invoke } from '@tauri-apps/api/core';
+import type { Game, MetadataSearchResult } from '../types';
+import { createLoggerForComponent } from '../lib/logger';
+
+type SourceStatus = 'idle' | 'loading' | 'done' | 'empty' | 'error';
+
+interface MetadataSearchDialogProps {
+  isOpen: boolean;
+  games: Game[];
+  onClose: () => void;
+  onSave: () => void;
+}
+
+interface SourceState {
+  steam: boolean;
+  itch: boolean;
+}
+
+interface SourceStatusMap {
+  steam: SourceStatus;
+  itch: SourceStatus;
+}
+
+interface SourceErrorMap {
+  steam: string | null;
+  itch: string | null;
+}
+
+interface FieldSelection {
+  title: boolean;
+  description: boolean;
+  developer: boolean;
+  publisher: boolean;
+  cover: boolean;
+}
+
+export default function MetadataSearchDialog({
+  isOpen,
+  games,
+  onClose,
+  onSave,
+}: MetadataSearchDialogProps) {
+  const logger = createLoggerForComponent('MetadataSearchDialog');
+  const { t } = useTranslation();
+
+  const isBatch = games.length > 1;
+  const gameIdsKey = games.map(g => g.id).join(',');
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [query, setQuery] = useState('');
+  const [includeSources, setIncludeSources] = useState<SourceState>({ steam: true, itch: true });
+  const [sourceStatus, setSourceStatus] = useState<SourceStatusMap>({
+    steam: 'idle',
+    itch: 'idle',
+  });
+  const [sourceErrors, setSourceErrors] = useState<SourceErrorMap>({
+    steam: null,
+    itch: null,
+  });
+  const [results, setResults] = useState<MetadataSearchResult[]>([]);
+  const [selectedResult, setSelectedResult] = useState<MetadataSearchResult | null>(null);
+  const [fields, setFields] = useState<FieldSelection>({
+    title: true,
+    description: true,
+    developer: true,
+    publisher: true,
+    cover: true,
+  });
+  const [isApplying, setIsApplying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const currentGame = games[currentIndex] || null;
+
+  const resetState = useCallback(() => {
+    setSourceStatus({ steam: 'idle', itch: 'idle' });
+    setSourceErrors({ steam: null, itch: null });
+    setResults([]);
+    setSelectedResult(null);
+    setError(null);
+  }, []);
+
+  const defaultFields = useCallback((result: MetadataSearchResult): FieldSelection => ({
+    title: true,
+    description: !!result.description,
+    developer: !!result.developer,
+    publisher: !!result.publisher,
+    cover: !!result.cover_url,
+  }), []);
+
+  const searchSource = useCallback(async (source: keyof SourceState) => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
+
+    setSourceStatus(prev => ({ ...prev, [source]: 'loading' }));
+    setSourceErrors(prev => ({ ...prev, [source]: null }));
+
+    try {
+      const sourceResults = await invoke<MetadataSearchResult[]>('search_game_metadata', {
+        query: trimmedQuery,
+        sources: [source],
+      });
+
+      setResults(prev => {
+        const withoutSource = prev.filter(r => r.source !== source);
+        return [...withoutSource, ...sourceResults].sort((a, b) => {
+          if (a.source === b.source) return a.name.localeCompare(b.name);
+          return a.source === 'steam' ? -1 : 1;
+        });
+      });
+
+      setSourceStatus(prev => ({
+        ...prev,
+        [source]: sourceResults.length > 0 ? 'done' : 'empty',
+      }));
+    } catch (err) {
+      logger.error(`${source} search failed:`, err);
+      setSourceStatus(prev => ({ ...prev, [source]: 'error' }));
+      setSourceErrors(prev => ({ ...prev, [source]: String(err) }));
+    }
+  }, [query, logger]);
+
+  const runSearch = useCallback(() => {
+    resetState();
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
+
+    (Object.keys(includeSources) as (keyof SourceState)[]).forEach(source => {
+      if (includeSources[source]) {
+        searchSource(source);
+      }
+    });
+  }, [query, includeSources, resetState, searchSource]);
+
+  // Reset index when the dialog opens or the set of games changes
+  useEffect(() => {
+    if (!isOpen || games.length === 0) return;
+    setCurrentIndex(0);
+  }, [isOpen, gameIdsKey]);
+
+  // Update query and run search when the current game changes
+  useEffect(() => {
+    if (!isOpen || !currentGame) return;
+
+    setQuery(currentGame.title);
+    resetState();
+    // Search automatically after a short delay so the UI renders first
+    const timer = setTimeout(() => {
+      runSearch();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isOpen, currentGame?.id, resetState, runSearch]);
+
+  const handleSelectResult = useCallback((result: MetadataSearchResult) => {
+    setSelectedResult(result);
+    setFields(defaultFields(result));
+  }, [defaultFields]);
+
+  const handleToggleField = useCallback((field: keyof FieldSelection) => {
+    setFields(prev => ({ ...prev, [field]: !prev[field] }));
+  }, []);
+
+  const saveCurrentGame = useCallback(async (): Promise<boolean> => {
+    if (!currentGame || !selectedResult) return false;
+
+    setIsApplying(true);
+    setError(null);
+
+    try {
+      await invoke('update_game', {
+        request: {
+          id: currentGame.id,
+          title: fields.title ? selectedResult.name : null,
+          description: fields.description && selectedResult.description ? selectedResult.description : null,
+          developer: fields.developer && selectedResult.developer ? selectedResult.developer : null,
+          publisher: fields.publisher && selectedResult.publisher ? selectedResult.publisher : null,
+          cover_image: fields.cover && selectedResult.cover_url ? selectedResult.cover_url : null,
+        },
+      });
+
+      if (selectedResult.url) {
+        try {
+          await invoke('add_game_link', {
+            gameId: currentGame.id,
+            url: selectedResult.url,
+            title: selectedResult.name,
+            sourceType: selectedResult.source,
+          });
+        } catch (linkErr) {
+          logger.warn('Failed to add source link:', linkErr);
+          // Do not fail the whole operation if only the link could not be added
+        }
+      }
+
+      onSave();
+      return true;
+    } catch (err) {
+      logger.error('Failed to apply metadata:', err);
+      setError(String(err));
+      return false;
+    } finally {
+      setIsApplying(false);
+    }
+  }, [currentGame, selectedResult, fields, onSave, logger]);
+
+  const goNext = useCallback(() => {
+    if (currentIndex < games.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      onClose();
+    }
+  }, [currentIndex, games.length, onClose]);
+
+  const handleApply = useCallback(async () => {
+    const success = await saveCurrentGame();
+    if (success) {
+      goNext();
+    }
+  }, [saveCurrentGame, goNext]);
+
+  const handleSkip = useCallback(() => {
+    goNext();
+  }, [goNext]);
+
+  const goPrev = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    }
+  }, [currentIndex]);
+
+  const handleClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  const sourceLabel = (source: keyof SourceState) => t(`sources.${source}`);
+
+  const statusText = (source: keyof SourceState) => {
+    switch (sourceStatus[source]) {
+      case 'loading':
+        return t('metadataSearch.searching', { source: sourceLabel(source) });
+      case 'done':
+        return t('metadataSearch.found', {
+          source: sourceLabel(source),
+          count: results.filter(r => r.source === source).length,
+        });
+      case 'empty':
+        return t('metadataSearch.empty', { source: sourceLabel(source) });
+      case 'error':
+        return t('metadataSearch.error', { source: sourceLabel(source), error: sourceErrors[source] || '' });
+      default:
+        return t('metadataSearch.waiting', { source: sourceLabel(source) });
+    }
+  };
+
+  const statusDot = (status: SourceStatus) => {
+    switch (status) {
+      case 'loading':
+        return 'bg-yellow-400 animate-pulse';
+      case 'done':
+        return 'bg-green-400';
+      case 'empty':
+        return 'bg-gray-400';
+      case 'error':
+        return 'bg-red-400';
+      default:
+        return 'bg-gray-600';
+    }
+  };
+
+  if (!isOpen || !currentGame) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-surface-300 rounded-xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl ring-1 ring-white/10">
+        {/* Header */}
+        <div className="p-4 border-b border-surface-100 flex items-center justify-between flex-shrink-0 bg-surface-400 rounded-t-xl">
+          <div>
+            <h2 className="text-lg font-semibold text-white">
+              {isBatch
+                ? t('metadataSearch.batchTitle', { current: currentIndex + 1, total: games.length })
+                : t('metadataSearch.title')}
+            </h2>
+            <p className="text-sm text-gray-400">
+              {t('metadataSearch.gameName', { name: currentGame.title })}
+            </p>
+          </div>
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10"
+          >
+            ✕
+          </button>
+        </div>
+
+        {error && (
+          <div className="mx-6 mt-4 p-3 bg-danger/20 border border-danger/50 rounded-lg text-danger text-sm flex items-center gap-2">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="flex flex-1 overflow-hidden min-h-0">
+          {/* Left: Search & Results */}
+          <div className="w-[420px] flex flex-col border-r border-surface-100">
+            {/* Search controls */}
+            <div className="p-4 border-b border-surface-100 space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && runSearch()}
+                  placeholder={t('metadataSearch.placeholder')}
+                  className="flex-1 px-3 py-2 bg-surface-200 rounded-lg text-sm focus:ring-1 focus:ring-accent outline-none"
+                />
+                <button
+                  onClick={runSearch}
+                  disabled={!query.trim() || Object.values(sourceStatus).some(s => s === 'loading')}
+                  className="btn btn-sm btn-primary px-3"
+                >
+                  {Object.values(sourceStatus).some(s => s === 'loading')
+                    ? t('common.loading')
+                    : t('metadataSearch.search')}
+                </button>
+              </div>
+
+              <div className="flex gap-4 text-xs text-gray-400">
+                {(Object.keys(includeSources) as (keyof SourceState)[]).map(source => (
+                  <label key={source} className="flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
+                    <input
+                      type="checkbox"
+                      checked={includeSources[source]}
+                      onChange={e => setIncludeSources(prev => ({ ...prev, [source]: e.target.checked }))}
+                      className="rounded bg-surface-300 border-none text-accent focus:ring-0"
+                    />
+                    {sourceLabel(source)}
+                  </label>
+                ))}
+              </div>
+
+              {/* Source status */}
+              <div className="space-y-1.5">
+                {(Object.keys(sourceStatus) as (keyof SourceStatusMap)[]).map(source => (
+                  <div key={source} className="flex items-center gap-2 text-xs">
+                    <span className={`w-2 h-2 rounded-full ${statusDot(sourceStatus[source])}`} />
+                    <span className="text-gray-300">{statusText(source)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Results list */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {results.length === 0 && (
+                <div className="p-6 text-center text-gray-500 text-sm">
+                  {Object.values(sourceStatus).some(s => s === 'loading')
+                    ? t('metadataSearch.waitingForResults')
+                    : t('metadataSearch.noResults')}
+                </div>
+              )}
+              {results.map(result => (
+                <div
+                  key={`${result.source}-${result.id}`}
+                  onClick={() => handleSelectResult(result)}
+                  className={`flex gap-3 p-3 rounded-xl cursor-pointer transition-all border ${
+                    selectedResult?.id === result.id && selectedResult?.source === result.source
+                      ? 'bg-accent/20 border-accent/50'
+                      : 'bg-surface-200/50 border-transparent hover:bg-surface-200 hover:border-surface-100'
+                  }`}
+                >
+                  <div className="w-14 h-20 bg-black/20 rounded-lg overflow-hidden flex-shrink-0">
+                    {result.cover_url ? (
+                      <img
+                        src={result.cover_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={e => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs opacity-30">?</div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="font-medium text-sm text-gray-100 truncate">{result.name}</div>
+                    <div className="text-xs text-gray-500 line-clamp-1 mb-1">
+                      {result.description || t('metadataSearch.noDescription')}
+                    </div>
+                    <div className="flex items-center gap-2 mt-auto">
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
+                          result.source === 'steam'
+                            ? 'bg-[#1b2838] text-[#66c0f4] border border-[#66c0f4]/30'
+                            : 'bg-[#fa5c5c]/10 text-[#fa5c5c] border border-[#fa5c5c]/30'
+                        }`}
+                      >
+                        {result.source}
+                      </span>
+                      {result.developer && (
+                        <span className="text-xs text-gray-500 truncate">{result.developer}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Preview & field selection */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 overflow-y-auto p-6">
+              {!selectedResult ? (
+                <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                  <div className="text-4xl mb-3">🔍</div>
+                  <p>{t('metadataSearch.selectResult')}</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Result header */}
+                  <div className="flex gap-4">
+                    <div className="w-28 h-40 bg-black/20 rounded-xl overflow-hidden flex-shrink-0 shadow-lg">
+                      {selectedResult.cover_url ? (
+                        <img
+                          src={selectedResult.cover_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={e => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-3xl opacity-30">?</div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-gray-400 mb-1">{t('metadataSearch.foundOn', { source: sourceLabel(selectedResult.source as keyof SourceState) })}</div>
+                      <h3 className="text-xl font-bold text-white mb-1">{selectedResult.name}</h3>
+                      {selectedResult.developer && (
+                        <p className="text-sm text-gray-400 mb-2">{selectedResult.developer}</p>
+                      )}
+                      {selectedResult.url && (
+                        <a
+                          href={selectedResult.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-accent hover:underline inline-flex items-center gap-1"
+                        >
+                          {t('metadataSearch.openPage')} ↗
+                        </a>
+                      )}
+                      <p className="text-xs text-gray-500 mt-2">
+                        {t('metadataSearch.linkWillBeAdded')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Fields to update */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                      {t('metadataSelect.fields')}
+                    </div>
+
+                    <FieldToggle
+                      label={t('metadataSelect.title')}
+                      value={selectedResult.name}
+                      checked={fields.title}
+                      onChange={() => handleToggleField('title')}
+                    />
+
+                    {selectedResult.developer && (
+                      <FieldToggle
+                        label={t('metadataSelect.developer')}
+                        value={selectedResult.developer}
+                        checked={fields.developer}
+                        onChange={() => handleToggleField('developer')}
+                      />
+                    )}
+
+                    {selectedResult.publisher && (
+                      <FieldToggle
+                        label={t('metadataSelect.publisher')}
+                        value={selectedResult.publisher}
+                        checked={fields.publisher}
+                        onChange={() => handleToggleField('publisher')}
+                      />
+                    )}
+
+                    {selectedResult.description && (
+                      <FieldToggle
+                        label={t('metadataSelect.description')}
+                        value={selectedResult.description}
+                        checked={fields.description}
+                        onChange={() => handleToggleField('description')}
+                      />
+                    )}
+
+                    {selectedResult.cover_url && (
+                      <FieldToggle
+                        label={t('metadataSelect.cover')}
+                        value={selectedResult.cover_url}
+                        checked={fields.cover}
+                        onChange={() => handleToggleField('cover')}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-surface-100 flex items-center justify-between bg-surface-400 rounded-b-xl">
+          <div className="flex gap-2">
+            {isBatch && (
+              <>
+                <button
+                  onClick={goPrev}
+                  disabled={currentIndex === 0}
+                  className="btn btn-secondary btn-sm disabled:opacity-50"
+                >
+                  ← {t('metadataSearch.prev')}
+                </button>
+                <button
+                  onClick={handleSkip}
+                  className="btn btn-secondary btn-sm"
+                >
+                  {t('metadataSearch.skip')}
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={handleClose} className="btn btn-secondary">
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={handleApply}
+              disabled={!selectedResult || isApplying}
+              className="btn btn-primary disabled:opacity-50"
+            >
+              {isApplying
+                ? t('common.loading')
+                : isBatch
+                  ? t('metadataSearch.applyAndNext')
+                  : t('metadataSearch.apply')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface FieldToggleProps {
+  label: string;
+  value: string;
+  checked: boolean;
+  onChange: () => void;
+}
+
+function FieldToggle({ label, value, checked, onChange }: FieldToggleProps) {
+  return (
+    <label className="flex items-center gap-3 p-3 bg-surface-200 rounded-lg cursor-pointer hover:bg-surface-100 transition-colors">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="rounded bg-surface-400 border-none text-accent w-5 h-5 focus:ring-0"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-gray-200">{label}</div>
+        <div className="text-xs text-gray-500 truncate">{value}</div>
+      </div>
+    </label>
+  );
+}

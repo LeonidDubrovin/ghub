@@ -113,7 +113,6 @@ export interface CreateGameRequest {
   description?: string;
   developer?: string;
   cover_image?: string;
-  fetch_metadata?: boolean;
 }
 
 export interface CreateGameLinkRequest {
@@ -146,15 +145,16 @@ export interface DownloadLink {
 export interface MetadataSearchResult {
   id: string;
   name: string;
-  cover_url?: string;
-  release_date?: string;
-  summary?: string;
-  developer?: string;
-  publisher?: string;
-  source?: string;
-  url?: string;
-  tags?: string[];
-  genres?: string[];
+  cover_url: string | null;
+  release_date: string | null;
+  developer: string | null;
+  publisher: string | null;
+  description: string | null;
+  rating: number | null;
+  source: string;
+  url: string | null;
+  tags: string[] | null;
+  genres: string[] | null;
 }
 
 export interface AddSpaceSourceRequest {
