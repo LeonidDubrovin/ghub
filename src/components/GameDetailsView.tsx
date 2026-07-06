@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../lib/i18n';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import type { Game, GameLink } from '../types';
 import ResizeHandle from './ResizeHandle';
@@ -28,7 +29,7 @@ const fmt = (s: number, t: (k: string) => string) => {
   return h > 0 ? h + t('games.hours') + ' ' + m + t('games.minutes') : m + t('games.minutes');
 };
 
-const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('ru-RU') : '-';
+const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString(i18n.language || 'ru-RU') : '-';
 
 const coverUrl = (c: string | null) => {
   if (!c) return null;

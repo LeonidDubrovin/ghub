@@ -19,7 +19,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.32", features = ["bundled", "backup"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2"
@@ -37,7 +37,6 @@ tar = "0.4"
 flate2 = "1.0"
 futures-util = "0.3"
 log = "0.4"
-env_logger = "0.10"
 lnk = "0.5"
 fern = "0.6"
 
@@ -47,6 +46,3 @@ windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
     "Win32_Storage_FileSystem"
 ] }
-
-[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-shell = "2"

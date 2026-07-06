@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use crate::http_constants::{ACCEPT_LANGUAGE, USER_AGENT};
 use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
@@ -105,8 +106,8 @@ pub async fn resolve_itch_download_url(client: &Client, url: &str) -> Result<Itc
     info!("Resolving itch download URL for {}", url);
 
     let resp = client.get(url)
-        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-        .header("Accept-Language", "en-US,en;q=0.9")
+        .header("User-Agent", USER_AGENT)
+        .header("Accept-Language", ACCEPT_LANGUAGE)
         .send().await
         .map_err(|e| format!("Failed to fetch itch page: {}", e))?;
 
@@ -208,6 +209,34 @@ pub async fn download_itch_game(
     info!("Downloading itch game to {:?}", unique_archive);
     download_file(client, direct_url, &unique_archive).await?;
 
+    // The heavy extraction/filesystem work runs in a blocking thread pool
+    // so the async runtime stays responsive.
+    let source_path_owned = source_path.to_path_buf();
+    let unique_archive_owned = unique_archive.clone();
+    let base_name_owned = base_name.clone();
+    let target_dir_owned = target_dir.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        process_downloaded_archive(
+            &unique_archive_owned,
+            &source_path_owned,
+            &base_name_owned,
+            &target_dir_owned,
+        )
+    })
+    .await
+    .map_err(|e| format!("Failed to run archive processing: {}", e))?;
+
+    result
+}
+
+/// Synchronous extraction / scanning step for a downloaded itch archive.
+fn process_downloaded_archive(
+    archive_path: &Path,
+    source_path: &Path,
+    base_name: &str,
+    target_dir: &Path,
+) -> Result<DownloadedInstall, String> {
     // Extract into a temporary directory, then move the contents to the target folder.
     let extract_temp = source_path.join(format!("{}-extract", base_name));
     let mut unique_extract = extract_temp.clone();
@@ -216,21 +245,23 @@ pub async fn download_itch_game(
     std::fs::create_dir_all(&unique_extract)
         .map_err(|e| format!("Failed to create extract temp directory: {}", e))?;
 
-    extract_archive(&unique_archive, &unique_extract)?;
+    let extraction_result = extract_archive(archive_path, &unique_extract);
 
-    // Remove the archive now that it is extracted.
-    let _ = std::fs::remove_file(&unique_archive);
+    // Remove the archive now that it is extracted (or if extraction failed).
+    let _ = std::fs::remove_file(archive_path);
+
+    extraction_result?;
 
     // Determine the actual game directory within the extracted contents.
     let game_dir = find_game_directory(&unique_extract)?;
 
     // Move the game directory to the final target.
-    std::fs::rename(&game_dir, &target_dir)
+    std::fs::rename(&game_dir, target_dir)
         .map_err(|e| format!("Failed to move extracted game to target: {}", e))?;
     let _ = std::fs::remove_dir_all(&unique_extract);
 
     // Scan the target directory for the best executable.
-    let scanned = crate::commands::scan_directory_internal(&target_dir)
+    let scanned = crate::commands::scan_directory_internal(target_dir)
         .map_err(|e| format!("Failed to scan installed directory: {}", e))?;
 
     let executable_path = scanned.into_iter().next().and_then(|g| g.executable);

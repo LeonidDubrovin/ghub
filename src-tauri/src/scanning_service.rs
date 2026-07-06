@@ -564,40 +564,7 @@ impl ScanningService {
         debug!("[PERFORM_SCAN] Source: is_active={}, scan_recursively={:?}", source.is_active, source.scan_recursively);
 
         // Build config from constants (background service uses fixed config)
-        let config = ScanConfig {
-            max_scan_depth: if source.scan_recursively {
-                crate::scanner_constants::MAX_SCAN_DEPTH
-            } else {
-                1
-            },
-            max_exe_search_depth: crate::scanner_constants::MAX_EXE_SEARCH_DEPTH,
-            max_cover_candidates: crate::scanner_constants::MAX_COVER_CANDIDATES,
-            max_cover_search_depth: crate::scanner_constants::MAX_COVER_SEARCH_DEPTH,
-            base_exe_exclusions: crate::scanner_constants::BASE_EXE_EXCLUSIONS
-                .iter()
-                .map(|&s| Regex::new(s).unwrap())
-                .collect(),
-            extra_exe_exclusions: Vec::new(),
-            base_folder_exclusions: crate::scanner_constants::BASE_FOLDER_EXCLUSIONS
-                .iter()
-                .map(|&s| Regex::new(s).unwrap())
-                .collect(),
-            extra_folder_exclusions: Vec::new(),
-            base_image_extensions: crate::scanner_constants::BASE_IMAGE_EXTENSIONS
-                .iter()
-                .map(|&s| s.to_string())
-                .collect(),
-            extra_image_extensions: Vec::new(),
-            base_metadata_files: crate::scanner_constants::BASE_METADATA_FILES
-                .iter()
-                .map(|&s| s.to_string())
-                .collect(),
-            extra_metadata_files: Vec::new(),
-            cover_search_paths: crate::scanner_constants::BASE_COVER_SEARCH_PATHS
-                .iter()
-                .map(|&s| s.to_string())
-                .collect(),
-        };
+        let config = ScanConfig::from_constants(source.scan_recursively);
 
         debug!("[PERFORM_SCAN] Config: max_scan_depth={}", config.max_scan_depth);
         

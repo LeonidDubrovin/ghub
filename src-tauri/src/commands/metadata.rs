@@ -1,33 +1,30 @@
 use crate::models::{Game, MetadataSearchResult};
+use crate::title_extraction::{clean_game_title, is_generic_company_name, is_generic_description, is_generic_title};
 use crate::AppState;
-use crate::meta_service;
 use crate::commands::scanning::scan_directory_internal;
 use tauri::State;
 use std::path::Path;
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 
 /// Search game metadata from sources
 #[tauri::command]
-pub async fn search_game_metadata(state: State<'_, AppState>, query: String, sources: Vec<String>) -> Result<Vec<MetadataSearchResult>, String> {
+pub async fn search_game_metadata(
+    state: State<'_, AppState>,
+    query: String,
+    sources: Vec<String>,
+) -> Result<Vec<MetadataSearchResult>, String> {
     let client = &state.http_client;
-    let mut results = Vec::new();
 
-    let use_steam = sources.is_empty() || sources.contains(&"steam".to_string());
-    let use_itch = sources.is_empty() || sources.contains(&"itch".to_string());
+    let sources_refs: Vec<&str> = if sources.is_empty() {
+        vec!["steam", "itch"]
+    } else {
+        sources.iter().map(|s| s.as_str()).collect()
+    };
 
-    if let Some(fut) = use_steam.then(|| meta_service::search_steam(client, &query)) {
-        match fut.await {
-            Ok(r) => results.extend(r),
-            Err(e) => error!("Steam search error: {}", e),
-        }
-    }
-
-    if let Some(fut) = use_itch.then(|| meta_service::search_itch(client, &query)) {
-        match fut.await {
-            Ok(r) => results.extend(r),
-            Err(e) => error!("Itch search error: {}", e),
-        }
-    }
+    let results = state
+        .metadata_aggregator
+        .search_sources(client, &query, &sources_refs)
+        .await;
 
     Ok(results)
 }
@@ -114,29 +111,6 @@ pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Resul
     db.get_game_by_id(&game_id).map_err(|e| e.to_string())
 }
 
-/// Helper function to check if a company name is generic
-fn is_generic_company_name(name: &str) -> bool {
-    let lower = name.to_lowercase().trim().to_string();
-    
-    // Generic company names that shouldn't be used
-    matches!(lower.as_str(),
-        "godot engine" | "unity technologies" | "epic games" | "unreal engine" |
-        "microsoft" | "apple" | "google" | "valve" | "steam" |
-        "unknown" | "n/a" | "none" | "test" | "demo"
-    )
-}
-
-/// Helper function to check if a description is generic
-fn is_generic_description(desc: &str) -> bool {
-    let lower = desc.to_lowercase().trim().to_string();
-    
-    // Generic descriptions that shouldn't be used
-    lower.contains("godot engine") || 
-    lower.contains("unity") ||
-    lower.contains("unreal") ||
-    lower.contains("bootstrap") ||
-    lower.len() < 10 // Too short to be useful
-}
 
 /// Fetch and update game metadata from external sources (Steam, itch.io)
 #[tauri::command]
@@ -227,24 +201,9 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
     
     // Search for metadata from external sources
     let client = &state.http_client;
-    let mut best_match: Option<MetadataSearchResult> = None;
-    
-    // Try Steam first
-    if let Ok(results) = meta_service::search_steam(client, &query).await {
-        if let Some(first) = results.into_iter().next() {
-            debug!("   Found Steam result: {}", first.name);
-            best_match = Some(first);
-        }
-    }
-    
-    // If no steam result, try Itch
-    if best_match.is_none() {
-        if let Ok(results) = meta_service::search_itch(client, &query).await {
-            if let Some(first) = results.into_iter().next() {
-                debug!("   Found Itch result: {}", first.name);
-                best_match = Some(first);
-            }
-        }
+    let best_match = state.metadata_aggregator.search_best(client, &query).await;
+    if let Some(ref meta) = best_match {
+        debug!("   Found best match on {}: {}", meta.source, meta.name);
     }
     
     // Apply metadata if found
@@ -281,61 +240,3 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
     db.get_game_by_id(&game_id).map_err(|e| e.to_string())
 }
 
-/// Helper function to check if a title is generic and shouldn't be used for search
-/// Only truly generic titles that don't identify a specific game
-fn is_generic_title(title: &str) -> bool {
-    let lower = title.to_lowercase().trim().to_string();
-    
-    // Only truly generic titles that don't identify a specific game
-    matches!(lower.as_str(), 
-        "game" | "games" | "demo" | "test" | "sample" | 
-        "app" | "application" | "program" | "software" |
-        "build" | "release" | "version" | "prototype" |
-        "alpha" | "beta" | "preview" | "trial"
-    )
-}
-
-/// Helper function to clean game title (used by fetch_and_update_game_metadata)
-fn clean_game_title(name: &str) -> String {
-    // Remove common suffixes/prefixes
-    let mut title = name.to_string();
-
-    // Remove version numbers like v1.0, 1.0.0, V1.1_NEW, v012, etc.
-    let re_version = regex_lite::Regex::new(r"[\s_]*(?:[vV]\d+(?:[\._]\d+)*|\d+(?:[\._]\d+)+).*$").ok();
-    if let Some(re) = re_version {
-        title = re.replace(&title, "").to_string();
-    }
-
-    // Remove platform tags
-    for tag in &["(Windows)", "(PC)", "(GOG)", "(Steam)", "[GOG]", "[Steam]", "(Mac)", "(Linux)"] {
-        title = title.replace(tag, "");
-    }
-
-    // Remove common generic folder names that shouldn't be game titles
-    let generic_names = [
-        "Windows", "BootstrapPackagedGame", "Godot Engine", "Unity", "Unreal",
-        "Game", "Build", "Release", "Bin", "Binary", "Executable", "App",
-        "win64", "win32", "linux", "macos", "x64", "x86"
-    ];
-    
-    let trimmed = title.trim();
-    for generic in &generic_names {
-        if trimmed.eq_ignore_ascii_case(generic) {
-            return String::new(); // Return empty to signal we should use parent dir
-        }
-    }
-
-    // Clean up trailing/leading underscores and dashes
-    title = title.trim_matches(|c: char| c == '_' || c == '-' || c == ' ').to_string();
-    
-    // Replace underscores with spaces for better readability
-    title = title.replace('_', " ");
-    
-    // Remove multiple spaces
-    let re_spaces = regex_lite::Regex::new(r"\s+").ok();
-    if let Some(re) = re_spaces {
-        title = re.replace_all(&title, " ").to_string();
-    }
-
-    title.trim().to_string()
-}

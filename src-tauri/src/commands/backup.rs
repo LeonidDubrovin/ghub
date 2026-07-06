@@ -1,5 +1,7 @@
 use crate::AppState;
 use chrono::Local;
+use rusqlite::backup::Backup;
+use rusqlite::Connection;
 use std::fs;
 use tauri::State;
 
@@ -22,10 +24,13 @@ pub fn backup_database(state: State<AppState>) -> Result<String, String> {
     let backup_filename = format!("ghub_{}.db", timestamp);
     let backup_path = backup_dir.join(backup_filename);
 
-    // Use VACUUM INTO to create a consistent backup (SQLite 3.27+)
-    let sql = format!("VACUUM INTO '{}'", backup_path.to_string_lossy());
-    db.conn
-        .execute_batch(&sql)
+    // Use SQLite online backup API to create a consistent backup
+    let mut backup_conn = Connection::open(&backup_path)
+        .map_err(|e| format!("Failed to open backup connection: {}", e))?;
+    let backup = Backup::new(&db.conn, &mut backup_conn)
+        .map_err(|e| format!("Failed to initialize backup: {}", e))?;
+    backup
+        .step(-1)
         .map_err(|e| format!("Failed to create backup: {}", e))?;
 
     Ok(backup_path.to_string_lossy().to_string())

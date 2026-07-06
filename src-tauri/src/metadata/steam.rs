@@ -1,10 +1,9 @@
+use crate::http_constants::{ACCEPT_LANGUAGE, STEAM_AGE_GATE_COOKIE, USER_AGENT};
 use crate::models::MetadataSearchResult;
 use crate::metadata::strategy::MetadataStrategy;
 use reqwest::Client;
 use async_trait::async_trait;
 use scraper::{Html, Selector};
-
-const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
 pub struct SteamStrategy {
     enabled: bool,
@@ -35,15 +34,15 @@ impl MetadataStrategy for SteamStrategy {
         let url = format!("https://store.steampowered.com/search/results/?term={}&category1=998&l=english", urlencoding::encode(query));
         let resp = client.get(&url)
             .header("User-Agent", USER_AGENT)
-            .header("Accept-Language", "en-US,en;q=0.9")
+            .header("Accept-Language", ACCEPT_LANGUAGE)
             .send().await.map_err(|e| e.to_string())?;
-        
+
         if !resp.status().is_success() {
             return Err(format!("Steam returned status: {}", resp.status()));
         }
-        
+
         let html = resp.text().await.map_err(|e| e.to_string())?;
-        
+
         let mut results = Vec::new();
         
         {
@@ -120,9 +119,9 @@ impl MetadataStrategy for SteamStrategy {
         let url = format!("https://store.steampowered.com/app/{}/", app_id);
         let resp = client.get(&url)
             .header("User-Agent", USER_AGENT)
-            .header("Accept-Language", "en-US,en;q=0.9")
+            .header("Accept-Language", ACCEPT_LANGUAGE)
             // Bypass age gate by setting cookies
-            .header("Cookie", "wants_mature_content=1; birthtime=0; lastagecheckage=1-January-1980") 
+            .header("Cookie", STEAM_AGE_GATE_COOKIE)
             .send().await.map_err(|e| e.to_string())?;
             
         let html = resp.text().await.map_err(|e| e.to_string())?;

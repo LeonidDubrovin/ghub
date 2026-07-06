@@ -95,6 +95,43 @@ impl Default for ScanConfig {
     }
 }
 
+impl ScanConfig {
+    /// Convert this command-level config into the scanner's internal config.
+    pub fn to_scanner_config(&self) -> Result<scanner::ScanConfig, String> {
+        Ok(scanner::ScanConfig {
+            max_scan_depth: self.max_scan_depth,
+            max_exe_search_depth: self.max_exe_search_depth,
+            max_cover_candidates: self.max_cover_candidates,
+            max_cover_search_depth: self.max_cover_search_depth,
+            base_exe_exclusions: self
+                .base_exe_exclusions
+                .iter()
+                .map(|s| Regex::new(s).map_err(|e| e.to_string()))
+                .collect::<Result<Vec<_>, _>>()?,
+            extra_exe_exclusions: self
+                .extra_exe_exclusions
+                .iter()
+                .map(|s| Regex::new(s).map_err(|e| e.to_string()))
+                .collect::<Result<Vec<_>, _>>()?,
+            base_folder_exclusions: self
+                .base_folder_exclusions
+                .iter()
+                .map(|s| Regex::new(s).map_err(|e| e.to_string()))
+                .collect::<Result<Vec<_>, _>>()?,
+            extra_folder_exclusions: self
+                .extra_folder_exclusions
+                .iter()
+                .map(|s| Regex::new(s).map_err(|e| e.to_string()))
+                .collect::<Result<Vec<_>, _>>()?,
+            base_image_extensions: self.base_image_extensions.clone(),
+            extra_image_extensions: self.extra_image_extensions.clone(),
+            base_metadata_files: self.base_metadata_files.clone(),
+            extra_metadata_files: self.extra_metadata_files.clone(),
+            cover_search_paths: self.cover_search_paths.clone(),
+        })
+    }
+}
+
 #[tauri::command]
 pub fn scan_space_sources(
     state: State<AppState>,
@@ -255,40 +292,8 @@ pub fn scan_directory_internal_with_config(
         base_path.display()
     );
 
-    // Build scanner::ScanConfig from command config, converting String patterns to Regex
-    let scanner_config = scanner::ScanConfig {
-        max_scan_depth: config.max_scan_depth,
-        max_exe_search_depth: config.max_exe_search_depth,
-        max_cover_candidates: config.max_cover_candidates,
-        max_cover_search_depth: config.max_cover_search_depth,
-        base_exe_exclusions: config
-            .base_exe_exclusions
-            .iter()
-            .map(|s| Regex::new(s).map_err(|e| e.to_string()))
-            .collect::<Result<Vec<_>, _>>()?,
-        extra_exe_exclusions: config
-            .extra_exe_exclusions
-            .iter()
-            .map(|s| Regex::new(s).map_err(|e| e.to_string()))
-            .collect::<Result<Vec<_>, _>>()?,
-        base_folder_exclusions: config
-            .base_folder_exclusions
-            .iter()
-            .map(|s| Regex::new(s).map_err(|e| e.to_string()))
-            .collect::<Result<Vec<_>, _>>()?,
-        extra_folder_exclusions: config
-            .extra_folder_exclusions
-            .iter()
-            .map(|s| Regex::new(s).map_err(|e| e.to_string()))
-            .collect::<Result<Vec<_>, _>>()?,
-        base_image_extensions: config.base_image_extensions.clone(),
-        extra_image_extensions: config.extra_image_extensions.clone(),
-        base_metadata_files: config.base_metadata_files.clone(),
-        extra_metadata_files: config.extra_metadata_files.clone(),
-        cover_search_paths: config.cover_search_paths.clone(),
-    };
-
-    // Call shared scanner (no cancellation for synchronous scan)
+    // Convert command config to scanner config and run the shared scanner
+    let scanner_config = config.to_scanner_config()?;
     let (games, _) = scanner::scan_directory(base_path, &scanner_config, None)?;
     Ok(games)
 }

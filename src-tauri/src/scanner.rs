@@ -30,6 +30,44 @@ pub struct ScanConfig {
 }
 
 impl ScanConfig {
+    /// Build a configuration from the global scanner constants.
+    pub fn from_constants(recursive: bool) -> Self {
+        Self {
+            max_scan_depth: if recursive {
+                crate::scanner_constants::MAX_SCAN_DEPTH
+            } else {
+                1
+            },
+            max_exe_search_depth: crate::scanner_constants::MAX_EXE_SEARCH_DEPTH,
+            max_cover_candidates: crate::scanner_constants::MAX_COVER_CANDIDATES,
+            max_cover_search_depth: crate::scanner_constants::MAX_COVER_SEARCH_DEPTH,
+            base_exe_exclusions: crate::scanner_constants::BASE_EXE_EXCLUSIONS
+                .iter()
+                .map(|&s| Regex::new(s).unwrap())
+                .collect(),
+            extra_exe_exclusions: Vec::new(),
+            base_folder_exclusions: crate::scanner_constants::BASE_FOLDER_EXCLUSIONS
+                .iter()
+                .map(|&s| Regex::new(s).unwrap())
+                .collect(),
+            extra_folder_exclusions: Vec::new(),
+            base_image_extensions: crate::scanner_constants::BASE_IMAGE_EXTENSIONS
+                .iter()
+                .map(|&s| s.to_string())
+                .collect(),
+            extra_image_extensions: Vec::new(),
+            base_metadata_files: crate::scanner_constants::BASE_METADATA_FILES
+                .iter()
+                .map(|&s| s.to_string())
+                .collect(),
+            extra_metadata_files: Vec::new(),
+            cover_search_paths: crate::scanner_constants::BASE_COVER_SEARCH_PATHS
+                .iter()
+                .map(|&s| s.to_string())
+                .collect(),
+        }
+    }
+
     /// Combine base and extra patterns for exe exclusions
     pub fn exe_patterns(&self) -> Vec<Regex> {
         let mut patterns = self.base_exe_exclusions.clone();

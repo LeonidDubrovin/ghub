@@ -6,9 +6,9 @@ mod scanning_service;
 mod scanner;
 mod scanner_constants;
 mod title_extraction;
-pub mod meta_service;
 pub mod metadata;
 mod download_service;
+mod http_constants;
 
 use tauri::Manager;
 use std::path::PathBuf;

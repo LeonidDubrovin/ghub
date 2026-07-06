@@ -160,96 +160,26 @@ impl Database {
         "#,
         )?;
 
-        // Migration: Add external_link if not exists
-        match self.conn.execute("ALTER TABLE games ADD COLUMN external_link TEXT", []) {
-            Ok(_) => {}
-            Err(e) if e.to_string().contains("duplicate column") => {}
-            Err(e) => return Err(e),
-        }
-
         // Migration: Migrate existing spaces.path to space_sources
         self.migrate_space_paths()?;
 
-        // Migration: Add scan tracking columns to space_sources (if missing)
-        match self
-            .conn
-            .execute("ALTER TABLE space_sources ADD COLUMN scan_status TEXT", [])
-        {
-            Ok(_) => {}
-            Err(e) if e.to_string().contains("duplicate column") => {}
-            Err(e) => return Err(e),
-        }
-        match self.conn.execute(
-            "ALTER TABLE space_sources ADD COLUMN scan_progress INTEGER DEFAULT 0",
-            [],
-        ) {
-            Ok(_) => {}
-            Err(e) if e.to_string().contains("duplicate column") => {}
-            Err(e) => return Err(e),
-        }
-        match self.conn.execute(
-            "ALTER TABLE space_sources ADD COLUMN scan_total INTEGER DEFAULT 0",
-            [],
-        ) {
-            Ok(_) => {}
-            Err(e) if e.to_string().contains("duplicate column") => {}
-            Err(e) => return Err(e),
-        }
-        match self
-            .conn
-            .execute("ALTER TABLE space_sources ADD COLUMN scan_error TEXT", [])
-        {
-            Ok(_) => {}
-            Err(e) if e.to_string().contains("duplicate column") => {}
-            Err(e) => return Err(e),
-        }
-        match self.conn.execute(
-            "ALTER TABLE space_sources ADD COLUMN scan_started_at TEXT",
-            [],
-        ) {
-            Ok(_) => {}
-            Err(e) if e.to_string().contains("duplicate column") => {}
-            Err(e) => return Err(e),
-        }
-        match self.conn.execute(
-            "ALTER TABLE space_sources ADD COLUMN scan_completed_at TEXT",
-            [],
-        ) {
-            Ok(_) => {}
-            Err(e) if e.to_string().contains("duplicate column") => {}
-            Err(e) => return Err(e),
-        }
-
-        // Migration: Add status and fingerprint to installs
-        match self.conn.execute(
-            "ALTER TABLE installs ADD COLUMN status TEXT DEFAULT 'installed'",
-            [],
-        ) {
-            Ok(_) => {}
-            Err(e) if e.to_string().contains("duplicate column") => {}
-            Err(e) => return Err(e),
-        }
-        match self
-            .conn
-            .execute("ALTER TABLE installs ADD COLUMN fingerprint TEXT", [])
-        {
-            Ok(_) => {}
-            Err(e) if e.to_string().contains("duplicate column") => {}
-            Err(e) => return Err(e),
-        }
+        // Migration: Add missing columns
+        self.add_column_if_missing("games", "external_link TEXT")?;
+        self.add_column_if_missing("space_sources", "scan_status TEXT")?;
+        self.add_column_if_missing("space_sources", "scan_progress INTEGER DEFAULT 0")?;
+        self.add_column_if_missing("space_sources", "scan_total INTEGER DEFAULT 0")?;
+        self.add_column_if_missing("space_sources", "scan_error TEXT")?;
+        self.add_column_if_missing("space_sources", "scan_started_at TEXT")?;
+        self.add_column_if_missing("space_sources", "scan_completed_at TEXT")?;
+        self.add_column_if_missing("installs", "status TEXT DEFAULT 'installed'")?;
+        self.add_column_if_missing("installs", "fingerprint TEXT")?;
+        self.add_column_if_missing("game_links", "download_status TEXT")?;
 
         // Migration: Create index for installs status queries
         self.conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_installs_space_status ON installs(space_id, status)",
             [],
         )?;
-
-        // Migration: Add download_status to game_links
-        match self.conn.execute("ALTER TABLE game_links ADD COLUMN download_status TEXT", []) {
-            Ok(_) => {}
-            Err(e) if e.to_string().contains("duplicate column") => {}
-            Err(e) => return Err(e),
-        }
 
         // Migration: Convert legacy download_links table into game_links + games
         self.migrate_download_links()?;
@@ -258,14 +188,7 @@ impl Database {
     }
 
     fn migrate_download_links(&self) -> Result<()> {
-        // Check if the legacy table exists
-        let exists: i64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'download_links'",
-            [],
-            |row| row.get(0),
-        )?;
-
-        if exists == 0 {
+        if !self.table_exists("download_links")? {
             return Ok(());
         }
 
@@ -335,6 +258,35 @@ impl Database {
         "#,
         )?;
 
+        Ok(())
+    }
+
+    fn table_exists(&self, name: &str) -> Result<bool> {
+        let count: i64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
+            [name],
+            |row| row.get(0),
+        )?;
+        Ok(count > 0)
+    }
+
+    fn column_exists(&self, table: &str, column: &str) -> Result<bool> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT 1 FROM pragma_table_info(?) WHERE name = ?")?;
+        let mut rows = stmt.query([table, column])?;
+        Ok(rows.next()?.is_some())
+    }
+
+    fn add_column_if_missing(&self, table: &str, column_def: &str) -> Result<()> {
+        // column_def is expected to be like "column_name TYPE [constraints]"
+        let column_name = column_def.split_whitespace().next().unwrap_or(column_def);
+        if !self.column_exists(table, column_name)? {
+            self.conn.execute(
+                &format!("ALTER TABLE {} ADD COLUMN {}", table, column_def),
+                [],
+            )?;
+        }
         Ok(())
     }
 
@@ -613,6 +565,52 @@ impl Database {
 
     // ============ GAMES ============
 
+    /// Map the first 18 columns (games table) into a Game struct.
+    /// Install/space fields are left as None.
+    fn map_game_base(row: &rusqlite::Row) -> Result<Game> {
+        Ok(Game {
+            id: row.get(0)?,
+            title: row.get(1)?,
+            sort_title: row.get(2)?,
+            description: row.get(3)?,
+            release_date: row.get(4)?,
+            developer: row.get(5)?,
+            publisher: row.get(6)?,
+            cover_image: row.get(7)?,
+            background_image: row.get(8)?,
+            total_playtime_seconds: row.get(9)?,
+            last_played_at: row.get(10)?,
+            times_launched: row.get(11)?,
+            is_favorite: row.get::<_, i32>(12)? == 1,
+            is_hidden: row.get::<_, i32>(13)? == 1,
+            completion_status: row.get(14)?,
+            user_rating: row.get(15)?,
+            added_at: row.get(16)?,
+            updated_at: row.get(17)?,
+            external_link: row.get(18).ok(),
+            space_id: None,
+            space_name: None,
+            space_type: None,
+            install_path: None,
+            executable_path: None,
+            install_status: None,
+            install_fingerprint: None,
+        })
+    }
+
+    /// Map the full 26-column game row (games + left-joined install + space).
+    fn map_game_row_with_install(row: &rusqlite::Row) -> Result<Game> {
+        let mut game = Self::map_game_base(row)?;
+        game.space_id = row.get(19).ok();
+        game.space_name = row.get(20).ok();
+        game.space_type = row.get(21).ok();
+        game.install_path = row.get(22).ok();
+        game.executable_path = row.get(23).ok();
+        game.install_status = row.get(24).ok();
+        game.install_fingerprint = row.get(25).ok();
+        Ok(game)
+    }
+
     pub fn get_all_games(&self) -> Result<Vec<Game>> {
         let mut stmt = self.conn.prepare(
             "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
@@ -630,34 +628,7 @@ impl Database {
 
         let games = stmt
             .query_map([], |row| {
-                Ok(Game {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    sort_title: row.get(2)?,
-                    description: row.get(3)?,
-                    release_date: row.get(4)?,
-                    developer: row.get(5)?,
-                    publisher: row.get(6)?,
-                    cover_image: row.get(7)?,
-                    background_image: row.get(8)?,
-                    total_playtime_seconds: row.get(9)?,
-                    last_played_at: row.get(10)?,
-                    times_launched: row.get(11)?,
-                    is_favorite: row.get::<_, i32>(12)? == 1,
-                    is_hidden: row.get::<_, i32>(13)? == 1,
-                    completion_status: row.get(14)?,
-                    user_rating: row.get(15)?,
-                    added_at: row.get(16)?,
-                    updated_at: row.get(17)?,
-                    external_link: row.get(18).ok(),
-                    space_id: row.get(19).ok(),
-                    space_name: row.get(20).ok(),
-                    space_type: row.get(21).ok(),
-                    install_path: row.get(22).ok(),
-                    executable_path: row.get(23).ok(),
-                    install_status: row.get(24).ok(),
-                    install_fingerprint: row.get(25).ok(),
-                })
+                Self::map_game_row_with_install(row)
             })?
             .collect::<Result<Vec<_>>>()?;
 
@@ -681,34 +652,7 @@ impl Database {
 
         let games = stmt
             .query_map([space_id], |row| {
-                Ok(Game {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    sort_title: row.get(2)?,
-                    description: row.get(3)?,
-                    release_date: row.get(4)?,
-                    developer: row.get(5)?,
-                    publisher: row.get(6)?,
-                    cover_image: row.get(7)?,
-                    background_image: row.get(8)?,
-                    total_playtime_seconds: row.get(9)?,
-                    last_played_at: row.get(10)?,
-                    times_launched: row.get(11)?,
-                    is_favorite: row.get::<_, i32>(12)? == 1,
-                    is_hidden: row.get::<_, i32>(13)? == 1,
-                    completion_status: row.get(14)?,
-                    user_rating: row.get(15)?,
-                    added_at: row.get(16)?,
-                    updated_at: row.get(17)?,
-                    external_link: row.get(18).ok(),
-                    space_id: row.get(19).ok(),
-                    space_name: row.get(20).ok(),
-                    space_type: row.get(21).ok(),
-                    install_path: row.get(22).ok(),
-                    executable_path: row.get(23).ok(),
-                    install_status: row.get(24).ok(),
-                    install_fingerprint: row.get(25).ok(),
-                })
+                Self::map_game_row_with_install(row)
             })?
             .collect::<Result<Vec<_>>>()?;
 
@@ -744,34 +688,7 @@ impl Database {
         let pattern = format!("{}%", prefix);
         let games = stmt
             .query_map(params![space_id, pattern], |row| {
-                Ok(Game {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    sort_title: row.get(2)?,
-                    description: row.get(3)?,
-                    release_date: row.get(4)?,
-                    developer: row.get(5)?,
-                    publisher: row.get(6)?,
-                    cover_image: row.get(7)?,
-                    background_image: row.get(8)?,
-                    total_playtime_seconds: row.get(9)?,
-                    last_played_at: row.get(10)?,
-                    times_launched: row.get(11)?,
-                    is_favorite: row.get::<_, i32>(12)? == 1,
-                    is_hidden: row.get::<_, i32>(13)? == 1,
-                    completion_status: row.get(14)?,
-                    user_rating: row.get(15)?,
-                    added_at: row.get(16)?,
-                    updated_at: row.get(17)?,
-                    external_link: row.get(18).ok(),
-                    space_id: row.get(19).ok(),
-                    space_name: row.get(20).ok(),
-                    space_type: row.get(21).ok(),
-                    install_path: row.get(22).ok(),
-                    executable_path: row.get(23).ok(),
-                    install_status: row.get(24).ok(),
-                    install_fingerprint: row.get(25).ok(),
-                })
+                Self::map_game_row_with_install(row)
             })?
             .collect::<Result<Vec<_>>>()?;
 
@@ -811,36 +728,7 @@ impl Database {
              WHERE g.id = ?"
         )?;
 
-        stmt.query_row([id], |row| {
-            Ok(Game {
-                id: row.get(0)?,
-                title: row.get(1)?,
-                sort_title: row.get(2)?,
-                description: row.get(3)?,
-                release_date: row.get(4)?,
-                developer: row.get(5)?,
-                publisher: row.get(6)?,
-                cover_image: row.get(7)?,
-                background_image: row.get(8)?,
-                total_playtime_seconds: row.get(9)?,
-                last_played_at: row.get(10)?,
-                times_launched: row.get(11)?,
-                is_favorite: row.get::<_, i32>(12)? == 1,
-                is_hidden: row.get::<_, i32>(13)? == 1,
-                completion_status: row.get(14)?,
-                user_rating: row.get(15)?,
-                added_at: row.get(16)?,
-                updated_at: row.get(17)?,
-                external_link: row.get(18).ok(),
-                space_id: row.get(19).ok(),
-                space_name: row.get(20).ok(),
-                space_type: row.get(21).ok(),
-                install_path: row.get(22).ok(),
-                executable_path: row.get(23).ok(),
-                install_status: row.get(24).ok(),
-                install_fingerprint: row.get(25).ok(),
-            })
-        })
+        stmt.query_row([id], |row| Self::map_game_row_with_install(row))
     }
 
     /// Find a game by its fingerprint (title + developer)
@@ -875,65 +763,11 @@ impl Database {
 
         let result = if let Some(dev) = developer {
             stmt.query_row(params![title, dev], |row| {
-                Ok(Game {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    sort_title: row.get(2)?,
-                    description: row.get(3)?,
-                    release_date: row.get(4)?,
-                    developer: row.get(5)?,
-                    publisher: row.get(6)?,
-                    cover_image: row.get(7)?,
-                    background_image: row.get(8)?,
-                    total_playtime_seconds: row.get(9)?,
-                    last_played_at: row.get(10)?,
-                    times_launched: row.get(11)?,
-                    is_favorite: row.get::<_, i32>(12)? == 1,
-                    is_hidden: row.get::<_, i32>(13)? == 1,
-                    completion_status: row.get(14)?,
-                    user_rating: row.get(15)?,
-                    added_at: row.get(16)?,
-                    updated_at: row.get(17)?,
-                    external_link: row.get(18).ok(),
-                    space_id: None,
-                    space_name: None,
-                    space_type: None,
-                    install_path: None,
-                    executable_path: None,
-                    install_status: None,
-                    install_fingerprint: None,
-                })
+                Self::map_game_base(row)
             })
         } else {
             stmt.query_row([title], |row| {
-                Ok(Game {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    sort_title: row.get(2)?,
-                    description: row.get(3)?,
-                    release_date: row.get(4)?,
-                    developer: row.get(5)?,
-                    publisher: row.get(6)?,
-                    cover_image: row.get(7)?,
-                    background_image: row.get(8)?,
-                    total_playtime_seconds: row.get(9)?,
-                    last_played_at: row.get(10)?,
-                    times_launched: row.get(11)?,
-                    is_favorite: row.get::<_, i32>(12)? == 1,
-                    is_hidden: row.get::<_, i32>(13)? == 1,
-                    completion_status: row.get(14)?,
-                    user_rating: row.get(15)?,
-                    added_at: row.get(16)?,
-                    updated_at: row.get(17)?,
-                    external_link: row.get(18).ok(),
-                    space_id: None,
-                    space_name: None,
-                    space_type: None,
-                    install_path: None,
-                    executable_path: None,
-                    install_status: None,
-                    install_fingerprint: None,
-                })
+                Self::map_game_base(row)
             })
         };
 
@@ -1415,34 +1249,7 @@ impl Database {
 
         let games = stmt
             .query_map([], |row| {
-                Ok(Game {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    sort_title: row.get(2)?,
-                    description: row.get(3)?,
-                    release_date: row.get(4)?,
-                    developer: row.get(5)?,
-                    publisher: row.get(6)?,
-                    cover_image: row.get(7)?,
-                    background_image: row.get(8)?,
-                    total_playtime_seconds: row.get(9)?,
-                    last_played_at: row.get(10)?,
-                    times_launched: row.get(11)?,
-                    is_favorite: row.get::<_, i32>(12)? == 1,
-                    is_hidden: row.get::<_, i32>(13)? == 1,
-                    completion_status: row.get(14)?,
-                    user_rating: row.get(15)?,
-                    added_at: row.get(16)?,
-                    updated_at: row.get(17)?,
-                    external_link: row.get(18).ok(),
-                    space_id: row.get(19).ok(),
-                    space_name: row.get(20).ok(),
-                    space_type: row.get(21).ok(),
-                    install_path: row.get(22).ok(),
-                    executable_path: row.get(23).ok(),
-                    install_status: row.get(24).ok(),
-                    install_fingerprint: row.get(25).ok(),
-                })
+                Self::map_game_row_with_install(row)
             })?
             .collect::<Result<Vec<_>>>()?;
 

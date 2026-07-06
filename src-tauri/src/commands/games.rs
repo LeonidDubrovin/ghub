@@ -86,14 +86,12 @@ pub fn delete_game(state: State<AppState>, id: String) -> Result<(), String> {
 
 // ============ GAME LINKS ============
 
-#[allow(dead_code)]
 #[tauri::command]
 pub fn get_game_links(state: State<AppState>, game_id: String) -> Result<Vec<GameLink>, String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.get_game_links(&game_id).map_err(|e: rusqlite::Error| e.to_string())
 }
 
-#[allow(dead_code)]
 #[tauri::command]
 pub fn add_game_link(
     state: State<AppState>,

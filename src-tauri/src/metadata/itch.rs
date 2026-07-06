@@ -1,11 +1,10 @@
+use crate::http_constants::{ACCEPT_LANGUAGE, USER_AGENT};
 use crate::models::MetadataSearchResult;
 use crate::metadata::strategy::MetadataStrategy;
 use reqwest::Client;
 use async_trait::async_trait;
 use scraper::{Html, Selector};
 use serde_json;
-
-const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36";
 
 pub struct ItchStrategy {
     enabled: bool,
@@ -37,6 +36,7 @@ impl MetadataStrategy for ItchStrategy {
         
         let api_resp = client.get(&api_url)
             .header("User-Agent", USER_AGENT)
+            .header("Accept-Language", ACCEPT_LANGUAGE)
             .header("Accept", "application/json")
             .send().await;
             
@@ -88,6 +88,7 @@ impl MetadataStrategy for ItchStrategy {
         
         let resp = client.get(&url)
             .header("User-Agent", USER_AGENT)
+            .header("Accept-Language", ACCEPT_LANGUAGE)
             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
             .header("Referer", "https://duckduckgo.com/")
             .send().await.map_err(|e| e.to_string())?;
@@ -152,6 +153,7 @@ impl MetadataStrategy for ItchStrategy {
     async fn get_details(&self, client: &Client, url: &str) -> Result<Option<MetadataSearchResult>, String> {
         let resp = client.get(url)
             .header("User-Agent", USER_AGENT)
+            .header("Accept-Language", ACCEPT_LANGUAGE)
             .send().await.map_err(|e| e.to_string())?;
             
         let html = resp.text().await.map_err(|e| e.to_string())?;
