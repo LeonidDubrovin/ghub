@@ -159,11 +159,6 @@ impl Database {
                 ('language', '"ru"'),
                 ('theme', '"dark"'),
                 ('view_mode', '"grid"');
-
-            -- System spaces for link queueing
-            INSERT OR IGNORE INTO spaces (id, name, path, type, icon, color, is_system, sort_order) VALUES
-                ('incoming', 'Входящие', NULL, 'virtual', '⬇️', 'gray', 1, -2),
-                ('online', 'Онлайн', NULL, 'virtual', '🌐', 'gray', 1, -1);
         "#,
         )?;
 

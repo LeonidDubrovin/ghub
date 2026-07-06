@@ -16,7 +16,7 @@ const FolderIcon = () => (
 
 export default function SelectTargetSpaceDialog({ spaces, onClose, onSelect }: SelectTargetSpaceDialogProps) {
   const { t } = useTranslation();
-  const eligibleSpaces = spaces.filter(s => !s.is_system && s.type !== 'virtual');
+  const eligibleSpaces = spaces.filter(s => !s.is_system);
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
