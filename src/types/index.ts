@@ -185,6 +185,11 @@ export interface DownloadGameLinkRequest {
   source_path: string;
 }
 
+export interface DownloadGameLinkResponse {
+  game: Game;
+  status: 'downloaded' | 'browser';
+}
+
 export interface MoveGameLinkRequest {
   link_id: string;
   queue_space: 'incoming' | 'online' | null;

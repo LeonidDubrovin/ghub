@@ -2,8 +2,15 @@ use crate::download_service::{self, ItchDownloadResolution};
 use crate::models::Game;
 use crate::AppState;
 use log::{error, info};
+use serde::Serialize;
 use std::path::Path;
 use tauri::State;
+
+#[derive(Serialize)]
+pub struct DownloadGameLinkResponse {
+    pub game: Game,
+    pub status: String,
+}
 
 #[tauri::command]
 pub fn get_download_games(state: State<AppState>) -> Result<Vec<Game>, String> {
@@ -78,7 +85,7 @@ pub async fn download_game_link(
     link_id: String,
     space_id: String,
     source_path: String,
-) -> Result<Game, String> {
+) -> Result<DownloadGameLinkResponse, String> {
     // Load the link and game without holding the lock across awaits.
     let (link, game) = {
         let db = state.db.lock().map_err(|e| e.to_string())?;
@@ -111,8 +118,8 @@ pub async fn download_game_link(
             let db = state.db.lock().map_err(|e| e.to_string())?;
             db.update_game_link_status(&link.id, "browser")
                 .map_err(|e| e.to_string())?;
-            db.get_game_by_id(&game_id)
-                .map_err(|e| e.to_string())
+            let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
+            Ok(DownloadGameLinkResponse { game, status: "browser".to_string() })
         }
         ItchDownloadResolution::Direct(direct_url) => {
             let target_path = Path::new(&source_path);
@@ -155,8 +162,8 @@ pub async fn download_game_link(
             db.update_game_link_queue_space(&link.id, None)
                 .map_err(|e| e.to_string())?;
 
-            db.get_game_by_id(&game_id)
-                .map_err(|e| e.to_string())
+            let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
+            Ok(DownloadGameLinkResponse { game, status: "downloaded".to_string() })
         }
     }
 }

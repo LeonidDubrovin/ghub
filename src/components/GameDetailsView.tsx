@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../lib/i18n';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-import type { Game, GameLink } from '../types';
+import type { Game, GameLink, DownloadGameLinkResponse } from '../types';
 import ResizeHandle from './ResizeHandle';
 import MetadataSearchDialog from './MetadataSearchDialog';
 import SelectTargetSpaceDialog from './SelectTargetSpaceDialog';
@@ -136,13 +136,21 @@ export default function GameDetailsView({
     if (!selectedGame || !activeLink) return;
     setShowTargetDialog(false);
     try {
-      await invoke('download_game_link', {
+      const result = await invoke<DownloadGameLinkResponse>('download_game_link', {
         gameId: selectedGame.id,
         linkId: activeLink.id,
         spaceId,
         sourcePath,
       });
-      onSave?.();
+      if (result.status === 'browser') {
+        if (confirm(t('messages.browserOnlyGame'))) {
+          await handleMoveLink('online');
+        } else {
+          onSave?.();
+        }
+      } else {
+        onSave?.();
+      }
     } catch (e) {
       console.error('Failed to download game:', e);
       alert(String(e));

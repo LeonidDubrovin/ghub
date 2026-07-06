@@ -179,6 +179,9 @@
     "selectTarget": "Select download target",
     "noSources": "No available sources. Add a space with a source folder first."
   },
+  "messages": {
+    "browserOnlyGame": "This game is browser-only or requires purchase/login. Move it to Online?"
+  },
   "dialog": {
     "addLink": {
       "title": "Add Link",
