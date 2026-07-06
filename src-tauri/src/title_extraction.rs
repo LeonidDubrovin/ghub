@@ -752,7 +752,7 @@ fn find_title_in_parents(path: &Path, max_levels: u32) -> Option<String> {
 }
 
 /// Helper: Extract a title from an executable filename
-fn extract_title_from_executable(executable: &Option<String>) -> Option<String> {
+pub(crate) fn extract_title_from_executable(executable: &Option<String>) -> Option<String> {
     executable.as_ref().and_then(|exe| {
         let stem = Path::new(exe).file_stem()?.to_str()?;
         // Remove .exe extension if present and clean it

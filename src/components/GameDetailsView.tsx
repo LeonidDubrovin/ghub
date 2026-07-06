@@ -1,15 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../lib/i18n';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import type { Game, GameLink } from '../types';
 import ResizeHandle from './ResizeHandle';
 import MetadataSearchDialog from './MetadataSearchDialog';
+import SelectTargetSpaceDialog from './SelectTargetSpaceDialog';
+import { useSpaces } from '../hooks/useSpaces';
 
 interface Props {
   games: Game[];
   selectedGame: Game | null;
   selectedGames?: Game[]; // Added for multi-selection support
+  selectedSpaceId?: string | null;
   onSelectGame: (g: Game, shiftKey?: boolean) => void;
   onPlay: (g: Game) => void;
   onEdit: (g: Game) => void;
@@ -43,6 +46,7 @@ export default function GameDetailsView({
   games, 
   selectedGame, 
   selectedGames = [], 
+  selectedSpaceId,
   onSelectGame, 
   onPlay, 
   onEdit, 
@@ -60,6 +64,8 @@ export default function GameDetailsView({
   const [hov, setHov] = useState<string | null>(null);
   const [gameLinks, setGameLinks] = useState<GameLink[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [showTargetDialog, setShowTargetDialog] = useState(false);
+  const { data: spaces = [] } = useSpaces();
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -103,11 +109,43 @@ export default function GameDetailsView({
   const run = selectedGame ? isGameRunning?.(selectedGame.id) ?? false : false;
   const isUpdating = selectedGame ? updatingGameIds?.has(selectedGame.id) : false;
 
-  const openExternalLink = async (url: string) => {
+  const activeLink = useMemo(() => {
+    if (!selectedGame || (selectedSpaceId !== 'incoming' && selectedSpaceId !== 'online')) return null;
+    return gameLinks.find(l => l.queue_space === selectedSpaceId) || gameLinks[0] || null;
+  }, [selectedGame, selectedSpaceId, gameLinks]);
+
+  const openGameLink = async (link: GameLink) => {
     try {
-      await import('@tauri-apps/plugin-shell').then(m => m.open(url));
+      await invoke('open_game_link', { url: link.url, sourceType: link.source_type });
     } catch (e) {
       console.error('Failed to open link:', e);
+    }
+  };
+
+  const handleMoveLink = async (targetQueueSpace: 'incoming' | 'online') => {
+    if (!activeLink) return;
+    try {
+      await invoke('move_game_link', { linkId: activeLink.id, queueSpace: targetQueueSpace });
+      onSave?.();
+    } catch (e) {
+      console.error('Failed to move link:', e);
+    }
+  };
+
+  const handleDownload = async (spaceId: string, sourcePath: string) => {
+    if (!selectedGame || !activeLink) return;
+    setShowTargetDialog(false);
+    try {
+      await invoke('download_game_link', {
+        gameId: selectedGame.id,
+        linkId: activeLink.id,
+        spaceId,
+        sourcePath,
+      });
+      onSave?.();
+    } catch (e) {
+      console.error('Failed to download game:', e);
+      alert(String(e));
     }
   };
 
@@ -212,44 +250,87 @@ export default function GameDetailsView({
                   <h1 className="text-4xl font-bold text-white mb-2">{selectedGame.title}</h1>
                   <div className="text-gray-400 mb-6 text-sm">{selectedGame.developer}{selectedGame.publisher && ` | ${selectedGame.publisher}`}</div>
                    <div className="flex gap-3 flex-wrap">
-                     <button 
-                       onClick={() => onPlay(selectedGame)} 
-                       disabled={run} 
-                       className={`px-8 py-3 rounded-lg font-semibold flex items-center gap-2 ${run ? 'bg-green-600' : 'bg-accent hover:bg-accent-hover'} text-white`}
+                     {selectedSpaceId === 'incoming' && activeLink ? (
+                       <>
+                         {activeLink.source_type === 'itch' ? (
+                           <button
+                             onClick={() => setShowTargetDialog(true)}
+                             className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-accent hover:bg-accent-hover text-white"
+                           >
+                             <PlayIcon /> {t('actions.download')}
+                           </button>
+                         ) : (
+                           <button
+                             onClick={() => openGameLink(activeLink)}
+                             className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
+                           >
+                             {activeLink.source_type === 'steam' ? t('actions.openStore') : t('actions.openLink')}
+                           </button>
+                         )}
+                         <button
+                           onClick={() => handleMoveLink('online')}
+                           className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
+                         >
+                           {t('actions.moveToOnline')}
+                         </button>
+                       </>
+                     ) : selectedSpaceId === 'online' && activeLink ? (
+                       <>
+                         <button
+                           onClick={() => openGameLink(activeLink)}
+                           className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
+                         >
+                           {activeLink.source_type === 'itch' ? t('actions.playInBrowser') : activeLink.source_type === 'steam' ? t('actions.openStore') : t('actions.openLink')}
+                         </button>
+                         <button
+                           onClick={() => handleMoveLink('incoming')}
+                           className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
+                         >
+                           {t('actions.moveToIncoming')}
+                         </button>
+                       </>
+                     ) : (
+                       <>
+                         <button
+                           onClick={() => onPlay(selectedGame)}
+                           disabled={run}
+                           className={`px-8 py-3 rounded-lg font-semibold flex items-center gap-2 ${run ? 'bg-green-600' : 'bg-accent hover:bg-accent-hover'} text-white`}
+                         >
+                           <PlayIcon /> {run ? t('details.running') : t('details.play')}
+                         </button>
+                         {gameLinks.length > 0 && gameLinks.map(link => (
+                           <button
+                             key={link.id}
+                             onClick={() => openGameLink(link)}
+                             className="px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg flex items-center gap-2 text-sm"
+                             title={link.url}
+                           >
+                             <span>{getSourceIcon(link.source_type)}</span>
+                             <span>{getSourceLabel(link)}</span>
+                           </button>
+                         ))}
+                       </>
+                     )}
+                     <button
+                       onClick={() => setIsSearchOpen(true)}
+                       className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg flex items-center gap-2"
                      >
-                       <PlayIcon/> {run ? t('details.running') : t('details.play')}
+                       🌐 {t('actions.fetchMetadata')}
                      </button>
-                     {gameLinks.length > 0 && gameLinks.map(link => (
-                       <button
-                         key={link.id}
-                         onClick={() => openExternalLink(link.url)}
-                         className="px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg flex items-center gap-2 text-sm"
-                         title={link.url}
-                       >
-                         <span>{getSourceIcon(link.source_type)}</span>
-                         <span>{getSourceLabel(link)}</span>
-                       </button>
-                     ))}
-                      <button
-                        onClick={() => setIsSearchOpen(true)}
-                        className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg flex items-center gap-2"
-                      >
-                        🌐 {t('actions.fetchMetadata')}
-                      </button>
-                      <button
-                        onClick={() => onEdit(selectedGame)}
-                        className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
-                      >
-                        {t('details.edit')}
-                      </button>
-                      <button
-                        onClick={() => onRefreshFromLocal?.(selectedGame)}
-                        disabled={isUpdating}
-                        className={`px-6 py-3 rounded-lg flex items-center gap-2 ${isUpdating ? 'bg-purple-500/30 cursor-wait' : 'bg-purple-500/20 hover:bg-purple-500/30'} text-purple-300`}
-                      >
-                        {isUpdating ? '⏳' : '🔄'}
-                        {isUpdating ? t('details.updating') : t('details.refreshMetadata')}
-                      </button>
+                     <button
+                       onClick={() => onEdit(selectedGame)}
+                       className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
+                     >
+                       {t('details.edit')}
+                     </button>
+                     <button
+                       onClick={() => onRefreshFromLocal?.(selectedGame)}
+                       disabled={isUpdating}
+                       className={`px-6 py-3 rounded-lg flex items-center gap-2 ${isUpdating ? 'bg-purple-500/30 cursor-wait' : 'bg-purple-500/20 hover:bg-purple-500/30'} text-purple-300`}
+                     >
+                       {isUpdating ? '⏳' : '🔄'}
+                       {isUpdating ? t('details.updating') : t('details.refreshMetadata')}
+                     </button>
                    </div>
                 </div>
               </div>
@@ -309,12 +390,12 @@ export default function GameDetailsView({
                      <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2">{t('details.sourceLinks')}</h3>
                      <div className="space-y-2">
                        {gameLinks.map(link => (
-                         <button
-                           key={link.id}
-                           onClick={() => openExternalLink(link.url)}
-                           className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm transition-colors w-full text-left"
-                           title={link.url}
-                         >
+                          <button
+                            key={link.id}
+                            onClick={() => openGameLink(link)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm transition-colors w-full text-left"
+                            title={link.url}
+                          >
                            <span className="text-base">{getSourceIcon(link.source_type)}</span>
                            <div className="flex-1 min-w-0">
                              <div className="truncate">{getSourceLabel(link)}</div>
@@ -354,6 +435,14 @@ export default function GameDetailsView({
             setIsSearchOpen(false);
             onSave?.();
           }}
+        />
+      )}
+
+      {selectedGame && showTargetDialog && (
+        <SelectTargetSpaceDialog
+          spaces={spaces}
+          onClose={() => setShowTargetDialog(false)}
+          onSelect={handleDownload}
         />
       )}
     </div>

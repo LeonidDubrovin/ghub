@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import SpaceSettingsDialog from './SpaceSettingsDialog';
 import SpaceItem from './SpaceItem';
 
-type FilterType = 'all' | 'favorites' | 'recent' | 'links';
+type FilterType = 'all' | 'favorites' | 'recent';
 
 interface SidebarProps {
   spaces: Space[];
@@ -132,13 +132,25 @@ export default function Sidebar({
             )}
           </button>
 
-          <button
-            onClick={() => handleFilterClick('links')}
-            className={clsx('sidebar-item w-full', selectedFilter === 'links' && 'active')}
-          >
-            <LinkIcon />
-            <span className="flex-1 text-left">{t('links.title')}</span>
-          </button>
+          <div className="mt-4 pt-4 border-t border-surface-100">
+            <div className="px-4 py-1">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {t('sidebar.system')}
+              </span>
+            </div>
+            {spaces.filter(s => s.is_system).map(space => (
+              <button
+                key={space.id}
+                onClick={() => { onSelectSpace(space.id); onSelectFilter('all'); }}
+                className={clsx('sidebar-item w-full', selectedSpaceId === space.id && 'active')}
+              >
+                <span className="w-6 h-6 flex items-center justify-center rounded">
+                  {space.icon || <LinkIcon />}
+                </span>
+                <span className="flex-1 text-left">{space.name}</span>
+              </button>
+            ))}
+          </div>
         </nav>
 
         <div className="flex-1 overflow-auto">
@@ -150,11 +162,11 @@ export default function Sidebar({
 
           {isLoading ? (
             <div className="px-4 py-2 text-gray-500 text-sm">{t('common.loading')}</div>
-          ) : spaces.length === 0 ? (
+          ) : spaces.filter(s => !s.is_system).length === 0 ? (
             <div className="px-4 py-2 text-gray-500 text-sm">{t('sidebar.noSpaces')}</div>
           ) : (
             <nav className="px-3 space-y-1">
-              {spaces.map(space => (
+              {spaces.filter(s => !s.is_system).map(space => (
                 <SpaceItem
                   key={space.id}
                   space={space}

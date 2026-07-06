@@ -38,6 +38,7 @@ impl Database {
                 color           TEXT,
                 sort_order      INTEGER DEFAULT 0,
                 is_active       INTEGER DEFAULT 1,
+                is_system       INTEGER DEFAULT 0,
                 created_at      TEXT DEFAULT (datetime('now')),
                 updated_at      TEXT DEFAULT (datetime('now'))
             );
@@ -140,6 +141,7 @@ impl Database {
                 title           TEXT,
                 source_type     TEXT, -- 'steam', 'itch', 'gog', 'epic', etc.
                 download_status TEXT,  -- pending, external, browser, downloaded, error
+                queue_space     TEXT,  -- 'incoming', 'online', or null for real installs
                 created_at      TEXT DEFAULT (datetime('now')),
                 UNIQUE(game_id, url)
             );
@@ -157,6 +159,11 @@ impl Database {
                 ('language', '"ru"'),
                 ('theme', '"dark"'),
                 ('view_mode', '"grid"');
+
+            -- System spaces for link queueing
+            INSERT OR IGNORE INTO spaces (id, name, path, type, icon, color, is_system, sort_order) VALUES
+                ('incoming', 'Входящие', NULL, 'virtual', '⬇️', 'gray', 1, -2),
+                ('online', 'Онлайн', NULL, 'virtual', '🌐', 'gray', 1, -1);
         "#,
         )?;
 
@@ -174,6 +181,8 @@ impl Database {
         self.add_column_if_missing("installs", "status TEXT DEFAULT 'installed'")?;
         self.add_column_if_missing("installs", "fingerprint TEXT")?;
         self.add_column_if_missing("game_links", "download_status TEXT")?;
+        self.add_column_if_missing("game_links", "queue_space TEXT")?;
+        self.add_column_if_missing("spaces", "is_system INTEGER DEFAULT 0")?;
 
         // Migration: Create index for installs status queries
         self.conn.execute(
@@ -184,6 +193,36 @@ impl Database {
         // Migration: Convert legacy download_links table into game_links + games
         self.migrate_download_links()?;
 
+        // Ensure system spaces exist and migrate existing link cards into the incoming queue
+        self.ensure_system_spaces()?;
+        self.migrate_link_queue_spaces()?;
+
+        Ok(())
+    }
+
+    fn ensure_system_spaces(&self) -> Result<()> {
+        self.conn.execute(
+            "INSERT OR IGNORE INTO spaces (id, name, path, type, icon, color, is_system, sort_order) VALUES (?, ?, NULL, 'virtual', ?, ?, 1, ?)",
+            params!["incoming", "Входящие", "⬇️", "gray", -2],
+        )?;
+        self.conn.execute(
+            "INSERT OR IGNORE INTO spaces (id, name, path, type, icon, color, is_system, sort_order) VALUES (?, ?, NULL, 'virtual', ?, ?, 1, ?)",
+            params!["online", "Онлайн", "🌐", "gray", -1],
+        )?;
+        Ok(())
+    }
+
+    fn migrate_link_queue_spaces(&self) -> Result<()> {
+        // Existing non-downloaded links go to the incoming queue.
+        self.conn.execute(
+            "UPDATE game_links SET queue_space = 'incoming' WHERE queue_space IS NULL AND download_status IS NOT NULL AND download_status != 'downloaded'",
+            [],
+        )?;
+        // Downloaded links are no longer part of any virtual queue.
+        self.conn.execute(
+            "UPDATE game_links SET queue_space = NULL WHERE queue_space IS NULL AND download_status = 'downloaded'",
+            [],
+        )?;
         Ok(())
     }
 
@@ -234,8 +273,8 @@ impl Database {
             )?;
 
             self.conn.execute(
-                "INSERT INTO game_links (id, game_id, url, title, source_type, download_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                params![id, game_id, &url, title, source_type, download_status, added_at],
+                "INSERT INTO game_links (id, game_id, url, title, source_type, download_status, queue_space, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                params![id, game_id, &url, title, source_type, download_status, "incoming", added_at],
             )?;
         }
 
@@ -294,7 +333,7 @@ impl Database {
 
     pub fn get_all_spaces(&self) -> Result<Vec<Space>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, name, path, type, icon, color, sort_order, is_active, created_at, updated_at 
+            "SELECT id, name, path, type, icon, color, sort_order, is_active, is_system, created_at, updated_at 
              FROM spaces WHERE is_active = 1 ORDER BY sort_order, name"
         )?;
 
@@ -309,8 +348,9 @@ impl Database {
                     color: row.get(5)?,
                     sort_order: row.get(6)?,
                     is_active: row.get::<_, i32>(7)? == 1,
-                    created_at: row.get(8)?,
-                    updated_at: row.get(9)?,
+                    is_system: row.get::<_, i32>(8)? == 1,
+                    created_at: row.get(9)?,
+                    updated_at: row.get(10)?,
                 })
             })?
             .collect::<Result<Vec<_>>>()?;
@@ -320,7 +360,7 @@ impl Database {
 
     pub fn get_space_by_id(&self, id: &str) -> Result<Space> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, name, path, type, icon, color, sort_order, is_active, created_at, updated_at 
+            "SELECT id, name, path, type, icon, color, sort_order, is_active, is_system, created_at, updated_at 
              FROM spaces WHERE id = ?"
         )?;
 
@@ -334,8 +374,9 @@ impl Database {
                 color: row.get(5)?,
                 sort_order: row.get(6)?,
                 is_active: row.get::<_, i32>(7)? == 1,
-                created_at: row.get(8)?,
-                updated_at: row.get(9)?,
+                is_system: row.get::<_, i32>(8)? == 1,
+                created_at: row.get(9)?,
+                updated_at: row.get(10)?,
             })
         })
     }
@@ -350,28 +391,11 @@ impl Database {
         color: Option<&str>,
     ) -> Result<Space> {
         self.conn.execute(
-            "INSERT INTO spaces (id, name, path, type, icon, color) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO spaces (id, name, path, type, icon, color, is_system) VALUES (?, ?, ?, ?, ?, ?, 0)",
             params![id, name, path, space_type, icon, color],
         )?;
 
-        let mut stmt = self.conn.prepare(
-            "SELECT id, name, path, type, icon, color, sort_order, is_active, created_at, updated_at FROM spaces WHERE id = ?"
-        )?;
-
-        stmt.query_row([id], |row| {
-            Ok(Space {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                path: row.get(2)?,
-                space_type: row.get(3)?,
-                icon: row.get(4)?,
-                color: row.get(5)?,
-                sort_order: row.get(6)?,
-                is_active: row.get::<_, i32>(7)? == 1,
-                created_at: row.get(8)?,
-                updated_at: row.get(9)?,
-            })
-        })
+        self.get_space_by_id(id)
     }
 
     pub fn delete_space(&self, id: &str) -> Result<()> {
@@ -623,6 +647,7 @@ impl Database {
              LEFT JOIN installs i ON g.id = i.game_id
              LEFT JOIN spaces s ON i.space_id = s.id
              WHERE g.is_hidden = 0
+               AND (i.game_id IS NOT NULL OR NOT EXISTS (SELECT 1 FROM game_links gl WHERE gl.game_id = g.id AND gl.queue_space IS NOT NULL))
              ORDER BY g.title COLLATE NOCASE"
         )?;
 
@@ -1145,7 +1170,7 @@ impl Database {
 
     pub fn get_game_link_by_id(&self, id: &str) -> Result<GameLink> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, game_id, url, title, source_type, download_status, created_at
+            "SELECT id, game_id, url, title, source_type, download_status, queue_space, created_at
              FROM game_links
              WHERE id = ?"
         )?;
@@ -1158,14 +1183,15 @@ impl Database {
                 title: row.get(3)?,
                 source_type: row.get(4)?,
                 download_status: row.get(5)?,
-                created_at: row.get(6)?,
+                queue_space: row.get(6)?,
+                created_at: row.get(7)?,
             })
         })
     }
 
     pub fn get_game_links(&self, game_id: &str) -> Result<Vec<GameLink>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, game_id, url, title, source_type, download_status, created_at
+            "SELECT id, game_id, url, title, source_type, download_status, queue_space, created_at
              FROM game_links
              WHERE game_id = ?
              ORDER BY created_at DESC"
@@ -1180,7 +1206,8 @@ impl Database {
                     title: row.get(3)?,
                     source_type: row.get(4)?,
                     download_status: row.get(5)?,
-                    created_at: row.get(6)?,
+                    queue_space: row.get(6)?,
+                    created_at: row.get(7)?,
                 })
             })?
             .collect::<Result<Vec<_>>>()?;
@@ -1196,11 +1223,12 @@ impl Database {
         title: Option<&str>,
         source_type: Option<&str>,
         download_status: Option<&str>,
+        queue_space: Option<&str>,
     ) -> Result<GameLink> {
         let created_at = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         self.conn.execute(
-            "INSERT INTO game_links (id, game_id, url, title, source_type, download_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            params![id, game_id, url, title, source_type, download_status, &created_at],
+            "INSERT INTO game_links (id, game_id, url, title, source_type, download_status, queue_space, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            params![id, game_id, url, title, source_type, download_status, queue_space, &created_at],
         )?;
 
         Ok(GameLink {
@@ -1210,6 +1238,7 @@ impl Database {
             title: title.map(String::from),
             source_type: source_type.map(String::from),
             download_status: download_status.map(String::from),
+            queue_space: queue_space.map(String::from),
             created_at,
         })
     }
@@ -1227,33 +1256,44 @@ impl Database {
         Ok(())
     }
 
-    /// Get all games that have a pending or external game link and no local install.
-    /// This is the "Downloads" / virtual queue.
-    pub fn get_download_games(&self) -> Result<Vec<Game>> {
+    pub fn update_game_link_queue_space(&self, id: &str, queue_space: Option<&str>) -> Result<()> {
+        self.conn.execute(
+            "UPDATE game_links SET queue_space = ? WHERE id = ?",
+            params![queue_space, id],
+        )?;
+        Ok(())
+    }
+
+    /// Get games that belong to a virtual queue space (incoming/online) and have no local install.
+    pub fn get_games_by_queue_space(&self, queue_space: &str) -> Result<Vec<Game>> {
         let mut stmt = self.conn.prepare(
             "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
                     g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,
                     g.times_launched, g.is_favorite, g.is_hidden, g.completion_status, g.user_rating,
                     g.added_at, g.updated_at, g.external_link,
-                    i.space_id, s.name as space_name, s.type as space_type,
-                    i.install_path, i.executable_path, i.status, i.fingerprint
+                    NULL as space_id, NULL as space_name, NULL as space_type,
+                    NULL as install_path, NULL as executable_path, NULL as status, NULL as fingerprint
              FROM games g
              INNER JOIN game_links gl ON g.id = gl.game_id
-             LEFT JOIN installs i ON g.id = i.game_id
-             LEFT JOIN spaces s ON i.space_id = s.id
-             WHERE gl.download_status IS NOT NULL
-               AND gl.download_status != 'downloaded'
+             WHERE gl.queue_space = ?
+               AND NOT EXISTS (SELECT 1 FROM installs i WHERE i.game_id = g.id)
              GROUP BY g.id
              ORDER BY g.added_at DESC"
         )?;
 
         let games = stmt
-            .query_map([], |row| {
+            .query_map([queue_space], |row| {
                 Self::map_game_row_with_install(row)
             })?
             .collect::<Result<Vec<_>>>()?;
 
         Ok(games)
+    }
+
+    /// Get all games that have a pending or external game link and no local install.
+    /// This is the "Downloads" / virtual queue.
+    pub fn get_download_games(&self) -> Result<Vec<Game>> {
+        self.get_games_by_queue_space("incoming")
     }
 
     // ============ SPACE SOURCE SCAN STATUS ============

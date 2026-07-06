@@ -117,6 +117,7 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
           title: newLinkTitle.trim() || null,
           sourceType: newLinkSource === 'other' ? null : newLinkSource,
           downloadStatus: null,
+          queueSpace: null,
         });
        setNewLinkUrl('');
        setNewLinkTitle('');

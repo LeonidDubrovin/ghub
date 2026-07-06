@@ -23,7 +23,8 @@
     "recentlyPlayed": "Recently played",
     "noSpaces": "No spaces",
     "addLink": "Add link",
-    "settings": "Settings"
+    "settings": "Settings",
+    "system": "System"
   },
   "games": {
     "noGames": "No games yet",
@@ -53,7 +54,13 @@
     "removeFromFavorites": "Remove from favorites",
     "fetchMetadata": "Fetch metadata",
     "updateMetadata": "Update metadata",
-    "refreshFromLocal": "Refresh from local"
+    "refreshFromLocal": "Refresh from local",
+    "download": "Download",
+    "openStore": "Open Store",
+    "openLink": "Open Link",
+    "playInBrowser": "Play in Browser",
+    "moveToOnline": "Move to Online",
+    "moveToIncoming": "Move to Incoming"
   },
   "space": {
     "addTitle": "Add space",
@@ -179,6 +186,12 @@
       "placeholderMulti": "One URL per line...",
       "partialError": "Some links could not be added:",
       "autoMetadataHint": "Metadata will be fetched automatically"
+    },
+    "selectTargetSpace": {
+      "title": "Select download target",
+      "description": "Select a space and source directory where the game will be downloaded",
+      "noSpaces": "No available spaces. Add a space with a source folder first.",
+      "noSources": "This space has no active source directories."
     }
   },
   "batch": {

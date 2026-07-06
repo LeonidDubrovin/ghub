@@ -15,13 +15,11 @@ import { useGames, useDeleteGame } from './hooks/useGames';
 import type { Game, Space, SelectedSource, SortField, SortOrder } from './types';
 import { createLoggerForComponent } from './lib/logger';
 
-import DownloadLinksView from './components/DownloadLinksView';
 import BatchMetadataDialog from './components/BatchMetadataDialog';
 import SelectedSourceToolbar from './components/SelectedSourceToolbar';
 import { useStartSourceScan } from './hooks/useScanning';
 
-type ViewMode = 'details' | 'links';
-type FilterType = 'all' | 'favorites' | 'recent' | 'links';
+type FilterType = 'all' | 'favorites' | 'recent';
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 400;
@@ -44,7 +42,6 @@ function App() {
   });
   const [selectedFilter, setSelectedFilter] = useState<FilterType>(() => (localStorage.getItem('selectedFilter') as FilterType) || 'all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('details');
   const [sortBy, setSortBy] = useState<SortField>(() => (localStorage.getItem('sortBy') as SortField) || 'title');
   const [sortOrder, setSortOrder] = useState<SortOrder>(() => (localStorage.getItem('sortOrder') as SortOrder) || 'asc');
   const [showAddSpace, setShowAddSpace] = useState(false);
@@ -65,7 +62,6 @@ function App() {
 
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [gameListWidth, setGameListWidth] = useState(280);
-  const [downloadRefreshKey, setDownloadRefreshKey] = useState(0);
 
   const { data: spaces = [], isLoading: spacesLoading } = useSpaces();
   const { data: games = [], isLoading: gamesLoading, refetch: refetchGames } = useGames(selectedSpaceId, selectedSource?.sourcePath || undefined);
@@ -297,11 +293,6 @@ function App() {
     setSelectedFilter(filter);
     setSelectedSource(null);
     clearSelection();
-    if (filter === 'links') {
-      setViewMode('links');
-    } else if (viewMode === 'links') {
-      setViewMode('details');
-    }
   };
 
   const handleSelectSpace = (spaceId: string | null) => {
@@ -532,16 +523,14 @@ function App() {
         )}
 
         <div className="flex-1 overflow-hidden relative">
-          {viewMode === 'links' ? (
-            <DownloadLinksView refreshKey={downloadRefreshKey} />
-          ) : gamesLoading ? (
+          {gamesLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-gray-400">{t('common.loading')}</div>
             </div>
           ) : filteredGames.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400">
               <p className="text-lg mb-2">{t('games.noGames')}</p>
-              {selectedFilter === 'all' && !selectedSource && (
+              {selectedFilter === 'all' && !selectedSource && !selectedSpaceId && (
                 <button onClick={() => setShowScan(true)} className="btn btn-primary mt-4">
                   {t('actions.scanFolder')}
                 </button>
@@ -552,15 +541,16 @@ function App() {
               games={filteredGames}
               selectedGame={selectedGameForDetails}
               selectedGames={filteredGames.filter(g => selectedGameIds.has(g.id))}
-               onSelectGame={(game, shiftKey) => {
-                 if (shiftKey) {
-                   handleGameClick(game.id, true);
-                 } else if (isSelectionMode) {
-                   handleGameClick(game.id, false);
-                 } else {
-                   setSelectedGameForDetails(game);
-                 }
-               }}
+              selectedSpaceId={selectedSpaceId}
+              onSelectGame={(game, shiftKey) => {
+                if (shiftKey) {
+                  handleGameClick(game.id, true);
+                } else if (isSelectionMode) {
+                  handleGameClick(game.id, false);
+                } else {
+                  setSelectedGameForDetails(game);
+                }
+              }}
               onPlay={handlePlayGame}
               onEdit={handleEditGame}
               onContextMenu={handleGameContextMenu}
@@ -577,7 +567,7 @@ function App() {
       </main>
 
       {showAddSpace && <AddSpaceDialog onClose={() => setShowAddSpace(false)} />}
-      {showAddLink && <AddLinkDialog onClose={() => setShowAddLink(false)} onAdd={() => { setDownloadRefreshKey(k => k + 1); refetchGames(); }} />}
+      {showAddLink && <AddLinkDialog onClose={() => setShowAddLink(false)} onAdd={() => { refetchGames(); }} />}
       {showScan && <ScanDialog spaces={spaces} onClose={() => setShowScan(false)} />}
       {editingGame && <EditGameDialog game={editingGame} onClose={() => setEditingGame(null)} onSave={handleGameSaved} />}
        {showBatchMetadata && (

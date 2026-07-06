@@ -674,6 +674,7 @@ mod tests {
     use regex::Regex;
     use std::fs;
     use std::io::Write;
+    use crate::title_extraction::{clean_game_title, extract_title_from_executable};
 
     #[test]
     fn test_is_folder_excluded() {
@@ -828,7 +829,7 @@ mod tests {
             cover_search_paths: Vec::new(),
         };
 
-        let executables = find_all_executables(&base_dir, &config);
+        let mut executables = find_all_executables(&base_dir, &config);
         executables.sort();
         assert_eq!(executables, vec!["root.exe", "sub1\\game.exe", "sub1\\launcher.exe", "sub2\\game.exe"]);
 

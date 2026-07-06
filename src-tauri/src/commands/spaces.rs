@@ -85,6 +85,10 @@ pub fn remove_space_source(
 #[tauri::command]
 pub fn delete_space(state: State<AppState>, id: String) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
+    let space = db.get_space_by_id(&id).map_err(|e| e.to_string())?;
+    if space.is_system {
+        return Err("Cannot delete a system space".to_string());
+    }
     db.delete_space(&id).map_err(|e| e.to_string())
 }
 

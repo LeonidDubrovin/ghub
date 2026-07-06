@@ -61,6 +61,7 @@ pub async fn create_game_from_link(
             Some(&title),
             source_type,
             Some(download_status),
+            Some("incoming"),
         )
         .map_err(|e| e.to_string())?;
 
@@ -151,11 +152,24 @@ pub async fn download_game_link(
 
             db.update_game_link_status(&link.id, "downloaded")
                 .map_err(|e| e.to_string())?;
+            db.update_game_link_queue_space(&link.id, None)
+                .map_err(|e| e.to_string())?;
 
             db.get_game_by_id(&game_id)
                 .map_err(|e| e.to_string())
         }
     }
+}
+
+#[tauri::command]
+pub fn move_game_link(
+    state: State<AppState>,
+    link_id: String,
+    queue_space: Option<String>,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.update_game_link_queue_space(&link_id, queue_space.as_deref())
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

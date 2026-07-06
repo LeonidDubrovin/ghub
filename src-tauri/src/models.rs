@@ -11,6 +11,7 @@ pub struct Space {
     pub color: Option<String>,
     pub sort_order: i32,
     pub is_active: bool,
+    pub is_system: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -156,6 +157,7 @@ pub struct GameLink {
     pub title: Option<String>,
     pub source_type: Option<String>, // 'steam', 'itch', 'gog', etc.
     pub download_status: Option<String>, // pending, external, browser, downloaded, error
+    pub queue_space: Option<String>, // 'incoming', 'online', or null
     pub created_at: String,
 }
 

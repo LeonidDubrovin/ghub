@@ -10,6 +10,7 @@ export interface Space {
   color: string | null;
   sort_order: number;
   is_active: boolean;
+  is_system: boolean;
   created_at: string;
   updated_at: string;
   watch_directories?: SpaceSource[];
@@ -169,6 +170,7 @@ export interface GameLink {
   title: string | null;
   source_type: string | null;
   download_status: DownloadStatus | null;
+  queue_space: 'incoming' | 'online' | null;
   created_at: string;
 }
 
@@ -181,6 +183,11 @@ export interface DownloadGameLinkRequest {
   link_id: string;
   space_id: string;
   source_path: string;
+}
+
+export interface MoveGameLinkRequest {
+  link_id: string;
+  queue_space: 'incoming' | 'online' | null;
 }
 
 export interface OpenGameLinkRequest {

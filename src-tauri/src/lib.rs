@@ -88,6 +88,7 @@ pub fn run() {
             commands::create_game_from_link,
             commands::get_download_games,
             commands::download_game_link,
+            commands::move_game_link,
             commands::open_game_link,
             commands::update_game,
             commands::delete_game,
