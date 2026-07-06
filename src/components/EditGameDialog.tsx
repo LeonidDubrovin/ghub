@@ -111,12 +111,13 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
      setError(null);
      
      try {
-       await invoke('add_game_link', {
-         gameId: game.id,
-         url: newLinkUrl.trim(),
-         title: newLinkTitle.trim() || null,
-         sourceType: newLinkSource === 'other' ? null : newLinkSource
-       });
+        await invoke('add_game_link', {
+          gameId: game.id,
+          url: newLinkUrl.trim(),
+          title: newLinkTitle.trim() || null,
+          sourceType: newLinkSource === 'other' ? null : newLinkSource,
+          downloadStatus: null,
+        });
        setNewLinkUrl('');
        setNewLinkTitle('');
        setNewLinkSource('other');

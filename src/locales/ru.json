@@ -154,12 +154,25 @@
     "title": "Загрузки / Ссылки",
     "noLinks": "Нет сохраненных ссылок",
     "confirmDelete": "Удалить эту ссылку?",
-    "noDescription": "Нет описания"
+    "noDescription": "Нет описания",
+    "statusPending": "В очереди",
+    "statusExternal": "Магазин",
+    "statusBrowser": "Браузер",
+    "statusError": "Ошибка",
+    "statusUnknown": "Неизвестно",
+    "download": "Скачать",
+    "retry": "Повторить",
+    "openStore": "Открыть магазин",
+    "openInBrowser": "Открыть в браузере",
+    "selectTarget": "Выберите куда скачать",
+    "noSources": "Нет доступных источников. Сначала добавьте пространство с папкой-источником."
   },
   "dialog": {
     "addLink": {
       "title": "Добавить ссылку",
       "url": "Ссылка на игру (Steam/Itch.io)",
+      "placeholderMulti": "По одной ссылке на строку...",
+      "partialError": "Некоторые ссылки не удалось добавить:",
       "autoMetadataHint": "Метаданные будут загружены автоматически"
     }
   },

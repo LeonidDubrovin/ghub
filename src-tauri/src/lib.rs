@@ -8,6 +8,7 @@ mod scanner_constants;
 mod title_extraction;
 pub mod meta_service;
 pub mod metadata;
+mod download_service;
 
 use tauri::Manager;
 use std::path::PathBuf;
@@ -84,10 +85,10 @@ pub fn run() {
             commands::get_games_by_space,
             commands::get_games_by_source,
             commands::create_game,
-            commands::create_game_link,
-            commands::create_download_link,
-            commands::get_download_links,
-            commands::delete_download_link,
+            commands::create_game_from_link,
+            commands::get_download_games,
+            commands::download_game_link,
+            commands::open_game_link,
             commands::update_game,
             commands::delete_game,
             commands::get_game_links,

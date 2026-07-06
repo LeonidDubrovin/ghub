@@ -135,12 +135,6 @@ pub struct CreateGameRequest {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CreateGameLinkRequest {
-    pub url: String,
-    pub title: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct UpdateGameRequest {
     pub id: String,
@@ -155,23 +149,13 @@ pub struct UpdateGameRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DownloadLink {
-    pub id: String,
-    pub url: String,
-    pub title: String,
-    pub cover_url: Option<String>,
-    pub description: Option<String>,
-    pub status: String,
-    pub added_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameLink {
     pub id: String,
     pub game_id: String,
     pub url: String,
     pub title: Option<String>,
     pub source_type: Option<String>, // 'steam', 'itch', 'gog', etc.
+    pub download_status: Option<String>, // pending, external, browser, downloaded, error
     pub created_at: String,
 }
 

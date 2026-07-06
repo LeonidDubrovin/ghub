@@ -186,6 +186,7 @@ export default function MetadataSearchDialog({
             url: selectedResult.url,
             title: selectedResult.name,
             sourceType: selectedResult.source,
+            downloadStatus: null,
           });
         } catch (linkErr) {
           logger.warn('Failed to add source link:', linkErr);

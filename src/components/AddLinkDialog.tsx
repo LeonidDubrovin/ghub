@@ -27,16 +27,17 @@ export default function AddLinkDialog({ onClose, onAdd }: AddLinkDialogProps) {
     let errors: string[] = [];
 
     try {
-      // Process sequentially to avoid overwhelming backend/network
+        // Process sequentially to avoid overwhelming backend/network
       for (const url of urlList) {
         try {
-          await invoke('create_download_link', { url });
+          await invoke('create_game_from_link', { url });
           successCount++;
         } catch (err) {
           logger.error(`Failed to add link ${url}:`, err);
           errors.push(`${url}: ${err}`);
         }
       }
+
       
       if (successCount > 0) {
         onAdd();

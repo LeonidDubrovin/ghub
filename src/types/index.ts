@@ -115,11 +115,6 @@ export interface CreateGameRequest {
   cover_image?: string;
 }
 
-export interface CreateGameLinkRequest {
-  url: string;
-  title?: string;
-}
-
 export interface UpdateGameRequest {
   id: string;
   title?: string;
@@ -130,16 +125,6 @@ export interface UpdateGameRequest {
   is_favorite?: boolean;
   completion_status?: string;
   user_rating?: number | null;
-}
-
-export interface DownloadLink {
-  id: string;
-  url: string;
-  title: string;
-  cover_url: string | null;
-  description: string | null;
-  status: string;
-  added_at: string;
 }
 
 export interface MetadataSearchResult {
@@ -175,13 +160,32 @@ export interface SpaceWithSources {
   sources: SpaceSource[];
 }
 
+export type DownloadStatus = 'pending' | 'external' | 'browser' | 'downloaded' | 'error';
+
 export interface GameLink {
   id: string;
   game_id: string;
   url: string;
   title: string | null;
   source_type: string | null;
+  download_status: DownloadStatus | null;
   created_at: string;
+}
+
+export interface CreateGameFromLinkRequest {
+  url: string;
+}
+
+export interface DownloadGameLinkRequest {
+  game_id: string;
+  link_id: string;
+  space_id: string;
+  source_path: string;
+}
+
+export interface OpenGameLinkRequest {
+  url: string;
+  source_type?: string;
 }
 
 export interface SelectedSource {

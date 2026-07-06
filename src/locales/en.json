@@ -159,12 +159,25 @@
     "title": "Downloads / Links",
     "noLinks": "No saved links",
     "confirmDelete": "Delete this link?",
-    "noDescription": "No description"
+    "noDescription": "No description",
+    "statusPending": "Pending",
+    "statusExternal": "Store",
+    "statusBrowser": "Browser",
+    "statusError": "Error",
+    "statusUnknown": "Unknown",
+    "download": "Download",
+    "retry": "Retry",
+    "openStore": "Open Store",
+    "openInBrowser": "Open in Browser",
+    "selectTarget": "Select download target",
+    "noSources": "No available sources. Add a space with a source folder first."
   },
   "dialog": {
     "addLink": {
       "title": "Add Link",
       "url": "Game URL (Steam/Itch.io)",
+      "placeholderMulti": "One URL per line...",
+      "partialError": "Some links could not be added:",
       "autoMetadataHint": "Metadata will be fetched automatically"
     }
   },

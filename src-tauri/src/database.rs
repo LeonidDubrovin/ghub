@@ -132,17 +132,6 @@ impl Database {
                 checkpoint_at   TEXT
             );
             
-            -- Download links table
-            CREATE TABLE IF NOT EXISTS download_links (
-                id              TEXT PRIMARY KEY,
-                url             TEXT NOT NULL,
-                title           TEXT NOT NULL,
-                cover_url       TEXT,
-                description     TEXT,
-                status          TEXT DEFAULT 'pending', -- pending, downloaded, archived
-                added_at        TEXT DEFAULT (datetime('now'))
-            );
-
             -- Game links table (for external sources like Steam, itch.io, etc.)
             CREATE TABLE IF NOT EXISTS game_links (
                 id              TEXT PRIMARY KEY,
@@ -150,6 +139,7 @@ impl Database {
                 url             TEXT NOT NULL,
                 title           TEXT,
                 source_type     TEXT, -- 'steam', 'itch', 'gog', 'epic', etc.
+                download_status TEXT,  -- pending, external, browser, downloaded, error
                 created_at      TEXT DEFAULT (datetime('now')),
                 UNIQUE(game_id, url)
             );
@@ -253,6 +243,81 @@ impl Database {
             "CREATE INDEX IF NOT EXISTS idx_installs_space_status ON installs(space_id, status)",
             [],
         )?;
+
+        // Migration: Add download_status to game_links
+        match self.conn.execute("ALTER TABLE game_links ADD COLUMN download_status TEXT", []) {
+            Ok(_) => {}
+            Err(e) if e.to_string().contains("duplicate column") => {}
+            Err(e) => return Err(e),
+        }
+
+        // Migration: Convert legacy download_links table into game_links + games
+        self.migrate_download_links()?;
+
+        Ok(())
+    }
+
+    fn migrate_download_links(&self) -> Result<()> {
+        // Check if the legacy table exists
+        let exists: i64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'download_links'",
+            [],
+            |row| row.get(0),
+        )?;
+
+        if exists == 0 {
+            return Ok(());
+        }
+
+        let mut stmt = self.conn.prepare(
+            "SELECT id, url, title, cover_url, description, status, added_at FROM download_links"
+        )?;
+
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, String>(5)?,
+                    row.get::<_, String>(6)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>>>()?;
+
+        drop(stmt);
+
+        for (id, url, title, cover_url, description, _status, added_at) in rows {
+            let game_id = uuid::Uuid::new_v4().to_string();
+            let source_type = if url.contains("store.steampowered.com") {
+                Some("steam")
+            } else if url.contains("itch.io") {
+                Some("itch")
+            } else {
+                None
+            };
+            let download_status = if source_type == Some("steam") {
+                "external"
+            } else {
+                "pending"
+            };
+            let fingerprint = format!("{}-{}-link", title.to_lowercase(), added_at);
+
+            self.conn.execute(
+                "INSERT INTO games (id, title, description, developer, cover_image, fingerprint, external_link, added_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                params![game_id, title, description, Option::<&str>::None, cover_url, fingerprint, &url, added_at],
+            )?;
+
+            self.conn.execute(
+                "INSERT INTO game_links (id, game_id, url, title, source_type, download_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                params![id, game_id, &url, title, source_type, download_status, added_at],
+            )?;
+        }
+
+        // Drop the legacy table now that everything is migrated
+        self.conn.execute("DROP TABLE download_links", [])?;
 
         Ok(())
     }
@@ -1242,67 +1307,33 @@ impl Database {
         Ok(())
     }
 
-    // ============ DOWNLOAD LINKS ============
+    // ============ GAME LINKS ============
 
-    pub fn get_download_links(&self) -> Result<Vec<crate::models::DownloadLink>> {
+    pub fn get_game_link_by_id(&self, id: &str) -> Result<GameLink> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, url, title, cover_url, description, status, added_at FROM download_links ORDER BY added_at DESC"
+            "SELECT id, game_id, url, title, source_type, download_status, created_at
+             FROM game_links
+             WHERE id = ?"
         )?;
 
-        let links = stmt
-            .query_map([], |row| {
-                Ok(crate::models::DownloadLink {
-                    id: row.get(0)?,
-                    url: row.get(1)?,
-                    title: row.get(2)?,
-                    cover_url: row.get(3)?,
-                    description: row.get(4)?,
-                    status: row.get(5)?,
-                    added_at: row.get(6)?,
-                })
-            })?
-            .collect::<Result<Vec<_>>>()?;
-
-        Ok(links)
-    }
-
-    pub fn create_download_link(
-        &self,
-        url: &str,
-        title: &str,
-        cover_url: Option<&str>,
-        description: Option<&str>,
-    ) -> Result<crate::models::DownloadLink> {
-        let id = uuid::Uuid::new_v4().to_string();
-        self.conn.execute(
-            "INSERT INTO download_links (id, url, title, cover_url, description) VALUES (?, ?, ?, ?, ?)",
-            params![id, url, title, cover_url, description]
-        )?;
-
-        Ok(crate::models::DownloadLink {
-            id,
-            url: url.to_string(),
-            title: title.to_string(),
-            cover_url: cover_url.map(|s| s.to_string()),
-            description: description.map(|s| s.to_string()),
-            status: "pending".to_string(),
-            added_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        stmt.query_row([id], |row| {
+            Ok(GameLink {
+                id: row.get(0)?,
+                game_id: row.get(1)?,
+                url: row.get(2)?,
+                title: row.get(3)?,
+                source_type: row.get(4)?,
+                download_status: row.get(5)?,
+                created_at: row.get(6)?,
+            })
         })
     }
 
-    pub fn delete_download_link(&self, id: &str) -> Result<()> {
-        self.conn
-            .execute("DELETE FROM download_links WHERE id = ?", [id])?;
-        Ok(())
-    }
-
-    // ============ GAME LINKS ============
-
     pub fn get_game_links(&self, game_id: &str) -> Result<Vec<GameLink>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, game_id, url, title, source_type, created_at 
-             FROM game_links 
-             WHERE game_id = ? 
+            "SELECT id, game_id, url, title, source_type, download_status, created_at
+             FROM game_links
+             WHERE game_id = ?
              ORDER BY created_at DESC"
         )?;
 
@@ -1314,7 +1345,8 @@ impl Database {
                     url: row.get(2)?,
                     title: row.get(3)?,
                     source_type: row.get(4)?,
-                    created_at: row.get(5)?,
+                    download_status: row.get(5)?,
+                    created_at: row.get(6)?,
                 })
             })?
             .collect::<Result<Vec<_>>>()?;
@@ -1329,10 +1361,12 @@ impl Database {
         url: &str,
         title: Option<&str>,
         source_type: Option<&str>,
+        download_status: Option<&str>,
     ) -> Result<GameLink> {
+        let created_at = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         self.conn.execute(
-            "INSERT INTO game_links (id, game_id, url, title, source_type) VALUES (?, ?, ?, ?, ?)",
-            params![id, game_id, url, title, source_type],
+            "INSERT INTO game_links (id, game_id, url, title, source_type, download_status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            params![id, game_id, url, title, source_type, download_status, &created_at],
         )?;
 
         Ok(GameLink {
@@ -1341,13 +1375,78 @@ impl Database {
             url: url.to_string(),
             title: title.map(String::from),
             source_type: source_type.map(String::from),
-            created_at: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+            download_status: download_status.map(String::from),
+            created_at,
         })
     }
 
     pub fn delete_game_link(&self, id: &str) -> Result<()> {
         self.conn.execute("DELETE FROM game_links WHERE id = ?", [id])?;
         Ok(())
+    }
+
+    pub fn update_game_link_status(&self, id: &str, status: &str) -> Result<()> {
+        self.conn.execute(
+            "UPDATE game_links SET download_status = ? WHERE id = ?",
+            params![status, id],
+        )?;
+        Ok(())
+    }
+
+    /// Get all games that have a pending or external game link and no local install.
+    /// This is the "Downloads" / virtual queue.
+    pub fn get_download_games(&self) -> Result<Vec<Game>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
+                    g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,
+                    g.times_launched, g.is_favorite, g.is_hidden, g.completion_status, g.user_rating,
+                    g.added_at, g.updated_at, g.external_link,
+                    i.space_id, s.name as space_name, s.type as space_type,
+                    i.install_path, i.executable_path, i.status, i.fingerprint
+             FROM games g
+             INNER JOIN game_links gl ON g.id = gl.game_id
+             LEFT JOIN installs i ON g.id = i.game_id
+             LEFT JOIN spaces s ON i.space_id = s.id
+             WHERE gl.download_status IS NOT NULL
+               AND gl.download_status != 'downloaded'
+             GROUP BY g.id
+             ORDER BY g.added_at DESC"
+        )?;
+
+        let games = stmt
+            .query_map([], |row| {
+                Ok(Game {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    sort_title: row.get(2)?,
+                    description: row.get(3)?,
+                    release_date: row.get(4)?,
+                    developer: row.get(5)?,
+                    publisher: row.get(6)?,
+                    cover_image: row.get(7)?,
+                    background_image: row.get(8)?,
+                    total_playtime_seconds: row.get(9)?,
+                    last_played_at: row.get(10)?,
+                    times_launched: row.get(11)?,
+                    is_favorite: row.get::<_, i32>(12)? == 1,
+                    is_hidden: row.get::<_, i32>(13)? == 1,
+                    completion_status: row.get(14)?,
+                    user_rating: row.get(15)?,
+                    added_at: row.get(16)?,
+                    updated_at: row.get(17)?,
+                    external_link: row.get(18).ok(),
+                    space_id: row.get(19).ok(),
+                    space_name: row.get(20).ok(),
+                    space_type: row.get(21).ok(),
+                    install_path: row.get(22).ok(),
+                    executable_path: row.get(23).ok(),
+                    install_status: row.get(24).ok(),
+                    install_fingerprint: row.get(25).ok(),
+                })
+            })?
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(games)
     }
 
     // ============ SPACE SOURCE SCAN STATUS ============

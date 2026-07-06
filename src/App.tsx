@@ -65,6 +65,7 @@ function App() {
 
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [gameListWidth, setGameListWidth] = useState(280);
+  const [downloadRefreshKey, setDownloadRefreshKey] = useState(0);
 
   const { data: spaces = [], isLoading: spacesLoading } = useSpaces();
   const { data: games = [], isLoading: gamesLoading, refetch: refetchGames } = useGames(selectedSpaceId, selectedSource?.sourcePath || undefined);
@@ -532,7 +533,7 @@ function App() {
 
         <div className="flex-1 overflow-hidden relative">
           {viewMode === 'links' ? (
-            <DownloadLinksView />
+            <DownloadLinksView refreshKey={downloadRefreshKey} />
           ) : gamesLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-gray-400">{t('common.loading')}</div>
@@ -576,7 +577,7 @@ function App() {
       </main>
 
       {showAddSpace && <AddSpaceDialog onClose={() => setShowAddSpace(false)} />}
-      {showAddLink && <AddLinkDialog onClose={() => setShowAddLink(false)} onAdd={refetchGames} />}
+      {showAddLink && <AddLinkDialog onClose={() => setShowAddLink(false)} onAdd={() => { setDownloadRefreshKey(k => k + 1); refetchGames(); }} />}
       {showScan && <ScanDialog spaces={spaces} onClose={() => setShowScan(false)} />}
       {editingGame && <EditGameDialog game={editingGame} onClose={() => setEditingGame(null)} onSave={handleGameSaved} />}
        {showBatchMetadata && (
