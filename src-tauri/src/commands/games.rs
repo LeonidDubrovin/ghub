@@ -1,6 +1,7 @@
-use crate::models::{Game, CreateGameRequest, UpdateGameRequest, GameLink};
+use crate::models::{Game, Install, CreateGameRequest, UpdateGameRequest, GameLink};
 use crate::AppState;
 use tauri::State;
+use std::path::Path;
 
 #[tauri::command]
 pub fn get_all_games(state: State<AppState>) -> Result<Vec<Game>, String> {
@@ -56,6 +57,7 @@ pub async fn create_game(state: State<'_, AppState>, request: CreateGameRequest)
             &request.space_id,
             &request.install_path,
             request.executable_path.as_deref(),
+            None,
         ).map_err(|e| e.to_string())?;
 
         game
@@ -120,4 +122,62 @@ pub fn add_game_link(
         queue_space.as_deref(),
     )
     .map_err(|e: rusqlite::Error| e.to_string())
+}
+
+// ============ INSTALLS ============
+
+#[tauri::command]
+pub fn get_game_installs(state: State<AppState>, game_id: String) -> Result<Vec<Install>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.get_installs_for_game(&game_id).map_err(|e| e.to_string())
+}
+
+fn is_safe_to_delete(install_path: &Path, source_path: &Path) -> Result<bool, String> {
+    let source_canon = std::fs::canonicalize(source_path)
+        .map_err(|e| format!("Failed to canonicalize source path: {}", e))?;
+    let install_canon = std::fs::canonicalize(install_path)
+        .map_err(|e| format!("Failed to canonicalize install path: {}", e))?;
+    Ok(install_canon.starts_with(&source_canon))
+}
+
+fn delete_install_files(db: &crate::database::Database, install: &Install) -> Result<(), String> {
+    let install_path = Path::new(&install.install_path);
+    if !install_path.exists() {
+        return Ok(());
+    }
+
+    let space = db.get_space_by_id(&install.space_id).map_err(|e| e.to_string())?;
+    let source_path_str = space.path.as_deref().ok_or("Space has no source path")?;
+    let source_path = Path::new(source_path_str);
+
+    if !is_safe_to_delete(install_path, source_path)? {
+        return Err(format!(
+            "Install path '{}' is not inside the configured source path '{}'. Refusing to delete files.",
+            install.install_path, source_path_str
+        ));
+    }
+
+    if install_path.is_dir() {
+        std::fs::remove_dir_all(install_path)
+            .map_err(|e| format!("Failed to delete install folder: {}", e))?;
+    } else if install_path.is_file() {
+        std::fs::remove_file(install_path)
+            .map_err(|e| format!("Failed to delete install file: {}", e))?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_game_install(state: State<AppState>, install_id: String, delete_files: bool) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+
+    if delete_files {
+        let install = db.get_install_by_id(&install_id)
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| "Install not found".to_string())?;
+        delete_install_files(&db, &install)?;
+    }
+
+    db.delete_install(&install_id).map_err(|e| e.to_string())
 }

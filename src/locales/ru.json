@@ -1,11 +1,13 @@
 {
   "common": {
     "loading": "Загрузка...",
+    "error": "Ошибка",
     "save": "Сохранить",
     "cancel": "Отмена",
     "delete": "Удалить",
     "add": "Добавить",
     "close": "Закрыть",
+    "saving": "Сохранение...",
     "search": "Поиск...",
     "all": "Все игры",
     "favorites": "Избранное",
@@ -35,7 +37,8 @@
   },
   "errors": {
     "gameAlreadyRunning": "{{title}} уже запущена",
-    "noInstallFound": "Не найден путь установки для {{title}}"
+    "noInstallFound": "Не найден путь установки для {{title}}",
+    "noUploads": "Нет доступных загрузок. Игра, возможно, только для браузера."
   },
   "actions": {
     "play": "Играть",
@@ -50,11 +53,13 @@
     "updateMetadata": "Обновить метаданные",
     "refreshFromLocal": "Обновить из локальной папки",
     "download": "Скачать",
+    "retry": "Повторить",
     "openStore": "Открыть магазин",
     "openLink": "Открыть ссылку",
     "playInBrowser": "Играть в браузере",
     "moveToOnline": "В Онлайн",
-    "moveToIncoming": "Во Входящие"
+    "moveToIncoming": "Во Входящие",
+    "downloadVariant": "Скачать вариант"
   },
   "space": {
     "addTitle": "Добавить пространство",
@@ -111,6 +116,14 @@
   "spaces": {
     "confirmDeleteTitle": "Удалить пространство?",
     "confirmDeleteMessage": "Пространство {{name}} будет удалено."
+  },
+  "settings": {
+    "title": "Настройки",
+    "itchApiKey": "Ключ API itch.io",
+    "itchApiKeyPlaceholder": "Введите ключ API...",
+    "itchApiKeyHint": "Ключ можно получить на https://itch.io/user/settings/api-keys",
+    "saved": "Сохранено",
+    "deleted": "Удалено"
   },
   "scan": {
     "title": "Сканирование папки",
@@ -174,9 +187,6 @@
     "selectTarget": "Выберите куда скачать",
     "noSources": "Нет доступных источников. Сначала добавьте пространство с папкой-источником."
   },
-  "messages": {
-    "browserOnlyGame": "Эта игра доступна только в браузере или требует покупки/входа. Переместить в Онлайн?"
-  },
   "dialog": {
     "addLink": {
       "title": "Добавить ссылку",
@@ -190,6 +200,11 @@
       "description": "Выберите пространство и каталог-источник, куда будет загружена игра",
       "noSpaces": "Нет доступных пространств. Сначала добавьте пространство с каталогом.",
       "noSources": "В этом пространстве нет активных каталогов-источников."
+    },
+    "selectUpload": {
+      "title": "Выберите вариант загрузки",
+      "description": "Выберите файл, который нужно скачать",
+      "noUploads": "Нет доступных загрузок"
     }
   },
   "batch": {
@@ -258,7 +273,15 @@
     "noInstallPath": "Путь установки не указан",
     "sourceLinks": "Ссылки на источники",
     "refreshMetadata": "Обновить метаданные",
-    "refreshFromLocal": "Обновить из локальной папки"
+    "refreshFromLocal": "Обновить из локальной папки",
+    "installedVariants": "Установленные варианты",
+    "confirmDeleteInstall": "Удалить вариант {{version}}?",
+    "deleteInstallTitle": "Удалить установку",
+    "deleteInstallMessage": "Удалить установку {{version}}?",
+    "deleteInstallFiles": "Удалить файлы с диска",
+    "deleteInstallConfirm": "Удалить",
+    "deleteInstallCancel": "Отмена",
+    "copyLink": "Копировать ссылку"
   },
   "sort": {
     "title": "Название",

@@ -152,10 +152,27 @@ export default function MetadataSearchDialog({
     return () => clearTimeout(timer);
   }, [isOpen, currentGame?.id, resetState, runSearch]);
 
-  const handleSelectResult = useCallback((result: MetadataSearchResult) => {
+  const handleSelectResult = useCallback(async (result: MetadataSearchResult) => {
     setSelectedResult(result);
     setFields(defaultFields(result));
-  }, [defaultFields]);
+
+    // Fetch exact metadata from the selected source page so the preview and
+    // the applied fields come from the real page, not the fuzzy search result.
+    if (result.url) {
+      try {
+        const exact = await invoke<MetadataSearchResult | null>('fetch_metadata_by_url_command', {
+          sourceType: result.source,
+          url: result.url,
+        });
+        if (exact) {
+          setSelectedResult(exact);
+          setFields(defaultFields(exact));
+        }
+      } catch (err) {
+        logger.warn('Exact metadata fetch failed for selected result:', err);
+      }
+    }
+  }, [defaultFields, logger]);
 
   const handleToggleField = useCallback((field: keyof FieldSelection) => {
     setFields(prev => ({ ...prev, [field]: !prev[field] }));

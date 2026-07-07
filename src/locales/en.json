@@ -1,11 +1,13 @@
 {
   "common": {
     "loading": "Loading...",
+    "error": "Error",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
     "add": "Add",
     "close": "Close",
+    "saving": "Saving...",
     "search": "Search...",
     "all": "All games",
     "favorites": "Favorites",
@@ -41,7 +43,8 @@
   },
   "errors": {
     "gameAlreadyRunning": "{{title}} is already running",
-    "noInstallFound": "No install found for {{title}}"
+    "noInstallFound": "No install found for {{title}}",
+    "noUploads": "No downloadable uploads found. The game may be browser-only."
   },
   "actions": {
     "play": "Play",
@@ -56,11 +59,13 @@
     "updateMetadata": "Update metadata",
     "refreshFromLocal": "Refresh from local",
     "download": "Download",
+    "retry": "Retry",
     "openStore": "Open Store",
     "openLink": "Open Link",
     "playInBrowser": "Play in Browser",
     "moveToOnline": "Move to Online",
-    "moveToIncoming": "Move to Incoming"
+    "moveToIncoming": "Move to Incoming",
+    "downloadVariant": "Download variant"
   },
   "space": {
     "addTitle": "Add space",
@@ -114,6 +119,14 @@
   "spaces": {
     "confirmDeleteTitle": "Delete space?",
     "confirmDeleteMessage": "Space \"{{name}}\" will be deleted. Games will remain in library."
+  },
+  "settings": {
+    "title": "Settings",
+    "itchApiKey": "itch.io API key",
+    "itchApiKeyPlaceholder": "Enter API key...",
+    "itchApiKeyHint": "Get your key at https://itch.io/user/settings/api-keys",
+    "saved": "Saved",
+    "deleted": "Deleted"
   },
   "scan": {
     "title": "Scan folder",
@@ -179,9 +192,6 @@
     "selectTarget": "Select download target",
     "noSources": "No available sources. Add a space with a source folder first."
   },
-  "messages": {
-    "browserOnlyGame": "This game is browser-only or requires purchase/login. Move it to Online?"
-  },
   "dialog": {
     "addLink": {
       "title": "Add Link",
@@ -195,6 +205,11 @@
       "description": "Select a space and source directory where the game will be downloaded",
       "noSpaces": "No available spaces. Add a space with a source folder first.",
       "noSources": "This space has no active source directories."
+    },
+    "selectUpload": {
+      "title": "Select upload variant",
+      "description": "Choose the file to download",
+      "noUploads": "No uploads available"
     }
   },
   "batch": {
@@ -270,7 +285,15 @@
     "noInstallPath": "No install path",
     "sourceLinks": "Source links",
     "refreshMetadata": "Refresh metadata",
-    "refreshFromLocal": "Refresh from local"
+    "refreshFromLocal": "Refresh from local",
+    "installedVariants": "Installed variants",
+    "confirmDeleteInstall": "Delete variant {{version}}?",
+    "deleteInstallTitle": "Delete install",
+    "deleteInstallMessage": "Delete install {{version}}?",
+    "deleteInstallFiles": "Delete files from disk",
+    "deleteInstallConfirm": "Delete",
+    "deleteInstallCancel": "Cancel",
+    "copyLink": "Copy link"
   },
   "sort": {
     "title": "Title",

@@ -181,6 +181,8 @@ export interface CreateGameFromLinkRequest {
 export interface DownloadGameLinkRequest {
   game_id: string;
   link_id: string;
+  upload_id: number;
+  upload_name: string;
   space_id: string;
   source_path: string;
 }
@@ -188,6 +190,19 @@ export interface DownloadGameLinkRequest {
 export interface DownloadGameLinkResponse {
   game: Game;
   status: 'downloaded' | 'browser';
+}
+
+export interface ItchUpload {
+  id: number;
+  filename: string;
+  display_name: string | null;
+  size: number;
+  platforms: {
+    windows?: boolean;
+    linux?: boolean;
+    osx?: boolean;
+    android?: boolean;
+  } | null;
 }
 
 export interface MoveGameLinkRequest {

@@ -2,10 +2,15 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../lib/i18n';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-import type { Game, GameLink, DownloadGameLinkResponse } from '../types';
+import { listen, type Event } from '@tauri-apps/api/event';
+import { open } from '@tauri-apps/plugin-shell';
+import type { Game, GameLink, Install, ItchUpload, DownloadGameLinkResponse } from '../types';
 import ResizeHandle from './ResizeHandle';
+import DeleteInstallDialog from './DeleteInstallDialog';
 import MetadataSearchDialog from './MetadataSearchDialog';
 import SelectTargetSpaceDialog from './SelectTargetSpaceDialog';
+import SelectUploadDialog from './SelectUploadDialog';
+import SettingsDialog from './SettingsDialog';
 import { useSpaces } from '../hooks/useSpaces';
 
 interface Props {
@@ -14,7 +19,7 @@ interface Props {
   selectedGames?: Game[]; // Added for multi-selection support
   selectedSpaceId?: string | null;
   onSelectGame: (g: Game, shiftKey?: boolean) => void;
-  onPlay: (g: Game) => void;
+  onPlay: (g: Game, install?: Install) => void;
   onEdit: (g: Game) => void;
   onContextMenu?: (e: React.MouseEvent, g: Game) => void;
   isGameRunning?: (id: string) => boolean;
@@ -33,6 +38,14 @@ const fmt = (s: number, t: (k: string) => string) => {
 };
 
 const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString(i18n.language || 'ru-RU') : '-';
+
+const formatBytes = (bytes: number) => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
 
 const coverUrl = (c: string | null) => {
   if (!c) return null;
@@ -65,6 +78,20 @@ export default function GameDetailsView({
   const [gameLinks, setGameLinks] = useState<GameLink[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showTargetDialog, setShowTargetDialog] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<{ downloaded: number; total: number } | null>(null);
+  const [downloadSpeed, setDownloadSpeed] = useState<number | null>(null);
+  const lastProgressRef = useRef<{ downloaded: number; time: number } | null>(null);
+  const [downloadingLinkId, setDownloadingLinkId] = useState<string | null>(null);
+  const [installs, setInstalls] = useState<Install[]>([]);
+  const [uploads, setUploads] = useState<ItchUpload[]>([]);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [installToDelete, setInstallToDelete] = useState<Install | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedUpload, setSelectedUpload] = useState<ItchUpload | null>(null);
   const { data: spaces = [] } = useSpaces();
 
   useEffect(() => {
@@ -75,7 +102,7 @@ export default function GameDetailsView({
       const i = selectedGame ? games.findIndex(g => g.id === selectedGame.id) : -1;
       if (e.key === 'ArrowDown') { e.preventDefault(); onSelectGame(games[i < games.length - 1 ? i + 1 : 0]); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); onSelectGame(games[i > 0 ? i - 1 : games.length - 1]); }
-      else if (e.key === 'Enter' && selectedGame && !isGameRunning?.(selectedGame.id)) { e.preventDefault(); onPlay(selectedGame); }
+      else if (e.key === 'Enter' && selectedGame && !isGameRunning?.(selectedGame.id)) { e.preventDefault(); onPlay(selectedGame, installs[0]); }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
@@ -105,6 +132,24 @@ export default function GameDetailsView({
     fetchLinks();
   }, [selectedGame]);
 
+  // Fetch installed variants when the selected game changes
+  useEffect(() => {
+    const fetchInstalls = async () => {
+      if (selectedGame) {
+        try {
+          const data = await invoke<Install[]>('get_game_installs', { gameId: selectedGame.id });
+          setInstalls(data);
+        } catch (error) {
+          console.error('Failed to fetch installs:', error);
+          setInstalls([]);
+        }
+      } else {
+        setInstalls([]);
+      }
+    };
+    fetchInstalls();
+  }, [selectedGame]);
+
   const bg = selectedGame?.cover_image ? coverUrl(selectedGame.cover_image) : null;
   const run = selectedGame ? isGameRunning?.(selectedGame.id) ?? false : false;
   const isUpdating = selectedGame ? updatingGameIds?.has(selectedGame.id) : false;
@@ -114,12 +159,66 @@ export default function GameDetailsView({
     return gameLinks.find(l => l.queue_space === selectedSpaceId) || gameLinks[0] || null;
   }, [selectedGame, selectedSpaceId, gameLinks]);
 
+  const itchLink = useMemo(() => {
+    if (!selectedGame) return null;
+    return gameLinks.find(l => l.source_type === 'itch') || null;
+  }, [selectedGame, gameLinks]);
+
+  // Listen for download progress events for the active link
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    const setup = async () => {
+      unlisten = await listen('download-progress', (e: Event<{ link_id: string; downloaded: number; total: number }>) => {
+        if (downloadingLinkId && e.payload.link_id === downloadingLinkId) {
+          const now = Date.now();
+          const prev = lastProgressRef.current;
+          let speed: number | null = null;
+          if (prev && now > prev.time) {
+            const bytesDelta = e.payload.downloaded - prev.downloaded;
+            const timeDelta = (now - prev.time) / 1000;
+            if (timeDelta > 0 && bytesDelta > 0) {
+              speed = bytesDelta / timeDelta;
+            }
+          }
+          lastProgressRef.current = { downloaded: e.payload.downloaded, time: now };
+          setDownloadProgress({ downloaded: e.payload.downloaded, total: e.payload.total });
+          setDownloadSpeed(speed);
+        }
+      });
+    };
+    setup();
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [downloadingLinkId]);
+
   const openGameLink = async (link: GameLink) => {
     try {
-      await invoke('open_game_link', { url: link.url, sourceType: link.source_type });
+      await open(link.url);
     } catch (e) {
       console.error('Failed to open link:', e);
     }
+  };
+
+  const handleCopyLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch (e) {
+      console.error('Failed to copy link:', e);
+    }
+  };
+
+  const CopyButton = ({ url }: { url: string | undefined }) => {
+    if (!url) return null;
+    return (
+      <button
+        onClick={() => handleCopyLink(url)}
+        className="px-2 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 rounded-lg text-sm flex items-center"
+        title={t('details.copyLink')}
+      >
+        📋
+      </button>
+    );
   };
 
   const handleMoveLink = async (targetQueueSpace: 'incoming' | 'online') => {
@@ -132,28 +231,130 @@ export default function GameDetailsView({
     }
   };
 
-  const handleDownload = async (spaceId: string, sourcePath: string) => {
-    if (!selectedGame || !activeLink) return;
-    setShowTargetDialog(false);
+  const handlePlayInstall = (install: Install) => {
+    if (!selectedGame) return;
+    onPlay(selectedGame, install);
+  };
+
+  const handleOpenInstallFolder = async (install: Install) => {
     try {
-      const result = await invoke<DownloadGameLinkResponse>('download_game_link', {
+      await open(install.install_path);
+    } catch (e) {
+      console.error('Failed to open install folder:', e);
+    }
+  };
+
+  const handleFetchMetadata = async () => {
+    if (!selectedGame) return;
+    try {
+      await invoke<Game>('fetch_and_update_game_metadata', { gameId: selectedGame.id });
+      onSave?.();
+    } catch (e) {
+      const err = String(e);
+      if (err.includes('No source link found')) {
+        setIsSearchOpen(true);
+      } else {
+        console.error('Failed to fetch metadata:', e);
+        alert(err);
+      }
+    }
+  };
+
+  const handleDeleteInstall = (install: Install) => {
+    setInstallToDelete(install);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async (deleteFiles: boolean) => {
+    if (!installToDelete) return;
+    setIsDeleting(true);
+    try {
+      await invoke('delete_game_install', {
+        installId: installToDelete.id,
+        deleteFiles,
+      });
+      const data = await invoke<Install[]>('get_game_installs', { gameId: installToDelete.game_id });
+      setInstalls(data);
+      setShowDeleteDialog(false);
+      setInstallToDelete(null);
+      onSave?.();
+    } catch (e) {
+      console.error('Failed to delete install:', e);
+      throw e;
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleStartDownload = async () => {
+    if (!selectedGame || !itchLink) return;
+    setDownloadError(null);
+    setDownloadProgress(null);
+    try {
+      const key = await invoke<string | null>('get_itch_api_key');
+      if (!key) {
+        setShowSettings(true);
+        return;
+      }
+      const data = await invoke<ItchUpload[]>('get_itch_game_uploads', { gameUrl: itchLink.url, gameTitle: selectedGame.title });
+      if (data.length === 0) {
+        setDownloadError(t('errors.noUploads'));
+        return;
+      }
+      setUploads(data);
+      setShowUploadDialog(true);
+    } catch (e) {
+      console.error('Failed to start download:', e);
+      const err = String(e);
+      setDownloadError(err);
+      alert(err);
+    }
+  };
+
+  const handleSelectUpload = (upload: ItchUpload) => {
+    setSelectedUpload(upload);
+    setShowUploadDialog(false);
+    setShowTargetDialog(true);
+  };
+
+  const handleDownloadTarget = async (spaceId: string, sourcePath: string) => {
+    if (!selectedGame || !itchLink || !selectedUpload) return;
+    setShowTargetDialog(false);
+    setIsDownloading(true);
+    setDownloadingLinkId(itchLink.id);
+    setDownloadError(null);
+    setDownloadProgress(null);
+    try {
+      await invoke<DownloadGameLinkResponse>('download_game_link', {
         gameId: selectedGame.id,
-        linkId: activeLink.id,
+        linkId: itchLink.id,
+        uploadId: selectedUpload.id,
+        uploadName: selectedUpload.display_name || selectedUpload.filename,
+        uploadFilename: selectedUpload.filename,
+        uploadPlatforms: selectedUpload.platforms
+          ? Object.entries(selectedUpload.platforms)
+              .filter(([, enabled]) => enabled)
+              .map(([platform]) => platform)
+          : null,
         spaceId,
         sourcePath,
       });
-      if (result.status === 'browser') {
-        if (confirm(t('messages.browserOnlyGame'))) {
-          await handleMoveLink('online');
-        } else {
-          onSave?.();
-        }
-      } else {
-        onSave?.();
-      }
+      const data = await invoke<Install[]>('get_game_installs', { gameId: selectedGame.id });
+      setInstalls(data);
+      onSave?.();
     } catch (e) {
       console.error('Failed to download game:', e);
-      alert(String(e));
+      const err = String(e);
+      setDownloadError(err);
+      alert(err);
+      onSave?.();
+    } finally {
+      setIsDownloading(false);
+      setDownloadingLinkId(null);
+      setDownloadProgress(null);
+      setDownloadSpeed(null);
+      lastProgressRef.current = null;
+      setSelectedUpload(null);
     }
   };
 
@@ -258,73 +459,120 @@ export default function GameDetailsView({
                   <h1 className="text-4xl font-bold text-white mb-2">{selectedGame.title}</h1>
                   <div className="text-gray-400 mb-6 text-sm">{selectedGame.developer}{selectedGame.publisher && ` | ${selectedGame.publisher}`}</div>
                    <div className="flex gap-3 flex-wrap">
-                     {selectedSpaceId === 'incoming' && activeLink ? (
-                       <>
-                         {activeLink.source_type === 'itch' ? (
+                       {selectedSpaceId === 'incoming' && activeLink ? (
+                         <>
+                            {activeLink.source_type === 'itch' ? (
+                              activeLink.download_status === 'browser' ? (
+                                <button
+                                  onClick={() => openGameLink(activeLink)}
+                                  className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
+                                >
+                                  {t('actions.playInBrowser')}
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={handleStartDownload}
+                                  disabled={isDownloading}
+                                  className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                                >
+                                  {isDownloading ? (
+                                    <span className="flex items-center gap-2">
+                                      <span className="animate-spin">⏳</span> {t('common.loading')}
+                                    </span>
+                                  ) : (
+                                    <>
+                                      <PlayIcon /> {activeLink.download_status === 'error' ? t('actions.retry') : t('actions.download')}
+                                    </>
+                                  )}
+                                </button>
+                              )
+                            ) : (
+                              <button
+                                onClick={() => openGameLink(activeLink)}
+                                className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
+                              >
+                                {activeLink.source_type === 'steam' ? t('actions.openStore') : t('actions.openLink')}
+                              </button>
+                            )}
                            <button
-                             onClick={() => setShowTargetDialog(true)}
-                             className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-accent hover:bg-accent-hover text-white"
+                             onClick={() => handleMoveLink('online')}
+                             className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
                            >
-                             <PlayIcon /> {t('actions.download')}
+                             {t('actions.moveToOnline')}
                            </button>
-                         ) : (
+                         </>
+                       ) : selectedSpaceId === 'online' && activeLink ? (
+                         <>
+                           {activeLink.source_type === 'itch' ? (
+                             <div className="flex items-center gap-1">
+                               <button
+                                 onClick={() => openGameLink(activeLink)}
+                                 className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
+                               >
+                                 {t('actions.playInBrowser')}
+                               </button>
+                               <button
+                                 onClick={handleStartDownload}
+                                 disabled={isDownloading}
+                                 className="px-4 py-3 bg-accent/20 hover:bg-accent/30 text-accent rounded-lg flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                               >
+                                 {isDownloading ? <span className="animate-spin">⏳</span> : '⬇'}
+                                 <span>{t('actions.downloadVariant')}</span>
+                               </button>
+                             </div>
+                           ) : (
+                             <button
+                               onClick={() => openGameLink(activeLink)}
+                               className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
+                             >
+                               {activeLink.source_type === 'steam' ? t('actions.openStore') : t('actions.openLink')}
+                             </button>
+                           )}
                            <button
-                             onClick={() => openGameLink(activeLink)}
-                             className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
+                             onClick={() => handleMoveLink('incoming')}
+                             className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
                            >
-                             {activeLink.source_type === 'steam' ? t('actions.openStore') : t('actions.openLink')}
+                             {t('actions.moveToIncoming')}
                            </button>
-                         )}
-                         <button
-                           onClick={() => handleMoveLink('online')}
-                           className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
-                         >
-                           {t('actions.moveToOnline')}
-                         </button>
-                       </>
-                     ) : selectedSpaceId === 'online' && activeLink ? (
+                         </>
+                       ) : (
                        <>
                          <button
-                           onClick={() => openGameLink(activeLink)}
-                           className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300"
-                         >
-                           {activeLink.source_type === 'itch' ? t('actions.playInBrowser') : activeLink.source_type === 'steam' ? t('actions.openStore') : t('actions.openLink')}
-                         </button>
-                         <button
-                           onClick={() => handleMoveLink('incoming')}
-                           className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
-                         >
-                           {t('actions.moveToIncoming')}
-                         </button>
-                       </>
-                     ) : (
-                       <>
-                         <button
-                           onClick={() => onPlay(selectedGame)}
+                           onClick={() => onPlay(selectedGame, installs[0])}
                            disabled={run}
                            className={`px-8 py-3 rounded-lg font-semibold flex items-center gap-2 ${run ? 'bg-green-600' : 'bg-accent hover:bg-accent-hover'} text-white`}
                          >
                            <PlayIcon /> {run ? t('details.running') : t('details.play')}
                          </button>
-                         {gameLinks.length > 0 && gameLinks.map(link => (
-                           <button
-                             key={link.id}
-                             onClick={() => openGameLink(link)}
-                             className="px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg flex items-center gap-2 text-sm"
-                             title={link.url}
-                           >
-                             <span>{getSourceIcon(link.source_type)}</span>
-                             <span>{getSourceLabel(link)}</span>
-                           </button>
-                         ))}
-                       </>
+                            {gameLinks.length > 0 && gameLinks.map(link => (
+                              <button
+                                key={link.id}
+                                onClick={() => openGameLink(link)}
+                                className="px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg flex items-center gap-2 text-sm"
+                                title={link.url}
+                              >
+                                <span>{getSourceIcon(link.source_type)}</span>
+                                <span>{getSourceLabel(link)}</span>
+                              </button>
+                            ))}
+                          {itchLink && (
+                            <button
+                              onClick={handleStartDownload}
+                              disabled={isDownloading}
+                              className="px-4 py-3 bg-accent/20 hover:bg-accent/30 text-accent rounded-lg flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isDownloading ? <span className="animate-spin">⏳</span> : '⬇'}
+                              <span>{t('actions.downloadVariant')}</span>
+                            </button>
+                          )}
+                        </>
                      )}
-                     <button
-                       onClick={() => setIsSearchOpen(true)}
-                       className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg flex items-center gap-2"
-                     >
-                       🌐 {t('actions.fetchMetadata')}
-                     </button>
+                      <button
+                        onClick={handleFetchMetadata}
+                        className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg flex items-center gap-2"
+                      >
+                        🌐 {t('actions.fetchMetadata')}
+                      </button>
                      <button
                        onClick={() => onEdit(selectedGame)}
                        className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
@@ -339,10 +587,35 @@ export default function GameDetailsView({
                        {isUpdating ? '⏳' : '🔄'}
                        {isUpdating ? t('details.updating') : t('details.refreshMetadata')}
                      </button>
-                   </div>
-                </div>
-              </div>
-              <div className="flex gap-4 mb-8">
+                    </div>
+                    {downloadError && (
+                      <div className="mt-3 text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2">
+                        {downloadError}
+                      </div>
+                    )}
+                     {downloadProgress && (
+                       <div className="mt-3 w-full">
+                         <div className="h-2 bg-surface-100 rounded-full overflow-hidden">
+                           <div
+                             className="h-full bg-accent transition-all duration-200"
+                             style={{ width: `${downloadProgress.total > 0 ? Math.min(100, Math.round((downloadProgress.downloaded / downloadProgress.total) * 100)) : 0}%` }}
+                           />
+                         </div>
+                         <div className="text-xs text-gray-400 mt-1 flex justify-between">
+                           <span>
+                             {formatBytes(downloadProgress.downloaded)}
+                             {downloadProgress.total > 0 ? ` / ${formatBytes(downloadProgress.total)}` : ''}
+                             {downloadProgress.total > 0 ? ` (${Math.round((downloadProgress.downloaded / downloadProgress.total) * 100)}%)` : ''}
+                           </span>
+                           {downloadSpeed != null && downloadSpeed > 0 && (
+                             <span>{formatBytes(downloadSpeed)}/s</span>
+                           )}
+                         </div>
+                       </div>
+                     )}
+                 </div>
+               </div>
+               <div className="flex gap-4 mb-8">
                 <div className="bg-black/30 rounded-lg px-4 py-3">
                   <div className="text-gray-500 text-xs mb-1">{t('details.playtime')}</div>
                   <div className="font-semibold text-lg text-white">{fmt(selectedGame.total_playtime_seconds, t)}</div>
@@ -397,31 +670,70 @@ export default function GameDetailsView({
                    <div className="mt-4 pt-4 border-t border-white/10">
                      <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2">{t('details.sourceLinks')}</h3>
                      <div className="space-y-2">
-                       {gameLinks.map(link => (
-                          <button
-                            key={link.id}
-                            onClick={() => openGameLink(link)}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm transition-colors w-full text-left"
-                            title={link.url}
-                          >
-                           <span className="text-base">{getSourceIcon(link.source_type)}</span>
-                           <div className="flex-1 min-w-0">
-                             <div className="truncate">{getSourceLabel(link)}</div>
-                             <div className="text-xs text-blue-200/60 truncate">{link.url}</div>
-                           </div>
-                         </button>
-                       ))}
+                        {gameLinks.map(link => (
+                          <div key={link.id} className="flex items-center gap-1">
+                            <button
+                              onClick={() => openGameLink(link)}
+                              className="flex-1 flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm transition-colors text-left"
+                              title={link.url}
+                            >
+                              <span className="text-base">{getSourceIcon(link.source_type)}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="truncate">{getSourceLabel(link)}</div>
+                                <div className="text-xs text-blue-200/60 truncate">{link.url}</div>
+                              </div>
+                            </button>
+                            <CopyButton url={link.url} />
+                          </div>
+                        ))}
                      </div>
                    </div>
                  )}
-              </div>
-              
-              {selectedGame.description && (
-                <div className="bg-black/30 rounded-xl p-5">
-                  <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">{t('details.description')}</h2>
-                  <p className="text-gray-300">{selectedGame.description}</p>
-                </div>
-              )}
+               </div>
+
+               {installs.length > 0 && (
+                 <div className="bg-black/30 rounded-xl p-5 mb-8">
+                   <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">{t('details.installedVariants')}</h2>
+                   <div className="space-y-2">
+                      {installs.map(install => (
+                        <div key={install.id} className="flex items-center gap-2 px-3 py-2 bg-surface-400 rounded-lg">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-white truncate">{install.version || install.install_path}</div>
+                            <div className="text-xs text-gray-500 truncate">{install.install_path}</div>
+                          </div>
+                          <button
+                            onClick={() => handleOpenInstallFolder(install)}
+                            className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs flex items-center gap-1"
+                            title={t('actions.openFolder')}
+                          >
+                            📁
+                          </button>
+                          <CopyButton url={itchLink?.url || gameLinks[0]?.url} />
+                          <button
+                            onClick={() => handlePlayInstall(install)}
+                            disabled={run}
+                            className="px-3 py-1 bg-accent/20 hover:bg-accent/30 text-accent rounded text-xs flex items-center gap-1 disabled:opacity-50"
+                          >
+                            <PlayIcon /> {t('actions.play')}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteInstall(install)}
+                            className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-xs"
+                          >
+                            {t('actions.delete')}
+                          </button>
+                        </div>
+                      ))}
+                   </div>
+                 </div>
+               )}
+               
+               {selectedGame.description && (
+                 <div className="bg-black/30 rounded-xl p-5">
+                   <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">{t('details.description')}</h2>
+                   <p className="text-gray-300">{selectedGame.description}</p>
+                 </div>
+               )}
             </div>
           ) : (
             <div className="h-full flex items-center justify-center text-gray-500">
@@ -446,12 +758,37 @@ export default function GameDetailsView({
         />
       )}
 
+      {selectedGame && showDeleteDialog && (
+        <DeleteInstallDialog
+          install={installToDelete}
+          isOpen={showDeleteDialog}
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setInstallToDelete(null);
+          }}
+          onConfirm={handleDeleteConfirm}
+          isPending={isDeleting}
+        />
+      )}
+
       {selectedGame && showTargetDialog && (
         <SelectTargetSpaceDialog
           spaces={spaces}
           onClose={() => setShowTargetDialog(false)}
-          onSelect={handleDownload}
+          onSelect={handleDownloadTarget}
         />
+      )}
+
+      {selectedGame && showUploadDialog && (
+        <SelectUploadDialog
+          uploads={uploads}
+          onClose={() => setShowUploadDialog(false)}
+          onSelect={handleSelectUpload}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsDialog isOpen={showSettings} onClose={() => setShowSettings(false)} />
       )}
     </div>
   );

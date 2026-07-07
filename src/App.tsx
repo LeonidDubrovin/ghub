@@ -12,11 +12,12 @@ import ContextMenu, { ContextMenuItem } from './components/ContextMenu';
 import ResizeHandle from './components/ResizeHandle';
 import { useSpaces, useDeleteSpace } from './hooks/useSpaces';
 import { useGames, useDeleteGame } from './hooks/useGames';
-import type { Game, Space, SelectedSource, SortField, SortOrder } from './types';
+import type { Game, Install, Space, SelectedSource, SortField, SortOrder } from './types';
 import { createLoggerForComponent } from './lib/logger';
 
 import BatchMetadataDialog from './components/BatchMetadataDialog';
 import SelectedSourceToolbar from './components/SelectedSourceToolbar';
+import SettingsDialog from './components/SettingsDialog';
 import { useStartSourceScan } from './hooks/useScanning';
 
 type FilterType = 'all' | 'favorites' | 'recent';
@@ -59,6 +60,7 @@ function App() {
   const [selectedGameIds, setSelectedGameIds] = useState<Set<string>>(new Set());
   const [lastSelectedGameId, setLastSelectedGameId] = useState<string | null>(null);
   const [showBatchMetadata, setShowBatchMetadata] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [gameListWidth, setGameListWidth] = useState(280);
@@ -324,14 +326,14 @@ function App() {
 
   const handleEditGame = (game: Game) => setEditingGame(game);
 
-  const handlePlayGame = async (game: Game) => {
+  const handlePlayGame = async (game: Game, install?: Install) => {
     if (runningGames.has(game.id)) {
       setLaunchError(t('errors.gameAlreadyRunning', { title: game.title }));
       setTimeout(() => setLaunchError(null), 3000);
       return;
     }
-    // Use the game's own space_id from its install, not the UI selected space
-    const spaceId = game.space_id || selectedSpaceId || spaces[0]?.id;
+    // Use the provided install, otherwise fall back to the game's own space_id from its install, then the UI selected space
+    const spaceId = install?.space_id || game.space_id || selectedSpaceId || spaces[0]?.id;
     if (!spaceId) {
       setLaunchError(t('errors.noInstallFound', { title: game.title }));
       setTimeout(() => setLaunchError(null), 5000);
@@ -339,7 +341,7 @@ function App() {
     }
     try {
       setRunningGames(prev => new Set([...prev, game.id]));
-      await invoke('launch_game', { gameId: game.id, spaceId });
+      await invoke('launch_game', { gameId: game.id, spaceId, installId: install?.id });
       // Refetch games to update times_launched and other stats
       refetchGames();
     } catch (err) {
@@ -504,6 +506,7 @@ function App() {
           sortBy={sortBy}
           sortOrder={sortOrder}
           onSortChange={handleSortChange}
+          onOpenSettings={() => setShowSettings(true)}
         />
         
         {/* Selected Source Bar - displays below header when a source is selected */}
@@ -583,6 +586,8 @@ function App() {
            }}
          />
        )}
+
+      {showSettings && <SettingsDialog isOpen={showSettings} onClose={() => setShowSettings(false)} />}
 
       {contextMenu && (
         <ContextMenu

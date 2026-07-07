@@ -3,12 +3,23 @@ use tauri::State;
 use std::path::Path;
 
 #[tauri::command]
-pub fn launch_game(state: State<AppState>, game_id: String, space_id: String) -> Result<String, String> {
+pub fn launch_game(
+    state: State<AppState>,
+    game_id: String,
+    space_id: String,
+    install_id: Option<String>,
+) -> Result<String, String> {
     let install = {
         let db = state.db.lock().map_err(|e| e.to_string())?;
-        db.get_install(&game_id, &space_id)
-            .map_err(|e| e.to_string())?
-            .ok_or("Install not found")?
+        if let Some(id) = install_id.as_ref() {
+            db.get_install_by_id(id)
+                .map_err(|e| e.to_string())?
+                .ok_or("Install not found")?
+        } else {
+            db.get_install(&game_id, &space_id)
+                .map_err(|e| e.to_string())?
+                .ok_or("Install not found")?
+        }
     };
 
     let executable = install.executable_path.ok_or("No executable path set")?;

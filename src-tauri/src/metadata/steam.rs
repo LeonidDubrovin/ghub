@@ -127,41 +127,59 @@ impl MetadataStrategy for SteamStrategy {
         let html = resp.text().await.map_err(|e| e.to_string())?;
         let document = Html::parse_document(&html);
         
+        let title_selector = Selector::parse("title").unwrap();
+        let og_title_selector = Selector::parse("meta[property='og:title']").unwrap();
+        let og_image_selector = Selector::parse("meta[property='og:image']").unwrap();
+        let image_src_selector = Selector::parse("link[rel='image_src']").unwrap();
         let desc_selector = Selector::parse(".game_description_snippet").unwrap();
         let dev_selector = Selector::parse("#developers_list a").unwrap();
         let tag_selector = Selector::parse("a.app_tag").unwrap();
         let genre_selector = Selector::parse(".details_block a[href*='/genre/']").unwrap();
-        
+
+        let title = document.select(&og_title_selector).next()
+            .and_then(|el| el.value().attr("content"))
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .or_else(|| document.select(&title_selector).next()
+                .map(|el| el.text().collect::<String>().trim().to_string()))
+            .map(|s| s.replace(" on Steam", "").trim().to_string())
+            .filter(|s| !s.is_empty());
+
+        let cover_url = document.select(&og_image_selector).next()
+            .and_then(|el| el.value().attr("content"))
+            .or_else(|| document.select(&image_src_selector).next().and_then(|el| el.value().attr("href")))
+            .map(|s| s.to_string());
+
         let description = document.select(&desc_selector).next()
             .map(|el| el.text().collect::<String>().trim().to_string());
-            
+
         let developer = document.select(&dev_selector).next()
             .map(|el| el.text().collect::<String>().trim().to_string());
-            
+
         // Publisher logic is complex, often same as dev or in a specific row. Skipping for now or simple try.
-        let publisher = None; 
-        
+        let publisher = None;
+
         let tags: Vec<String> = document.select(&tag_selector)
             .map(|el| el.text().collect::<String>().trim().to_string())
             .filter(|s| !s.is_empty() && s != "+")
             .take(10)
             .collect();
-            
+
         let genres: Vec<String> = document.select(&genre_selector)
             .map(|el| el.text().collect::<String>().trim().to_string())
             .collect();
 
         Ok(Some(MetadataSearchResult {
             id: app_id.to_string(),
-            name: String::new(), // Not needed for merge
-            cover_url: None,
+            name: title.clone().unwrap_or_default(),
+            cover_url,
             release_date: None,
             developer,
             publisher,
             description,
             rating: None,
             source: "steam".to_string(),
-            url: None,
+            url: Some(url.to_string()),
             tags: if tags.is_empty() { None } else { Some(tags) },
             genres: if genres.is_empty() { None } else { Some(genres) },
         }))

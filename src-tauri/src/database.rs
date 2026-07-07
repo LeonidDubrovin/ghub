@@ -99,8 +99,7 @@ impl Database {
                 status          TEXT DEFAULT 'installed',
                 version         TEXT,
                 install_size_bytes INTEGER,
-                installed_at    TEXT DEFAULT (datetime('now')),
-                UNIQUE(game_id, space_id)
+                installed_at    TEXT DEFAULT (datetime('now'))
             );
             
             -- Settings table
@@ -178,6 +177,9 @@ impl Database {
         self.add_column_if_missing("game_links", "download_status TEXT")?;
         self.add_column_if_missing("game_links", "queue_space TEXT")?;
         self.add_column_if_missing("spaces", "is_system INTEGER DEFAULT 0")?;
+
+        // Migration: Remove the old UNIQUE(game_id, space_id) constraint so a game can have multiple installs in one space.
+        self.migrate_installs_unique_constraint()?;
 
         // Migration: Create index for installs status queries
         self.conn.execute(
@@ -321,6 +323,47 @@ impl Database {
                 [],
             )?;
         }
+        Ok(())
+    }
+
+    /// Remove the old UNIQUE(game_id, space_id) constraint from `installs`.
+    /// SQLite does not support dropping constraints, so we recreate the table.
+    fn migrate_installs_unique_constraint(&self) -> Result<()> {
+        // Check if the unique constraint still exists by looking at the table schema.
+        let mut stmt = self.conn.prepare(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'installs'"
+        )?;
+        let sql: String = stmt.query_row([], |row| row.get(0))?;
+        if !sql.contains("UNIQUE(game_id, space_id)") {
+            return Ok(());
+        }
+
+        self.conn.execute_batch(
+            r#"
+            BEGIN;
+            CREATE TABLE installs_new (
+                id              TEXT PRIMARY KEY,
+                game_id         TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                space_id        TEXT NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+                install_path    TEXT NOT NULL,
+                executable_path TEXT,
+                launch_arguments TEXT,
+                working_directory TEXT,
+                status          TEXT DEFAULT 'installed',
+                version         TEXT,
+                install_size_bytes INTEGER,
+                installed_at    TEXT DEFAULT (datetime('now')),
+                fingerprint     TEXT
+            );
+            INSERT INTO installs_new SELECT id, game_id, space_id, install_path, executable_path, launch_arguments, working_directory, status, version, install_size_bytes, installed_at, fingerprint FROM installs;
+            DROP TABLE installs;
+            ALTER TABLE installs_new RENAME TO installs;
+            CREATE INDEX IF NOT EXISTS idx_installs_game ON installs(game_id);
+            CREATE INDEX IF NOT EXISTS idx_installs_space ON installs(space_id);
+            CREATE INDEX IF NOT EXISTS idx_installs_space_status ON installs(space_id, status);
+            COMMIT;
+            "#,
+        )?;
         Ok(())
     }
 
@@ -922,10 +965,11 @@ impl Database {
         space_id: &str,
         install_path: &str,
         executable_path: Option<&str>,
+        version: Option<&str>,
     ) -> Result<()> {
         self.conn.execute(
-            "INSERT INTO installs (id, game_id, space_id, install_path, executable_path) VALUES (?, ?, ?, ?, ?)",
-            params![id, game_id, space_id, install_path, executable_path]
+            "INSERT INTO installs (id, game_id, space_id, install_path, executable_path, version) VALUES (?, ?, ?, ?, ?, ?)",
+            params![id, game_id, space_id, install_path, executable_path, version]
         )?;
         Ok(())
     }
@@ -939,6 +983,37 @@ impl Database {
         )?;
 
         let result = stmt.query_row(params![game_id, space_id], |row| {
+            Ok(Install {
+                id: row.get(0)?,
+                game_id: row.get(1)?,
+                space_id: row.get(2)?,
+                install_path: row.get(3)?,
+                executable_path: row.get(4)?,
+                launch_arguments: row.get(5)?,
+                working_directory: row.get(6)?,
+                status: row.get(7)?,
+                version: row.get(8)?,
+                install_size_bytes: row.get(9)?,
+                installed_at: row.get(10)?,
+                fingerprint: row.get(11)?,
+            })
+        });
+
+        match result {
+            Ok(install) => Ok(Some(install)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn get_install_by_id(&self, install_id: &str) -> Result<Option<Install>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments,
+                    working_directory, status, version, install_size_bytes, installed_at, fingerprint
+             FROM installs WHERE id = ?"
+        )?;
+
+        let result = stmt.query_row(params![install_id], |row| {
             Ok(Install {
                 id: row.get(0)?,
                 game_id: row.get(1)?,
@@ -1432,6 +1507,11 @@ impl Database {
     }
 
     /// Update both status and fingerprint
+    pub fn delete_install(&self, install_id: &str) -> Result<()> {
+        self.conn.execute("DELETE FROM installs WHERE id = ?", params![install_id])?;
+        Ok(())
+    }
+
     pub fn update_install(
         &self,
         install_id: &str,

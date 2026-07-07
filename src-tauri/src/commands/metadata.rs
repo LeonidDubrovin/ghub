@@ -1,5 +1,6 @@
 use crate::models::{Game, MetadataSearchResult};
-use crate::title_extraction::{clean_game_title, is_generic_company_name, is_generic_description, is_generic_title};
+use crate::metadata::{ItchStrategy, MetadataStrategy, SteamStrategy};
+use crate::title_extraction::{is_generic_company_name, is_generic_description};
 use crate::AppState;
 use crate::commands::scanning::scan_directory_internal;
 use tauri::State;
@@ -27,6 +28,89 @@ pub async fn search_game_metadata(
         .await;
 
     Ok(results)
+}
+
+/// Try to infer a known source type from a URL.
+fn infer_source_type(url: &str) -> Option<&'static str> {
+    let lower = url.to_lowercase();
+    if lower.contains("steampowered.com/app/") || lower.contains("store.steampowered.com/app/") {
+        return Some("steam");
+    }
+    if lower.contains("itch.io") {
+        return Some("itch");
+    }
+    None
+}
+
+/// Fetch exact metadata from the source page URL.
+/// This is the primary metadata resolver; it does not perform any fuzzy search.
+pub async fn fetch_metadata_by_url(
+    client: &reqwest::Client,
+    source_type: &str,
+    url: &str,
+) -> Result<Option<MetadataSearchResult>, String> {
+    match source_type {
+        "itch" => {
+            let strategy = ItchStrategy::new();
+            strategy.get_details(client, url).await
+        }
+        "steam" => {
+            let app_id = url.split("/app/").nth(1)
+                .and_then(|s| s.split('/').next())
+                .map(|s| s.to_string());
+            if let Some(app_id) = app_id {
+                let strategy = SteamStrategy::new();
+                strategy.get_details(client, &app_id).await
+            } else {
+                Ok(None)
+            }
+        }
+        _ => Ok(None),
+    }
+}
+
+/// Tauri command wrapper for fetching exact metadata from a source URL.
+#[tauri::command]
+pub async fn fetch_metadata_by_url_command(
+    state: State<'_, AppState>,
+    source_type: String,
+    url: String,
+) -> Result<Option<MetadataSearchResult>, String> {
+    fetch_metadata_by_url(&state.http_client, &source_type, &url).await
+}
+
+/// Apply metadata to a game while respecting existing fields.
+fn apply_metadata(
+    db: &crate::database::Database,
+    game_id: &str,
+    meta: &MetadataSearchResult,
+) -> Result<(), String> {
+    let game = db.get_game_by_id(game_id).map_err(|e| e.to_string())?;
+
+    let new_title = if game.title.is_empty() || game.title == game_id {
+        Some(meta.name.as_str())
+    } else {
+        None
+    };
+
+    let new_desc = if game.description.is_none() { meta.description.as_deref() } else { None };
+    let new_dev = if game.developer.is_none() { meta.developer.as_deref() } else { None };
+    let new_pub = if game.publisher.is_none() { meta.publisher.as_deref() } else { None };
+    let new_cover = if game.cover_image.is_none() { meta.cover_url.as_deref() } else { None };
+
+    db.update_game(
+        game_id,
+        new_title,
+        new_desc,
+        new_dev,
+        new_pub,
+        new_cover,
+        None, // is_favorite
+        None, // completion_status
+        None, // user_rating
+    ).map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 
 /// Refresh game data from local directory
@@ -112,129 +196,49 @@ pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Resul
 }
 
 
-/// Fetch and update game metadata from external sources (Steam, itch.io)
+/// Fetch and update game metadata from the exact source page.
+/// If the game has no known source link, the caller should open the manual search dialog.
 #[tauri::command]
 pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id: String) -> Result<Game, String> {
     info!("🔍 fetch_and_update_game_metadata called for game_id: {}", game_id);
-    
-    // Get game info first (need to drop lock before await)
-    let (original_title, install_path) = {
+
+    // Load the game and its source links while dropping the lock before await.
+    let (source_type, source_url) = {
         let db = state.db.lock().map_err(|e| e.to_string())?;
         let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
-        let installs = db.get_installs_for_game(&game_id).map_err(|e| e.to_string())?;
-        let install_path = installs.first().map(|i| i.install_path.clone());
-        (game.title.clone(), install_path)
-    };
-    
-    // Determine search query with priority: exe metadata > game title > directory name
-    let query = {
-        // Priority 1: Try to get title from exe metadata (most reliable)
-        if let Some(path) = &install_path {
-            let game_path = Path::new(path);
-            if game_path.exists() {
-                // Scan directory to get exe metadata
-                if let Ok(scanned_games) = scan_directory_internal(game_path) {
-                    if let Some(scanned) = scanned_games.first() {
-                        // Use exe product name if available and not generic
-                        if let Some(exe_meta) = &scanned.exe_metadata {
-                            if let Some(product_name) = &exe_meta.product_name {
-                                let cleaned = clean_game_title(product_name);
-                                if !cleaned.is_empty() && !is_generic_title(&cleaned) {
-                                    debug!("   Using exe metadata product name for search: {}", cleaned);
-                                    cleaned
-                                } else {
-                                    // Fall through to next priority
-                                    String::new()
-                                }
-                            } else {
-                                String::new()
-                            }
-                        } else {
-                            String::new()
-                        }
-                    } else {
-                        String::new()
-                    }
-                } else {
-                    String::new()
-                }
-            } else {
-                String::new()
-            }
-        } else {
-            String::new()
-        }
-    };
-    
-    // If we got a query from exe metadata, use it
-    let query = if !query.is_empty() {
-        query
-    } else {
-        // Priority 2: Use game's existing title from database
-        let cleaned_title = clean_game_title(&original_title);
-        if !cleaned_title.is_empty() && !is_generic_title(&cleaned_title) {
-            debug!("   Using game title for search: {}", cleaned_title);
-            cleaned_title
-        } else if let Some(path) = &install_path {
-            // Priority 3: Fall back to directory name (least reliable)
-            let path = Path::new(path);
-            if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {
-                let cleaned = clean_game_title(dir_name);
-                if !cleaned.is_empty() && !is_generic_title(&cleaned) {
-                    debug!("   Using directory name for search: {}", cleaned);
-                    cleaned
-                } else {
-                    debug!("   Using original title for search: {}", original_title);
-                    original_title.clone()
-                }
-            } else {
-                debug!("   Using original title for search: {}", original_title);
-                original_title.clone()
-            }
-        } else {
-            debug!("   Using original title for search: {}", original_title);
-            original_title.clone()
-        }
-    };
-    
-    info!("   Searching for: {}", query);
-    
-    // Search for metadata from external sources
-    let client = &state.http_client;
-    let best_match = state.metadata_aggregator.search_best(client, &query).await;
-    if let Some(ref meta) = best_match {
-        debug!("   Found best match on {}: {}", meta.source, meta.name);
+        let links = db.get_game_links(&game_id).map_err(|e| e.to_string())?;
+
+        // Prefer a typed game_link (itch/steam) with a known source_type.
+        let typed_link = links.iter()
+            .find(|l| matches!(l.source_type.as_deref(), Some("itch") | Some("steam")) && !l.url.is_empty())
+            .map(|l| (l.source_type.clone().unwrap(), l.url.clone()));
+
+        typed_link
+            .or_else(|| {
+                // Otherwise try to infer from the legacy external_link field.
+                game.external_link.as_ref()
+                    .and_then(|url| infer_source_type(url).map(|st| (st.to_string(), url.clone())))
+            })
     }
-    
-    // Apply metadata if found
+    .ok_or_else(|| {
+        warn!("   ⚠️ No source link found for game {}", game_id);
+        "No source link found".to_string()
+    })?;
+
+    info!("   Fetching exact metadata from {} source: {}", source_type, source_url);
+
+    let client = &state.http_client;
+    let best_match = fetch_metadata_by_url(client, &source_type, &source_url).await?;
+
     if let Some(meta) = best_match {
         info!("   Applying metadata: {}", meta.name);
-        
         let db = state.db.lock().map_err(|e| e.to_string())?;
-        let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
-        
-        let new_desc = if game.description.is_none() { meta.description.as_deref() } else { None };
-        let new_dev = if game.developer.is_none() { meta.developer.as_deref() } else { None };
-        let new_pub = if game.publisher.is_none() { meta.publisher.as_deref() } else { None };
-        let new_cover = if game.cover_image.is_none() { meta.cover_url.as_deref() } else { None };
-        
-        db.update_game(
-            &game_id,
-            Some(&meta.name),
-            new_desc,
-            new_dev,
-            new_pub,
-            new_cover,
-            None, // is_favorite - keep existing
-            None, // completion_status - keep existing
-            None, // user_rating - keep existing
-        ).map_err(|e| e.to_string())?;
-        
+        apply_metadata(&db, &game_id, &meta)?;
         info!("   ✅ Metadata updated successfully");
     } else {
-        warn!("   ⚠️ No metadata found");
+        warn!("   ⚠️ Could not fetch metadata from source page");
     }
-    
+
     // Return updated game
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.get_game_by_id(&game_id).map_err(|e| e.to_string())

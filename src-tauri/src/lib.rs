@@ -9,6 +9,8 @@ mod title_extraction;
 pub mod metadata;
 mod download_service;
 mod http_constants;
+mod crypto;
+mod itch_api;
 
 use tauri::Manager;
 use std::path::PathBuf;
@@ -32,7 +34,17 @@ pub struct AppState {
 pub fn run() {
     // Initialize logger early to capture all logs
     init_logger();
-    
+
+    // Capture panics so hard crashes are written to the log before the process exits
+    std::panic::set_hook(Box::new(|info| {
+        let msg = format!("Panic: {}", info);
+        log::error!("{}", msg);
+        if let Ok(exe_path) = std::env::current_exe() {
+            let panic_log = exe_path.parent().unwrap_or_else(|| std::path::Path::new(".")).join("panic.log");
+            let _ = std::fs::write(&panic_log, &msg);
+        }
+    }));
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -51,7 +63,11 @@ pub fn run() {
             
             // Initialize playtime tracker
             let playtime = PlaytimeTracker::new(Arc::clone(&db));
-            let http_client = reqwest::Client::new();
+            let http_client = reqwest::Client::builder()
+                .cookie_store(true)
+                .timeout(std::time::Duration::from_secs(30))
+                .build()
+                .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
             
             // Initialize scanning service
             let scanning_service = ScanningService::new();
@@ -88,19 +104,26 @@ pub fn run() {
             commands::create_game_from_link,
             commands::get_download_games,
             commands::download_game_link,
+            commands::get_itch_game_uploads,
             commands::move_game_link,
             commands::open_game_link,
+            commands::get_itch_api_key,
+            commands::set_itch_api_key,
+            commands::delete_itch_api_key,
             commands::update_game,
             commands::delete_game,
             commands::get_game_links,
             commands::add_game_link,
             commands::remove_game_link,
+            commands::get_game_installs,
+            commands::delete_game_install,
             commands::scan_directory,
             commands::launch_game,
             commands::get_active_sessions,
             commands::get_settings,
             commands::update_setting,
             commands::search_game_metadata,
+            commands::fetch_metadata_by_url_command,
             commands::refresh_game_from_local,
             commands::fetch_and_update_game_metadata,
             commands::backup_database,

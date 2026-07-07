@@ -11,6 +11,7 @@ mod playtime;
 mod backup;
 mod logging;
 mod filesystem;
+mod itch_api;
 
 // Re-export all commands
 pub use spaces::*;
@@ -23,3 +24,4 @@ pub use playtime::*;
 pub use backup::*;
 pub use logging::*;
 pub use filesystem::*;
+pub use itch_api::*;

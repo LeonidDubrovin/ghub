@@ -1,10 +1,10 @@
-use crate::download_service::{self, ItchDownloadResolution};
+﻿use crate::download_service;
 use crate::models::Game;
 use crate::AppState;
 use log::{error, info};
 use serde::Serialize;
 use std::path::Path;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 #[derive(Serialize)]
 pub struct DownloadGameLinkResponse {
@@ -25,11 +25,14 @@ pub async fn create_game_from_link(
 ) -> Result<Game, String> {
     let (source_type, query) = download_service::parse_link_url(&url);
 
-    // Search metadata while not holding the DB lock.
-    let best_match = state
-        .metadata_aggregator
-        .search_best(&state.http_client, &query)
-        .await;
+    // Fetch exact metadata from the source page when the source type is known.
+    let best_match = if let Some(st) = source_type {
+        crate::commands::metadata::fetch_metadata_by_url(&state.http_client, st, &url)
+            .await
+            .map_err(|e| e.to_string())?
+    } else {
+        None
+    };
 
     let title = best_match
         .as_ref()
@@ -80,12 +83,21 @@ pub async fn create_game_from_link(
 
 #[tauri::command]
 pub async fn download_game_link(
+    app: AppHandle,
     state: State<'_, AppState>,
     game_id: String,
     link_id: String,
+    upload_id: i64,
+    upload_name: String,
+    upload_filename: Option<String>,
+    upload_platforms: Option<Vec<String>>,
     space_id: String,
     source_path: String,
 ) -> Result<DownloadGameLinkResponse, String> {
+    // Require an itch.io API key to download.
+    let api_key = crate::commands::get_itch_api_key(app.clone())?
+        .ok_or("itch.io API key is not set. Please add it in Settings.")?;
+
     // Load the link and game without holding the lock across awaits.
     let (link, game) = {
         let db = state.db.lock().map_err(|e| e.to_string())?;
@@ -98,12 +110,46 @@ pub async fn download_game_link(
         return Err("Only itch.io links can be downloaded".to_string());
     }
 
-    info!("Downloading game {} from link {}", game_id, link_id);
+    info!(
+        "Downloading itch upload {} ({}) for game {} into {}",
+        upload_id, upload_name, game_id, source_path
+    );
 
-    let resolution = match download_service::resolve_itch_download_url(&state.http_client, &link.url).await {
-        Ok(r) => r,
+    let api_client = crate::itch_api::ItchApiClient::new(api_key.clone());
+    let direct_url = api_client
+        .get_download_url(&state.http_client, upload_id)
+        .await
+        .map_err(|e| {
+            error!("Failed to resolve itch download URL: {}", e);
+            let _ = state
+                .db
+                .lock()
+                .map_err(|e| e.to_string())
+                .and_then(|db| db.update_game_link_status(&link.id, "error").map_err(|e| e.to_string()));
+            e
+        })?;
+
+    let target_path = Path::new(&source_path);
+    std::fs::create_dir_all(target_path)
+        .map_err(|e| format!("Failed to create source directory: {}", e))?;
+
+    let downloaded = match download_service::download_itch_game(
+        &app,
+        &state.http_client,
+        &link_id,
+        &direct_url,
+        Some(&api_key),
+        target_path,
+        &game.title,
+        Some(&upload_name),
+        upload_filename.as_deref(),
+        upload_platforms,
+    )
+    .await
+    {
+        Ok(d) => d,
         Err(e) => {
-            error!("Failed to resolve itch download: {}", e);
+            error!("Failed to download itch game: {}", e);
             let _ = state
                 .db
                 .lock()
@@ -113,59 +159,25 @@ pub async fn download_game_link(
         }
     };
 
-    match resolution {
-        ItchDownloadResolution::Browser => {
-            let db = state.db.lock().map_err(|e| e.to_string())?;
-            db.update_game_link_status(&link.id, "browser")
-                .map_err(|e| e.to_string())?;
-            let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
-            Ok(DownloadGameLinkResponse { game, status: "browser".to_string() })
-        }
-        ItchDownloadResolution::Direct(direct_url) => {
-            let target_path = Path::new(&source_path);
-            std::fs::create_dir_all(target_path)
-                .map_err(|e| format!("Failed to create source directory: {}", e))?;
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let install_id = uuid::Uuid::new_v4().to_string();
+    db.create_install(
+        &install_id,
+        &game_id,
+        &space_id,
+        &downloaded.install_path,
+        downloaded.executable_path.as_deref(),
+        Some(&upload_name),
+    )
+    .map_err(|e| e.to_string())?;
 
-            let downloaded = match download_service::download_itch_game(
-                &state.http_client,
-                &direct_url,
-                target_path,
-                &game.title,
-            )
-            .await
-            {
-                Ok(d) => d,
-                Err(e) => {
-                    error!("Failed to download itch game: {}", e);
-                    let _ = state
-                        .db
-                        .lock()
-                        .map_err(|e| e.to_string())
-                        .and_then(|db| db.update_game_link_status(&link.id, "error").map_err(|e| e.to_string()));
-                    return Err(e);
-                }
-            };
+    db.update_game_link_status(&link.id, "downloaded")
+        .map_err(|e| e.to_string())?;
+    db.update_game_link_queue_space(&link.id, None)
+        .map_err(|e| e.to_string())?;
 
-            let db = state.db.lock().map_err(|e| e.to_string())?;
-            let install_id = uuid::Uuid::new_v4().to_string();
-            db.create_install(
-                &install_id,
-                &game_id,
-                &space_id,
-                &downloaded.install_path,
-                downloaded.executable_path.as_deref(),
-            )
-            .map_err(|e| e.to_string())?;
-
-            db.update_game_link_status(&link.id, "downloaded")
-                .map_err(|e| e.to_string())?;
-            db.update_game_link_queue_space(&link.id, None)
-                .map_err(|e| e.to_string())?;
-
-            let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
-            Ok(DownloadGameLinkResponse { game, status: "downloaded".to_string() })
-        }
-    }
+    let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
+    Ok(DownloadGameLinkResponse { game, status: "downloaded".to_string() })
 }
 
 #[tauri::command]
@@ -190,4 +202,3 @@ pub fn remove_game_link(state: State<AppState>, link_id: String) -> Result<(), S
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.delete_game_link(&link_id).map_err(|e| e.to_string())
 }
-
