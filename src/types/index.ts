@@ -197,6 +197,7 @@ export interface ItchUpload {
   filename: string;
   display_name: string | null;
   size: number;
+  created_at: string | null;
   platforms: {
     windows?: boolean;
     linux?: boolean;

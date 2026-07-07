@@ -27,6 +27,8 @@ pub struct ItchApiUpload {
     #[serde(rename = "display_name")]
     pub display_name: Option<String>,
     pub size: i64,
+    #[serde(default)]
+    pub created_at: Option<String>,
     pub platforms: Option<ItchUploadPlatforms>,
 }
 
@@ -45,6 +47,30 @@ pub struct ItchUploadPlatforms {
 #[derive(Debug, Clone, Deserialize)]
 pub struct ItchUploadsResponse {
     pub uploads: Option<Vec<ItchApiUpload>>,
+}
+
+/// A single game returned by the authenticated itch.io search API.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ItchApiGameResult {
+    pub id: i64,
+    pub title: String,
+    pub url: String,
+    #[serde(default)]
+    pub cover_url: Option<String>,
+    #[serde(default)]
+    pub short_text: Option<String>,
+    #[serde(default)]
+    pub user: Option<Value>,
+}
+
+impl ItchApiGameResult {
+    /// Extract the author name from the nested `user` object.
+    pub fn author(&self) -> Option<String> {
+        self.user.as_ref()
+            .and_then(|u| u.get("display_name").or(u.get("username")))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+    }
 }
 
 /// Small client for the internal itch.io API used by the official app.
@@ -264,6 +290,79 @@ impl ItchApiClient {
         }
 
         Ok(None)
+    }
+
+    /// Search for games by title using the authenticated itch.io search API.
+    /// This is the same endpoint used by the official itch.io app and is more
+    /// reliable than the anonymous `x/search/games` endpoint.
+    pub async fn search_games(
+        &self,
+        client: &Client,
+        query: &str,
+    ) -> Result<Vec<ItchApiGameResult>, String> {
+        let url = format!(
+            "https://itch.io/api/1/{}/search/games?query={}",
+            urlencoding::encode(&self.api_key),
+            urlencoding::encode(query)
+        );
+        info!("Searching itch games via authenticated API: query='{}'", query);
+        let resp = client
+            .get(&url)
+            .header("User-Agent", crate::http_constants::USER_AGENT)
+            .header("Accept-Language", crate::http_constants::ACCEPT_LANGUAGE)
+            .header("Accept", "application/json")
+            .send()
+            .await
+            .map_err(|e| format!("Failed to call itch search API: {}", e))?;
+
+        let status = resp.status();
+        let body = resp
+            .bytes()
+            .await
+            .map_err(|e| format!("Failed to read search response: {}", e))?;
+        debug!(
+            "Itch search response ({}): {}",
+            status,
+            String::from_utf8_lossy(&body)
+        );
+
+        if !status.is_success() {
+            let preview = String::from_utf8_lossy(&body);
+            return Err(format!("Itch search API returned status {}: {}", status, preview));
+        }
+
+        let parsed: Value = serde_json::from_slice(&body).map_err(|e| {
+            format!(
+                "Failed to parse itch search response: {} (body: {})",
+                e,
+                String::from_utf8_lossy(&body)
+            )
+        })?;
+
+        let games = parsed
+            .get("games")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        let mut results = Vec::new();
+        for game in games {
+            let parsed_game: ItchApiGameResult = match serde_json::from_value(game.clone()) {
+                Ok(g) => g,
+                Err(e) => {
+                    debug!("Skipping malformed itch search result: {}", e);
+                    continue;
+                }
+            };
+            if !parsed_game.title.is_empty() {
+                results.push(parsed_game);
+            }
+            if results.len() >= 10 {
+                break;
+            }
+        }
+
+        Ok(results)
     }
 }
 

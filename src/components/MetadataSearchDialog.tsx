@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { invoke } from '@tauri-apps/api/core';
-import type { Game, MetadataSearchResult } from '../types';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
+import type { Game, MetadataSearchResult, ScannedGame, Install, GameLink } from '../types';
 import { createLoggerForComponent } from '../lib/logger';
 
 type SourceStatus = 'idle' | 'loading' | 'done' | 'empty' | 'error';
@@ -11,6 +11,7 @@ interface MetadataSearchDialogProps {
   games: Game[];
   onClose: () => void;
   onSave: () => void;
+  mode?: 'search' | 'update';
 }
 
 interface SourceState {
@@ -41,11 +42,13 @@ export default function MetadataSearchDialog({
   games,
   onClose,
   onSave,
+  mode = 'search',
 }: MetadataSearchDialogProps) {
   const logger = createLoggerForComponent('MetadataSearchDialog');
   const { t } = useTranslation();
 
-  const isBatch = games.length > 1;
+  const isUpdateMode = mode === 'update';
+  const isBatch = !isUpdateMode && games.length > 1;
   const gameIdsKey = games.map(g => g.id).join(',');
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -70,6 +73,16 @@ export default function MetadataSearchDialog({
   });
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Unified update mode state
+  const [activeTab, setActiveTab] = useState<'local' | 'internet'>('internet');
+  const [installs, setInstalls] = useState<Install[]>([]);
+  const [localScanned, setLocalScanned] = useState<ScannedGame | null>(null);
+  const [isLocalLoading, setIsLocalLoading] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState('');
+  const [isUrlFetching, setIsUrlFetching] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   const currentGame = games[currentIndex] || null;
 
@@ -133,24 +146,147 @@ export default function MetadataSearchDialog({
     });
   }, [query, includeSources, resetState, searchSource]);
 
+  const inferSourceType = useCallback((url: string): 'itch' | 'steam' | null => {
+    const lower = url.toLowerCase();
+    if (lower.includes('itch.io')) return 'itch';
+    if (lower.includes('steampowered.com/app/') || lower.includes('store.steampowered.com/app/')) return 'steam';
+    return null;
+  }, []);
+
+  const fetchExactMetadata = useCallback(async (sourceType: string, url: string) => {
+    setIsUrlFetching(true);
+    setUrlError(null);
+    try {
+      const exact = await invoke<MetadataSearchResult | null>('fetch_metadata_by_url_command', {
+        sourceType,
+        url,
+      });
+      if (exact) {
+        setSelectedResult(exact);
+        setFields(defaultFields(exact));
+      } else {
+        setUrlError(t('metadataSearch.noExactMetadata'));
+      }
+    } catch (err) {
+      logger.warn('Exact metadata fetch failed for URL:', err);
+      setUrlError(String(err));
+    } finally {
+      setIsUrlFetching(false);
+    }
+  }, [defaultFields, logger, t]);
+
+  const handleFetchByUrl = useCallback(() => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+    const sourceType = inferSourceType(trimmed);
+    if (!sourceType) {
+      setUrlError(t('metadataSearch.unknownUrl'));
+      return;
+    }
+    fetchExactMetadata(sourceType, trimmed);
+  }, [urlInput, inferSourceType, fetchExactMetadata, t]);
+
+  const handleApplyLocal = useCallback(async (): Promise<boolean> => {
+    if (!currentGame) return false;
+    setIsApplying(true);
+    setLocalError(null);
+    try {
+      await invoke('refresh_game_from_local', { gameId: currentGame.id });
+      onSave();
+      return true;
+    } catch (err) {
+      logger.error('Failed to refresh from local:', err);
+      setLocalError(String(err));
+      return false;
+    } finally {
+      setIsApplying(false);
+    }
+  }, [currentGame, onSave, logger]);
+
+  const coverUrl = useCallback((path: string | null) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    try { return convertFileSrc(path); } catch { return null; }
+  }, []);
+
   // Reset index when the dialog opens or the set of games changes
   useEffect(() => {
     if (!isOpen || games.length === 0) return;
     setCurrentIndex(0);
   }, [isOpen, gameIdsKey]);
 
-  // Update query and run search when the current game changes
+  // Update query and run search when the current game changes.
+  // In update mode only run when the Internet tab is active.
   useEffect(() => {
     if (!isOpen || !currentGame) return;
+    if (isUpdateMode && activeTab !== 'internet') return;
 
     setQuery(currentGame.title);
     resetState();
-    // Search automatically after a short delay so the UI renders first
     const timer = setTimeout(() => {
       runSearch();
     }, 100);
     return () => clearTimeout(timer);
-  }, [isOpen, currentGame?.id, resetState, runSearch]);
+  }, [isOpen, currentGame?.id, isUpdateMode, activeTab, resetState, runSearch]);
+
+  // Update mode: load installs, game links, and pick default tab.
+  useEffect(() => {
+    if (!isOpen || !isUpdateMode || !currentGame) return;
+
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [installData, linkData] = await Promise.all([
+          invoke<Install[]>('get_game_installs', { gameId: currentGame.id }),
+          invoke<GameLink[]>('get_game_links', { gameId: currentGame.id }),
+        ]);
+        if (cancelled) return;
+        setInstalls(installData);
+        setActiveTab(installData.length > 0 ? 'local' : 'internet');
+
+        const typedLink = linkData.find(
+          l => l.source_type === 'itch' || l.source_type === 'steam'
+        );
+        if (typedLink && typedLink.source_type) {
+          setUrlInput(typedLink.url);
+          fetchExactMetadata(typedLink.source_type, typedLink.url);
+        }
+      } catch (err) {
+        logger.error('Failed to load game context for metadata update:', err);
+        setActiveTab('internet');
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [isOpen, isUpdateMode, currentGame?.id, fetchExactMetadata, logger]);
+
+  // Update mode: scan local files when the Local tab is active.
+  useEffect(() => {
+    if (!isOpen || !isUpdateMode || activeTab !== 'local' || !currentGame) return;
+
+    let cancelled = false;
+    const load = async () => {
+      setIsLocalLoading(true);
+      setLocalError(null);
+      try {
+        const data = await invoke<ScannedGame | null>('scan_local_metadata', { gameId: currentGame.id });
+        if (cancelled) return;
+        setLocalScanned(data);
+        if (!data) {
+          setLocalError(t('metadataSearch.noLocalData'));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setLocalError(String(err));
+          setLocalScanned(null);
+        }
+      } finally {
+        if (!cancelled) setIsLocalLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [isOpen, isUpdateMode, activeTab, currentGame?.id, t]);
 
   const handleSelectResult = useCallback(async (result: MetadataSearchResult) => {
     setSelectedResult(result);
@@ -232,11 +368,18 @@ export default function MetadataSearchDialog({
   }, [currentIndex, games.length, onClose]);
 
   const handleApply = useCallback(async () => {
+    if (isUpdateMode && activeTab === 'local') {
+      const success = await handleApplyLocal();
+      if (success) {
+        onClose();
+      }
+      return;
+    }
     const success = await saveCurrentGame();
     if (success) {
       goNext();
     }
-  }, [saveCurrentGame, goNext]);
+  }, [isUpdateMode, activeTab, handleApplyLocal, saveCurrentGame, goNext, onClose]);
 
   const handleSkip = useCallback(() => {
     goNext();
@@ -287,6 +430,70 @@ export default function MetadataSearchDialog({
     }
   };
 
+  const LocalMetadataPanel = () => {
+    if (isLocalLoading) {
+      return (
+        <div className="flex-1 flex items-center justify-center text-gray-500">
+          {t('common.loading')}
+        </div>
+      );
+    }
+    if (!installs.length) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-8">
+          <div className="text-4xl mb-3">📁</div>
+          <p>{t('metadataSearch.noInstall')}</p>
+        </div>
+      );
+    }
+    if (localError) {
+      return (
+        <div className="flex-1 flex items-center justify-center text-red-400 p-8">
+          {localError}
+        </div>
+      );
+    }
+    const currentCover = coverUrl(currentGame.cover_image);
+    const foundCover = localScanned?.cover_candidates[0] ? coverUrl(localScanned.cover_candidates[0]) : null;
+    return (
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">
+          {t('metadataSearch.localHint')}
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <div className="text-sm font-medium text-gray-300 border-b border-surface-100 pb-2">
+              {t('metadataSearch.current')}
+            </div>
+            <ComparisonRow label={t('metadataSelect.title')} value={currentGame.title} />
+            <ComparisonRow label={t('metadataSelect.developer')} value={currentGame.developer} />
+            <ComparisonRow label={t('metadataSelect.description')} value={currentGame.description} />
+            <ComparisonRow label={t('metadataSearch.executable')} value={currentGame.executable_path} />
+            {currentCover && (
+              <div className="aspect-[2/3] bg-surface-100 rounded-lg overflow-hidden max-w-[160px]">
+                <img src={currentCover} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+          <div className="space-y-4">
+            <div className="text-sm font-medium text-accent border-b border-surface-100 pb-2">
+              {t('metadataSearch.foundLocal')}
+            </div>
+            <ComparisonRow label={t('metadataSelect.title')} value={localScanned?.title} />
+            <ComparisonRow label={t('metadataSelect.developer')} value={localScanned?.exe_metadata?.company_name} />
+            <ComparisonRow label={t('metadataSelect.description')} value={localScanned?.exe_metadata?.file_description} />
+            <ComparisonRow label={t('metadataSearch.executable')} value={localScanned?.executable} />
+            {foundCover && (
+              <div className="aspect-[2/3] bg-surface-100 rounded-lg overflow-hidden max-w-[160px]">
+                <img src={foundCover} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!isOpen || !currentGame) return null;
 
   return (
@@ -296,9 +503,11 @@ export default function MetadataSearchDialog({
         <div className="p-4 border-b border-surface-100 flex items-center justify-between flex-shrink-0 bg-surface-400 rounded-t-xl">
           <div>
             <h2 className="text-lg font-semibold text-white">
-              {isBatch
-                ? t('metadataSearch.batchTitle', { current: currentIndex + 1, total: games.length })
-                : t('metadataSearch.title')}
+              {isUpdateMode
+                ? t('metadataSearch.updateTitle')
+                : isBatch
+                  ? t('metadataSearch.batchTitle', { current: currentIndex + 1, total: games.length })
+                  : t('metadataSearch.title')}
             </h2>
             <p className="text-sm text-gray-400">
               {t('metadataSearch.gameName', { name: currentGame.title })}
@@ -318,12 +527,54 @@ export default function MetadataSearchDialog({
           </div>
         )}
 
+        {isUpdateMode && (
+          <div className="flex border-b border-surface-100 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab('local')}
+              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'local' ? 'text-accent border-b-2 border-accent' : 'text-gray-400 hover:text-white'}`}
+            >
+              {t('metadataSearch.localTab')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('internet')}
+              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'internet' ? 'text-accent border-b-2 border-accent' : 'text-gray-400 hover:text-white'}`}
+            >
+              {t('metadataSearch.internetTab')}
+            </button>
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex flex-1 overflow-hidden min-h-0">
-          {/* Left: Search & Results */}
+          {activeTab === 'internet' ? (
+            <>
+              {/* Left: Search & Results */}
           <div className="w-[420px] flex flex-col border-r border-surface-100">
             {/* Search controls */}
             <div className="p-4 border-b border-surface-100 space-y-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={urlInput}
+                  onChange={e => setUrlInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleFetchByUrl()}
+                  placeholder={t('metadataSearch.urlPlaceholder')}
+                  className="flex-1 px-3 py-2 bg-surface-200 rounded-lg text-sm focus:ring-1 focus:ring-accent outline-none"
+                />
+                <button
+                  onClick={handleFetchByUrl}
+                  disabled={!urlInput.trim() || isUrlFetching}
+                  className="btn btn-sm btn-primary px-3"
+                >
+                  {isUrlFetching ? t('common.loading') : t('metadataSearch.fetchByUrl')}
+                </button>
+              </div>
+              {urlError && (
+                <div className="text-xs text-red-400">{urlError}</div>
+              )}
+
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -402,6 +653,17 @@ export default function MetadataSearchDialog({
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <div className="font-medium text-sm text-gray-100 truncate">{result.name}</div>
+                    {result.url && (
+                      <a
+                        href={result.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="text-xs text-accent truncate hover:underline"
+                      >
+                        {result.url}
+                      </a>
+                    )}
                     <div className="text-xs text-gray-500 line-clamp-1 mb-1">
                       {result.description || t('metadataSearch.noDescription')}
                     </div>
@@ -524,6 +786,10 @@ export default function MetadataSearchDialog({
               )}
             </div>
           </div>
+            </>
+          ) : (
+            <LocalMetadataPanel />
+          )}
         </div>
 
         {/* Footer */}
@@ -554,7 +820,14 @@ export default function MetadataSearchDialog({
             </button>
             <button
               onClick={handleApply}
-              disabled={!selectedResult || isApplying}
+              disabled={
+                isApplying ||
+                (isUpdateMode
+                  ? activeTab === 'local'
+                    ? !installs.length || !localScanned
+                    : !selectedResult
+                  : !selectedResult)
+              }
               className="btn btn-primary disabled:opacity-50"
             >
               {isApplying
@@ -591,5 +864,21 @@ function FieldToggle({ label, value, checked, onChange }: FieldToggleProps) {
         <div className="text-xs text-gray-500 truncate">{value}</div>
       </div>
     </label>
+  );
+}
+
+interface ComparisonRowProps {
+  label: string;
+  value: string | null | undefined;
+}
+
+function ComparisonRow({ label, value }: ComparisonRowProps) {
+  return (
+    <div>
+      <div className="text-xs text-gray-500 mb-0.5">{label}</div>
+      <div className={`text-sm truncate ${value ? 'text-gray-200' : 'text-gray-600 italic'}`}>
+        {value || '—'}
+      </div>
+    </div>
   );
 }

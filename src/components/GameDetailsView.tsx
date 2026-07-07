@@ -7,7 +7,7 @@ import { open } from '@tauri-apps/plugin-shell';
 import type { Game, GameLink, Install, ItchUpload, DownloadGameLinkResponse } from '../types';
 import ResizeHandle from './ResizeHandle';
 import DeleteInstallDialog from './DeleteInstallDialog';
-import MetadataSearchDialog from './MetadataSearchDialog';
+import MetadataUpdateDialog from './MetadataUpdateDialog';
 import SelectTargetSpaceDialog from './SelectTargetSpaceDialog';
 import SelectUploadDialog from './SelectUploadDialog';
 import SettingsDialog from './SettingsDialog';
@@ -26,9 +26,8 @@ interface Props {
   gameListWidth?: number;
   onGameListResize?: (delta: number) => void;
   isSelectionMode?: boolean; // Added
-  onRefreshFromLocal?: (g: Game) => void;
   onSave?: () => void;
-  updatingGameIds?: Set<string>;
+  onGameDownloaded?: (game: Game, spaceId: string, sourcePath: string) => void;
 }
 
 const fmt = (s: number, t: (k: string) => string) => {
@@ -68,22 +67,22 @@ export default function GameDetailsView({
   gameListWidth = 280,
   onGameListResize,
   isSelectionMode,
-  onRefreshFromLocal,
   onSave,
-  updatingGameIds
+  onGameDownloaded
 }: Props) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const [hov, setHov] = useState<string | null>(null);
   const [gameLinks, setGameLinks] = useState<GameLink[]>([]);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [showTargetDialog, setShowTargetDialog] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadErrorLinkId, setDownloadErrorLinkId] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<{ downloaded: number; total: number } | null>(null);
   const [downloadSpeed, setDownloadSpeed] = useState<number | null>(null);
   const lastProgressRef = useRef<{ downloaded: number; time: number } | null>(null);
   const [downloadingLinkId, setDownloadingLinkId] = useState<string | null>(null);
+  const [isFetchingUploads, setIsFetchingUploads] = useState(false);
   const [installs, setInstalls] = useState<Install[]>([]);
   const [uploads, setUploads] = useState<ItchUpload[]>([]);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -113,6 +112,15 @@ export default function GameDetailsView({
   }, [selectedGame]);
 
   useEffect(() => { if (!selectedGame && games.length) onSelectGame(games[0]); }, [games, selectedGame, onSelectGame]);
+
+  // When the selected game changes, close upload/target dialogs and reset the upload-fetch state,
+  // so another game's download UI never leaks onto the new card.
+  useEffect(() => {
+    setShowUploadDialog(false);
+    setShowTargetDialog(false);
+    setIsFetchingUploads(false);
+    setSelectedUpload(null);
+  }, [selectedGame?.id]);
 
   // Fetch game links when selected game changes
   useEffect(() => {
@@ -152,7 +160,6 @@ export default function GameDetailsView({
 
   const bg = selectedGame?.cover_image ? coverUrl(selectedGame.cover_image) : null;
   const run = selectedGame ? isGameRunning?.(selectedGame.id) ?? false : false;
-  const isUpdating = selectedGame ? updatingGameIds?.has(selectedGame.id) : false;
 
   const activeLink = useMemo(() => {
     if (!selectedGame || (selectedSpaceId !== 'incoming' && selectedSpaceId !== 'online')) return null;
@@ -163,6 +170,20 @@ export default function GameDetailsView({
     if (!selectedGame) return null;
     return gameLinks.find(l => l.source_type === 'itch') || null;
   }, [selectedGame, gameLinks]);
+
+  // The download state is global (because progress comes from backend events), but we only render
+  // it for the currently selected game/link so it never leaks onto another card.
+  const isThisDownloading = useMemo(() => {
+    const activeId = activeLink?.id || itchLink?.id;
+    return !!activeId && activeId === downloadingLinkId;
+  }, [activeLink, itchLink, downloadingLinkId]);
+
+  const isThisError = useMemo(() => {
+    const activeId = activeLink?.id || itchLink?.id;
+    return !!activeId && activeId === downloadErrorLinkId;
+  }, [activeLink, itchLink, downloadErrorLinkId]);
+
+  const isThisButtonBusy = isThisDownloading || isFetchingUploads;
 
   // Listen for download progress events for the active link
   useEffect(() => {
@@ -244,20 +265,9 @@ export default function GameDetailsView({
     }
   };
 
-  const handleFetchMetadata = async () => {
+  const handleUpdateMetadata = () => {
     if (!selectedGame) return;
-    try {
-      await invoke<Game>('fetch_and_update_game_metadata', { gameId: selectedGame.id });
-      onSave?.();
-    } catch (e) {
-      const err = String(e);
-      if (err.includes('No source link found')) {
-        setIsSearchOpen(true);
-      } else {
-        console.error('Failed to fetch metadata:', e);
-        alert(err);
-      }
-    }
+    setIsUpdateDialogOpen(true);
   };
 
   const handleDeleteInstall = (install: Install) => {
@@ -289,25 +299,34 @@ export default function GameDetailsView({
   const handleStartDownload = async () => {
     if (!selectedGame || !itchLink) return;
     setDownloadError(null);
+    setDownloadErrorLinkId(null);
     setDownloadProgress(null);
+    setShowUploadDialog(true);
+    setIsFetchingUploads(true);
     try {
       const key = await invoke<string | null>('get_itch_api_key');
       if (!key) {
+        setShowUploadDialog(false);
         setShowSettings(true);
         return;
       }
       const data = await invoke<ItchUpload[]>('get_itch_game_uploads', { gameUrl: itchLink.url, gameTitle: selectedGame.title });
       if (data.length === 0) {
+        setShowUploadDialog(false);
         setDownloadError(t('errors.noUploads'));
+        setDownloadErrorLinkId(itchLink.id);
         return;
       }
       setUploads(data);
-      setShowUploadDialog(true);
     } catch (e) {
       console.error('Failed to start download:', e);
       const err = String(e);
+      setShowUploadDialog(false);
       setDownloadError(err);
+      setDownloadErrorLinkId(itchLink.id);
       alert(err);
+    } finally {
+      setIsFetchingUploads(false);
     }
   };
 
@@ -320,12 +339,12 @@ export default function GameDetailsView({
   const handleDownloadTarget = async (spaceId: string, sourcePath: string) => {
     if (!selectedGame || !itchLink || !selectedUpload) return;
     setShowTargetDialog(false);
-    setIsDownloading(true);
     setDownloadingLinkId(itchLink.id);
     setDownloadError(null);
+    setDownloadErrorLinkId(null);
     setDownloadProgress(null);
     try {
-      await invoke<DownloadGameLinkResponse>('download_game_link', {
+      const response = await invoke<DownloadGameLinkResponse>('download_game_link', {
         gameId: selectedGame.id,
         linkId: itchLink.id,
         uploadId: selectedUpload.id,
@@ -341,15 +360,21 @@ export default function GameDetailsView({
       });
       const data = await invoke<Install[]>('get_game_installs', { gameId: selectedGame.id });
       setInstalls(data);
-      onSave?.();
+      const links = await invoke<GameLink[]>('get_game_links', { gameId: selectedGame.id });
+      setGameLinks(links);
+      if (response.status === 'downloaded') {
+        onGameDownloaded?.(response.game, spaceId, sourcePath);
+      } else {
+        onSave?.();
+      }
     } catch (e) {
       console.error('Failed to download game:', e);
       const err = String(e);
       setDownloadError(err);
+      setDownloadErrorLinkId(itchLink.id);
       alert(err);
       onSave?.();
     } finally {
-      setIsDownloading(false);
       setDownloadingLinkId(null);
       setDownloadProgress(null);
       setDownloadSpeed(null);
@@ -357,6 +382,7 @@ export default function GameDetailsView({
       setSelectedUpload(null);
     }
   };
+
 
   const getSourceIcon = (sourceType: string | null) => {
     switch (sourceType) {
@@ -389,8 +415,7 @@ export default function GameDetailsView({
             
           const r = isGameRunning?.(g.id) ?? false;
           const cv = coverUrl(g.cover_image);
-          const updating = updatingGameIds?.has(g.id);
-          
+
           return (
             <div key={g.id} data-id={g.id}
               onClick={(e) => {
@@ -403,10 +428,9 @@ export default function GameDetailsView({
               onMouseLeave={() => setHov(null)}
               className={`flex items-center gap-3 mx-2 px-2 py-2 rounded-lg cursor-pointer select-none
                 ${isSelected ? 'bg-accent/30 ring-1 ring-accent' : hov === g.id ? 'bg-surface-200/70' : 'hover:bg-surface-200/40'}
-                ${g.times_launched === 0 && !isSelected && !r && !updating ? 'bg-surface-100/50 border-l-4 border-solid border-gray-500' : ''}
-                ${r && !isSelected ? 'bg-green-500/10' : ''}
-                ${updating ? 'bg-yellow-500/20 animate-pulse' : ''}`}>
-              
+                ${g.times_launched === 0 && !isSelected && !r ? 'bg-surface-100/50 border-l-4 border-solid border-gray-500' : ''}
+                ${r && !isSelected ? 'bg-green-500/10' : ''}`}>
+
               {isSelectionMode && (
                 <div className="flex-shrink-0 mr-1">
                    <div className={`w-4 h-4 border rounded ${isSelected ? 'bg-accent border-accent flex items-center justify-center' : 'border-gray-500'}`}>
@@ -414,14 +438,13 @@ export default function GameDetailsView({
                    </div>
                 </div>
               )}
-              
+
               <div className="w-9 h-12 bg-surface-300 rounded overflow-hidden flex-shrink-0">{cv ? <img src={cv} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full flex items-center justify-center text-gray-500">?</div>}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
                   <span className={`text-sm truncate ${isSelected ? 'text-white font-medium' : 'text-gray-200'}`}>{g.title}</span>
                   {g.is_favorite && <span className="text-yellow-400 text-xs">*</span>}
                   {r && <span className="text-green-400 text-xs"><PlayIcon/></span>}
-                  {updating && <span className="text-yellow-400 text-xs">⏳</span>}
                 </div>
                 <div className="text-xs text-gray-500">{fmt(g.total_playtime_seconds, t)}</div>
               </div>
@@ -442,19 +465,11 @@ export default function GameDetailsView({
               <div className="flex gap-8 mb-8">
                 <div className="w-52 h-72 rounded-lg overflow-hidden shadow-2xl flex-shrink-0 bg-surface-300 relative">
                   {coverUrl(selectedGame.cover_image) ? <img src={coverUrl(selectedGame.cover_image)!} className="w-full h-full object-cover" alt=""/> : <div className="w-full h-full flex items-center justify-center text-gray-500 text-4xl">?</div>}
-                  {isUpdating && (
-                    <div className="absolute inset-0 bg-yellow-500/30 flex items-center justify-center">
-                      <div className="bg-black/70 px-4 py-2 rounded-lg text-yellow-300 text-sm font-medium animate-pulse">
-                        ⏳ {t('details.updating')}
-                      </div>
-                    </div>
-                  )}
                 </div>
                 <div className="flex-1 flex flex-col justify-end pb-2">
                   <div className="flex gap-2 mb-2">
                     {selectedGame.is_favorite && <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs">{t('details.favorite')}</span>}
                     {run && <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs animate-pulse">{t('details.running')}</span>}
-                    {isUpdating && <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs animate-pulse">{t('details.updating')}</span>}
                   </div>
                   <h1 className="text-4xl font-bold text-white mb-2">{selectedGame.title}</h1>
                   <div className="text-gray-400 mb-6 text-sm">{selectedGame.developer}{selectedGame.publisher && ` | ${selectedGame.publisher}`}</div>
@@ -470,21 +485,22 @@ export default function GameDetailsView({
                                   {t('actions.playInBrowser')}
                                 </button>
                               ) : (
-                                <button
-                                  onClick={handleStartDownload}
-                                  disabled={isDownloading}
-                                  className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white"
-                                >
-                                  {isDownloading ? (
-                                    <span className="flex items-center gap-2">
-                                      <span className="animate-spin">⏳</span> {t('common.loading')}
-                                    </span>
-                                  ) : (
-                                    <>
-                                      <PlayIcon /> {activeLink.download_status === 'error' ? t('actions.retry') : t('actions.download')}
-                                    </>
-                                  )}
-                                </button>
+                              <button
+                                onClick={handleStartDownload}
+                                disabled={isThisButtonBusy}
+                                className="px-8 py-3 rounded-lg font-semibold flex items-center gap-2 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                              >
+                                {isThisButtonBusy ? (
+                                  <span className="flex items-center gap-2">
+                                    <span className="animate-spin">⏳</span> {t('common.loading')}
+                                  </span>
+                                ) : (
+                                  <>
+                                    <PlayIcon /> {activeLink.download_status === 'error' ? t('actions.retry') : t('actions.download')}
+                                  </>
+                                )}
+                              </button>
+
                               )
                             ) : (
                               <button
@@ -511,14 +527,15 @@ export default function GameDetailsView({
                                >
                                  {t('actions.playInBrowser')}
                                </button>
-                               <button
-                                 onClick={handleStartDownload}
-                                 disabled={isDownloading}
-                                 className="px-4 py-3 bg-accent/20 hover:bg-accent/30 text-accent rounded-lg flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                               >
-                                 {isDownloading ? <span className="animate-spin">⏳</span> : '⬇'}
-                                 <span>{t('actions.downloadVariant')}</span>
-                               </button>
+                                <button
+                                  onClick={handleStartDownload}
+                                  disabled={isThisButtonBusy}
+                                  className="px-4 py-3 bg-accent/20 hover:bg-accent/30 text-accent rounded-lg flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isThisButtonBusy ? <span className="animate-spin">⏳</span> : '⬇'}
+                                  <span>{t('actions.downloadVariant')}</span>
+                                </button>
+
                              </div>
                            ) : (
                              <button
@@ -555,45 +572,40 @@ export default function GameDetailsView({
                                 <span>{getSourceLabel(link)}</span>
                               </button>
                             ))}
-                          {itchLink && (
-                            <button
-                              onClick={handleStartDownload}
-                              disabled={isDownloading}
-                              className="px-4 py-3 bg-accent/20 hover:bg-accent/30 text-accent rounded-lg flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {isDownloading ? <span className="animate-spin">⏳</span> : '⬇'}
-                              <span>{t('actions.downloadVariant')}</span>
-                            </button>
-                          )}
+                           {itchLink && (
+                             <button
+                               onClick={handleStartDownload}
+                               disabled={isThisButtonBusy}
+                               className="px-4 py-3 bg-accent/20 hover:bg-accent/30 text-accent rounded-lg flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                             >
+                               {isThisButtonBusy ? <span className="animate-spin">⏳</span> : '⬇'}
+                               <span>{t('actions.downloadVariant')}</span>
+                             </button>
+                           )}
+
                         </>
                      )}
                       <button
-                        onClick={handleFetchMetadata}
-                        className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg flex items-center gap-2"
+                        onClick={handleUpdateMetadata}
+                        className="px-6 py-3 rounded-lg flex items-center gap-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300"
                       >
-                        🌐 {t('actions.fetchMetadata')}
+                        🔄 {t('actions.updateMetadata')}
                       </button>
-                     <button
-                       onClick={() => onEdit(selectedGame)}
-                       className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
-                     >
-                       {t('details.edit')}
-                     </button>
-                     <button
-                       onClick={() => onRefreshFromLocal?.(selectedGame)}
-                       disabled={isUpdating}
-                       className={`px-6 py-3 rounded-lg flex items-center gap-2 ${isUpdating ? 'bg-purple-500/30 cursor-wait' : 'bg-purple-500/20 hover:bg-purple-500/30'} text-purple-300`}
-                     >
-                       {isUpdating ? '⏳' : '🔄'}
-                       {isUpdating ? t('details.updating') : t('details.refreshMetadata')}
-                     </button>
+
+                      <button
+                        onClick={() => onEdit(selectedGame)}
+                        className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg"
+                      >
+                        {t('details.edit')}
+                      </button>
+
                     </div>
-                    {downloadError && (
+                    {downloadError && isThisError && (
                       <div className="mt-3 text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2">
                         {downloadError}
                       </div>
                     )}
-                     {downloadProgress && (
+                     {downloadProgress && isThisDownloading && (
                        <div className="mt-3 w-full">
                          <div className="h-2 bg-surface-100 rounded-full overflow-hidden">
                            <div
@@ -747,12 +759,12 @@ export default function GameDetailsView({
       </div>
 
       {selectedGame && (
-        <MetadataSearchDialog
-          isOpen={isSearchOpen}
-          games={[selectedGame]}
-          onClose={() => setIsSearchOpen(false)}
+        <MetadataUpdateDialog
+          game={selectedGame}
+          isOpen={isUpdateDialogOpen}
+          onClose={() => setIsUpdateDialogOpen(false)}
           onSave={() => {
-            setIsSearchOpen(false);
+            setIsUpdateDialogOpen(false);
             onSave?.();
           }}
         />
@@ -782,7 +794,11 @@ export default function GameDetailsView({
       {selectedGame && showUploadDialog && (
         <SelectUploadDialog
           uploads={uploads}
-          onClose={() => setShowUploadDialog(false)}
+          isLoading={isFetchingUploads}
+          onClose={() => {
+            setShowUploadDialog(false);
+            setIsFetchingUploads(false);
+          }}
           onSelect={handleSelectUpload}
         />
       )}

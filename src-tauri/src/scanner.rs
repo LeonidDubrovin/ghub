@@ -461,6 +461,56 @@ pub fn find_executable_in_directory(dir: &Path) -> Option<String> {
     pick_best_executable(dir, &executables)
 }
 
+/// Scan a single game directory (e.g., an install folder) and return one
+/// `ScannedGame`. Unlike `scan_directory`, this does **not** skip the base
+/// directory; it treats `dir` as the game folder itself.
+pub fn scan_single_directory(dir: &Path) -> Result<Option<ScannedGame>, String> {
+    if !dir.exists() {
+        return Err(format!("Directory does not exist: {}", dir.display()));
+    }
+
+    let config = ScanConfig::from_constants(true);
+    let game_path = find_actual_game_folder(dir, config.max_scan_depth);
+
+    let all_executables = find_all_executables(&game_path, &config);
+    if all_executables.is_empty() {
+        return Ok(None);
+    }
+
+    let local_metadata = read_local_metadata(&game_path, &config.all_metadata_files());
+    let dir_name = game_path
+        .file_name()
+        .and_then(|n: &OsStr| n.to_str())
+        .unwrap_or("Unknown");
+
+    let executable = pick_best_executable(&game_path, &all_executables);
+    let cover_candidates = find_cover_candidates(&game_path, &config);
+    let size_bytes = calculate_dir_size(&game_path);
+
+    let exe_metadata = executable
+        .as_ref()
+        .and_then(|exe| extract_exe_metadata(&game_path.join(exe)));
+
+    let title = extract_title_with_fallback(
+        &game_path,
+        dir_name,
+        &local_metadata,
+        &exe_metadata,
+        &executable,
+    );
+
+    Ok(Some(ScannedGame {
+        path: game_path.to_string_lossy().to_string(),
+        title,
+        executable,
+        all_executables,
+        size_bytes,
+        icon_path: None,
+        cover_candidates,
+        exe_metadata,
+    }))
+}
+
 /// Find potential cover/icon images with custom configuration
 fn find_cover_candidates(dir: &Path, config: &ScanConfig) -> Vec<String> {
     let mut candidates = Vec::new();

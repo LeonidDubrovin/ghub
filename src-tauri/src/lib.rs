@@ -124,6 +124,7 @@ pub fn run() {
             commands::update_setting,
             commands::search_game_metadata,
             commands::fetch_metadata_by_url_command,
+            commands::scan_local_metadata,
             commands::refresh_game_from_local,
             commands::fetch_and_update_game_metadata,
             commands::backup_database,

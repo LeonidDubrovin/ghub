@@ -1,20 +1,24 @@
-use crate::models::{Game, MetadataSearchResult};
+use crate::models::{Game, MetadataSearchResult, ScannedGame};
 use crate::metadata::{ItchStrategy, MetadataStrategy, SteamStrategy};
 use crate::title_extraction::{is_generic_company_name, is_generic_description};
 use crate::AppState;
-use crate::commands::scanning::scan_directory_internal;
-use tauri::State;
+use crate::itch_api::ItchApiClient;
+use tauri::{AppHandle, State};
 use std::path::Path;
 use log::{debug, info, warn};
 
-/// Search game metadata from sources
+/// Search game metadata from sources.
+/// For itch.io, uses the authenticated search API when the user has stored an API key;
+/// otherwise falls back to the public/aggregator strategy.
 #[tauri::command]
 pub async fn search_game_metadata(
+    app: AppHandle,
     state: State<'_, AppState>,
     query: String,
     sources: Vec<String>,
 ) -> Result<Vec<MetadataSearchResult>, String> {
     let client = &state.http_client;
+    info!("🔍 search_game_metadata: query='{}', sources={:?}", query, sources);
 
     let sources_refs: Vec<&str> = if sources.is_empty() {
         vec!["steam", "itch"]
@@ -22,11 +26,78 @@ pub async fn search_game_metadata(
         sources.iter().map(|s| s.as_str()).collect()
     };
 
-    let results = state
-        .metadata_aggregator
-        .search_sources(client, &query, &sources_refs)
-        .await;
+    let mut results = Vec::new();
 
+    // Authenticated itch search has priority because it is more reliable.
+    if sources_refs.contains(&"itch") {
+        match crate::commands::itch_api::get_itch_api_key(app.clone()) {
+            Ok(Some(api_key)) => {
+                info!("   itch API key present, using authenticated search");
+                let itch_client = ItchApiClient::new(api_key);
+                match itch_client.search_games(client, &query).await {
+                    Ok(games) if !games.is_empty() => {
+                        info!("   authenticated itch search returned {} games", games.len());
+                        results.extend(games.into_iter().map(|g| {
+                            let author = g.author();
+                            MetadataSearchResult {
+                                id: g.id.to_string(),
+                                name: g.title,
+                                cover_url: g.cover_url,
+                                release_date: None,
+                                developer: author,
+                                publisher: None,
+                                description: g.short_text,
+                                rating: None,
+                                source: "itch".to_string(),
+                                url: Some(g.url),
+                                tags: None,
+                                genres: None,
+                            }
+                        }));
+                    }
+                    Ok(_) => {
+                        info!("   authenticated itch search returned empty, falling back to aggregator");
+                        results.extend(
+                            state
+                                .metadata_aggregator
+                                .search_sources(client, &query, &["itch"])
+                                .await,
+                        );
+                    }
+                    Err(e) => {
+                        warn!("   authenticated itch search failed ({}), falling back to aggregator", e);
+                        results.extend(
+                            state
+                                .metadata_aggregator
+                                .search_sources(client, &query, &["itch"])
+                                .await,
+                        );
+                    }
+                }
+            }
+            _ => {
+                info!("   no itch API key, falling back to public aggregator");
+                results.extend(
+                    state
+                        .metadata_aggregator
+                        .search_sources(client, &query, &["itch"])
+                        .await,
+                );
+            }
+        }
+    }
+
+    if sources_refs.contains(&"steam") {
+        info!("   searching steam via public aggregator");
+        results.extend(
+            state
+                .metadata_aggregator
+                .search_sources(client, &query, &["steam"])
+                .await,
+        );
+    }
+
+    info!("🔍 search_game_metadata: returning {} results", results.len());
     Ok(results)
 }
 
@@ -76,7 +147,14 @@ pub async fn fetch_metadata_by_url_command(
     source_type: String,
     url: String,
 ) -> Result<Option<MetadataSearchResult>, String> {
-    fetch_metadata_by_url(&state.http_client, &source_type, &url).await
+    info!("🌐 fetch_metadata_by_url_command: source_type={}, url={}", source_type, url);
+    let result = fetch_metadata_by_url(&state.http_client, &source_type, &url).await;
+    match &result {
+        Ok(Some(_)) => info!("   fetch_metadata_by_url_command: returned metadata"),
+        Ok(None) => info!("   fetch_metadata_by_url_command: no metadata returned"),
+        Err(e) => info!("   fetch_metadata_by_url_command: error: {}", e),
+    }
+    result
 }
 
 /// Apply metadata to a game while respecting existing fields.
@@ -113,85 +191,114 @@ fn apply_metadata(
     Ok(())
 }
 
-/// Refresh game data from local directory
+/// Scan the install directory of a game and return the discovered metadata
+/// without writing anything to the database. Used by the "Local files" tab
+/// in the unified metadata update dialog.
+#[tauri::command]
+pub fn scan_local_metadata(state: State<AppState>, game_id: String) -> Result<Option<ScannedGame>, String> {
+    info!("📁 scan_local_metadata: game_id={}", game_id);
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let installs = db.get_installs_for_game(&game_id).map_err(|e| e.to_string())?;
+    if installs.is_empty() {
+        info!("   scan_local_metadata: no installs, returning None");
+        return Ok(None);
+    }
+    let install = &installs[0];
+    let game_path = Path::new(&install.install_path);
+    if !game_path.exists() {
+        info!("   scan_local_metadata: install path does not exist: {}", install.install_path);
+        return Ok(None);
+    }
+    let mut scanned = crate::scanner::scan_single_directory(game_path)
+        .map_err(|e| format!("Failed to scan install directory: {}", e))?;
+    if let Some(scanned) = scanned.as_mut() {
+        scanned.executable = scanned.executable.as_ref().map(|e| game_path.join(e).to_string_lossy().to_string());
+        scanned.cover_candidates = scanned.cover_candidates.iter()
+            .map(|c| game_path.join(c).to_string_lossy().to_string())
+            .collect();
+        info!("   scan_local_metadata: title='{}', executable={:?}, covers={}",
+            scanned.title, scanned.executable, scanned.cover_candidates.len());
+    }
+    info!("   scan_local_metadata: returning {}", if scanned.is_some() { "data" } else { "None" });
+    Ok(scanned)
+}
+
+/// Refresh game data from the local install directory.
+/// Only fills missing metadata fields and updates the executable path.
 #[tauri::command]
 pub fn refresh_game_from_local(state: State<AppState>, game_id: String) -> Result<Game, String> {
     info!("🔄 refresh_game_from_local called for game_id: {}", game_id);
-    
+
     let db = state.db.lock().map_err(|e| e.to_string())?;
-    
-    // Get the game and its install info
-    let _game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
-    
-    // Get the install path for this game
+    let game = db.get_game_by_id(&game_id).map_err(|e| e.to_string())?;
     let installs = db.get_installs_for_game(&game_id).map_err(|e| e.to_string())?;
-    
+
     if installs.is_empty() {
         return Err("No install found for this game".to_string());
     }
-    
-    // Use the first install path
+
     let install = &installs[0];
     let game_path = Path::new(&install.install_path);
-    
     if !game_path.exists() {
         return Err(format!("Game directory does not exist: {}", install.install_path));
     }
-    
+
     debug!("   Scanning directory: {}", game_path.display());
-    
-    // Scan the directory to get fresh data
-    let scanned_games = scan_directory_internal(game_path).map_err(|e| e.to_string())?;
-    
-    if scanned_games.is_empty() {
-        return Err("No game found in directory".to_string());
-    }
-    
-    let scanned = &scanned_games[0];
-    
-    // Update the game with fresh data from local directory ONLY
-    // IMPORTANT: Do NOT use exe metadata product name if it's generic
-    let title = if !scanned.title.is_empty() {
+    let scanned = crate::scanner::scan_single_directory(game_path)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "No game found in install directory".to_string())?;
+
+    // Only overwrite fields that are currently empty/missing so existing
+    // metadata (especially from online sources) is preserved.
+    let new_title = if game.title.is_empty() && !scanned.title.is_empty() {
         Some(scanned.title.as_str())
     } else {
         None
     };
-    
-    // Only use developer from exe metadata if it's not generic
-    let developer = scanned.exe_metadata.as_ref()
-        .and_then(|m| m.company_name.as_deref())
-        .filter(|name| !is_generic_company_name(name));
-    
-    // Only use description from exe metadata if it's not generic
-    let description = scanned.exe_metadata.as_ref()
-        .and_then(|m| m.file_description.as_deref())
-        .filter(|desc| !is_generic_description(desc));
-    
-    // Update executable path if found
-    let executable_path = scanned.executable.as_deref();
-    
-    // Update the game in database - RESET all metadata fields to force fresh local data
-    // Use update_game_with_reset to properly set fields to NULL when None is passed
-    db.update_game_with_reset(
+
+    let new_description = if game.description.is_none() {
+        scanned.exe_metadata.as_ref()
+            .and_then(|m| m.file_description.as_deref())
+            .filter(|desc| !is_generic_description(desc))
+    } else {
+        None
+    };
+
+    let new_developer = if game.developer.is_none() {
+        scanned.exe_metadata.as_ref()
+            .and_then(|m| m.company_name.as_deref())
+            .filter(|name| !is_generic_company_name(name))
+    } else {
+        None
+    };
+
+    let new_cover = if game.cover_image.is_none() && !scanned.cover_candidates.is_empty() {
+        Some(game_path.join(&scanned.cover_candidates[0]).to_string_lossy().to_string())
+    } else {
+        None
+    };
+
+    info!("   refresh_game_from_local: updating title={:?}, desc={:?}, dev={:?}, cover={:?}",
+        new_title, new_description, new_developer, new_cover);
+
+    db.update_game(
         &game_id,
-        title,
-        description,
-        developer,
-        None, // publisher - reset to None to get fresh data
-        None, // cover_image - reset to None to get fresh data
-        None, // is_favorite - keep existing
-        None, // completion_status - keep existing
-        None, // user_rating - keep existing
+        new_title,
+        new_description,
+        new_developer,
+        None, // publisher — keep existing
+        new_cover.as_deref(),
+        None, // is_favorite — keep existing
+        None, // completion_status — keep existing
+        None, // user_rating — keep existing
     ).map_err(|e| e.to_string())?;
-    
-    // Update install with new executable path if found
-    if let Some(exe_path) = executable_path {
+
+    if let Some(exe_path) = &scanned.executable {
+        info!("   refresh_game_from_local: updating install executable to {}", exe_path);
         db.update_install_executable(&install.id, exe_path).map_err(|e| e.to_string())?;
     }
-    
+
     info!("   ✅ Game refreshed successfully");
-    
-    // Return updated game
     db.get_game_by_id(&game_id).map_err(|e| e.to_string())
 }
 

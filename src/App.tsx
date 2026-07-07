@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import Sidebar from './components/Sidebar';
 import GameDetailsView from './components/GameDetailsView';
@@ -16,6 +17,7 @@ import type { Game, Install, Space, SelectedSource, SortField, SortOrder } from 
 import { createLoggerForComponent } from './lib/logger';
 
 import BatchMetadataDialog from './components/BatchMetadataDialog';
+import MetadataUpdateDialog from './components/MetadataUpdateDialog';
 import SelectedSourceToolbar from './components/SelectedSourceToolbar';
 import SettingsDialog from './components/SettingsDialog';
 import { useStartSourceScan } from './hooks/useScanning';
@@ -30,6 +32,7 @@ const GAME_LIST_MAX = 500;
 function App() {
   const logger = createLoggerForComponent('App');
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(() => localStorage.getItem('selectedSpaceId') || null);
   const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(() => {
     const saved = localStorage.getItem('selectedSourcePath');
@@ -54,13 +57,13 @@ function App() {
   const [spaceToDelete, setSpaceToDelete] = useState<Space | null>(null);
   const [runningGames, setRunningGames] = useState<Set<string>>(new Set());
   const [launchError, setLaunchError] = useState<string | null>(null);
-  const [updatingGameIds, setUpdatingGameIds] = useState<Set<string>>(new Set());
-  
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedGameIds, setSelectedGameIds] = useState<Set<string>>(new Set());
   const [lastSelectedGameId, setLastSelectedGameId] = useState<string | null>(null);
   const [showBatchMetadata, setShowBatchMetadata] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMetadataUpdateDialog, setShowMetadataUpdateDialog] = useState(false);
+  const [selectedGameForMetadataUpdate, setSelectedGameForMetadataUpdate] = useState<Game | null>(null);
 
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [gameListWidth, setGameListWidth] = useState(280);
@@ -250,32 +253,6 @@ function App() {
     }
   };
 
-  const handleBatchRefreshLocal = async () => {
-    const gameIds = Array.from(selectedGameIds);
-    if (gameIds.length === 0) return;
-
-    setUpdatingGameIds(prev => new Set([...prev, ...gameIds]));
-
-    try {
-      await Promise.all(
-        gameIds.map(gameId =>
-          invoke('refresh_game_from_local', { gameId }).catch(err => {
-            logger.error(`Failed to refresh game ${gameId}:`, err);
-          })
-        )
-      );
-      refetchGames();
-    } catch (err) {
-      logger.error('Batch refresh failed:', err);
-    } finally {
-      setTimeout(() => setUpdatingGameIds(prev => {
-        const next = new Set(prev);
-        gameIds.forEach(id => next.delete(id));
-        return next;
-      }), 1000);
-    }
-  };
-
   const handleSidebarResize = useCallback((delta: number) => {
     setSidebarWidth(w => Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, w + delta)));
   }, []);
@@ -373,8 +350,9 @@ function App() {
     }
   };
 
-  const handleFetchMetadata = (game: Game) => {
-    setEditingGame(game);
+  const handleUpdateMetadata = (game: Game) => {
+    setSelectedGameForMetadataUpdate(game);
+    setShowMetadataUpdateDialog(true);
   };
 
   const handleDeleteSpace = (space: Space) => setSpaceToDelete(space);
@@ -391,25 +369,28 @@ function App() {
   };
 
   const handleGameSaved = () => refetchGames();
-  const isGameRunning = (gameId: string) => runningGames.has(gameId);
 
-  const handleRefreshMetadata = async (game: Game) => {
-    if (updatingGameIds.has(game.id)) return;
-    
-    setUpdatingGameIds(prev => new Set([...prev, game.id]));
-    try {
-      await invoke('refresh_game_from_local', { gameId: game.id });
-      refetchGames();
-    } catch (err) {
-      console.error('Failed to refresh metadata:', err);
-    } finally {
-      setUpdatingGameIds(prev => {
-        const next = new Set(prev);
-        next.delete(game.id);
-        return next;
-      });
+  const handleGameDownloaded = useCallback((game: Game, spaceId: string, sourcePath: string) => {
+    // Switch to the target space/source where the game was installed.
+    setSelectedSpaceId(spaceId);
+    if (sourcePath) {
+      setSelectedSource({ spaceId, sourcePath });
+    } else {
+      setSelectedSource(null);
     }
-  };
+    // Keep the downloaded game selected and focused in the new game list.
+    setSelectedGameForDetails(game);
+    // Clear any bulk selection state.
+    setSelectedGameIds(new Set());
+    setLastSelectedGameId(null);
+    setIsSelectionMode(false);
+    // Invalidate caches so the sidebar and game lists show the new state.
+    queryClient.invalidateQueries({ queryKey: ['games'] });
+    queryClient.invalidateQueries({ queryKey: ['space_sources'] });
+    queryClient.invalidateQueries({ queryKey: ['spaces'] });
+  }, [queryClient]);
+
+  const isGameRunning = (gameId: string) => runningGames.has(gameId);
 
   const handleGameContextMenu = (e: React.MouseEvent, game: Game) => {
     e.preventDefault();
@@ -422,7 +403,6 @@ function App() {
         { label: `${t('common.selected')}: ${selectedGameIds.size}`, icon: '☑️', onClick: () => {}, disabled: true },
         { separator: true, label: '', onClick: () => {} },
         { label: t('actions.updateMetadata'), icon: '🔍', onClick: handleBatchUpdate, disabled: selectedGameIds.size === 0 },
-        { label: t('actions.refreshFromLocal'), icon: '🔄', onClick: handleBatchRefreshLocal, disabled: selectedGameIds.size === 0 },
         { label: t('actions.addToFavorites'), icon: '⭐', onClick: handleBatchToggleFavorite, disabled: selectedGameIds.size === 0 },
         { label: t('actions.delete'), icon: '🗑️', onClick: handleBatchDelete, disabled: selectedGameIds.size === 0, danger: true },
         { separator: true, label: '', onClick: () => {} },
@@ -434,8 +414,7 @@ function App() {
       { label: t('actions.play'), icon: '▶', onClick: () => handlePlayGame(game), disabled: isGameRunning(game.id) },
       { separator: true, label: '', onClick: () => {} },
       { label: t('actions.editGame'), icon: '✏️', onClick: () => handleEditGame(game) },
-      { label: t('actions.fetchMetadata'), icon: '🔍', onClick: () => handleFetchMetadata(game) },
-      { label: t('actions.refreshFromLocal'), icon: '🔄', onClick: () => handleRefreshMetadata(game) },
+      { label: t('actions.updateMetadata'), icon: '🔍', onClick: () => handleUpdateMetadata(game) },
       { separator: true, label: '', onClick: () => {} },
       { label: t('actions.enterSelectionMode'), icon: '☑️', onClick: () => setIsSelectionMode(true) },
       { separator: true, label: '', onClick: () => {} },
@@ -561,9 +540,8 @@ function App() {
               gameListWidth={gameListWidth}
               onGameListResize={handleGameListResize}
               isSelectionMode={isSelectionMode}
-              onRefreshFromLocal={handleRefreshMetadata}
               onSave={handleGameSaved}
-              updatingGameIds={updatingGameIds}
+              onGameDownloaded={handleGameDownloaded}
             />
           )}
         </div>
@@ -586,6 +564,22 @@ function App() {
            }}
          />
        )}
+
+      {showMetadataUpdateDialog && selectedGameForMetadataUpdate && (
+        <MetadataUpdateDialog
+          game={selectedGameForMetadataUpdate}
+          isOpen={showMetadataUpdateDialog}
+          onClose={() => {
+            setShowMetadataUpdateDialog(false);
+            setSelectedGameForMetadataUpdate(null);
+          }}
+          onSave={() => {
+            handleGameSaved();
+            setShowMetadataUpdateDialog(false);
+            setSelectedGameForMetadataUpdate(null);
+          }}
+        />
+      )}
 
       {showSettings && <SettingsDialog isOpen={showSettings} onClose={() => setShowSettings(false)} />}
 
