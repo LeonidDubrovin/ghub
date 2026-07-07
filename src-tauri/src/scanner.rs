@@ -452,6 +452,15 @@ pub fn pick_best_executable(dir: &Path, executables: &[String]) -> Option<String
     best.map(|(exe, _)| exe)
 }
 
+/// Find the best executable directly inside a single game directory.
+/// Unlike `scan_directory`, this does **not** skip the base directory; it treats
+/// `dir` as the game folder itself.
+pub fn find_executable_in_directory(dir: &Path) -> Option<String> {
+    let config = ScanConfig::from_constants(true);
+    let executables = find_all_executables(dir, &config);
+    pick_best_executable(dir, &executables)
+}
+
 /// Find potential cover/icon images with custom configuration
 fn find_cover_candidates(dir: &Path, config: &ScanConfig) -> Vec<String> {
     let mut candidates = Vec::new();

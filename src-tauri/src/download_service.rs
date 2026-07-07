@@ -1,17 +1,18 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use crate::http_constants::{ACCEPT_LANGUAGE, USER_AGENT};
+use std::time::Duration;
 use regex::Regex;
 use reqwest::Client;
-use scraper::{Html, Selector};
-use log::{debug, info, warn};
+use serde::Serialize;
+use tauri::{AppHandle, Emitter};
+use log::info;
 
-/// Result of resolving an itch.io download URL.
-pub enum ItchDownloadResolution {
-    /// A signed URL that can be downloaded directly.
-    Direct(String),
-    /// Game is browser-only or otherwise not downloadable without a session/login.
-    Browser,
+/// Progress payload emitted while a file is being downloaded.
+#[derive(Serialize, Clone)]
+pub struct DownloadProgress {
+    pub link_id: String,
+    pub downloaded: u64,
+    pub total: u64,
 }
 
 /// Parse a store URL into a source type and a search-friendly title.
@@ -100,89 +101,6 @@ pub fn open_url(url: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Resolve the best direct download URL for an itch.io game page.
-/// Returns `Browser` if the game is HTML/web-only or no direct download form is present.
-pub async fn resolve_itch_download_url(client: &Client, url: &str) -> Result<ItchDownloadResolution, String> {
-    info!("Resolving itch download URL for {}", url);
-
-    let resp = client.get(url)
-        .header("User-Agent", USER_AGENT)
-        .header("Accept-Language", ACCEPT_LANGUAGE)
-        .send().await
-        .map_err(|e| format!("Failed to fetch itch page: {}", e))?;
-
-    if !resp.status().is_success() {
-        return Err(format!("itch page returned status: {}", resp.status()));
-    }
-
-    let html = resp.text().await.map_err(|e| format!("Failed to read itch page: {}", e))?;
-
-    // Extract the form data inside a block so the Html/ElementRef values are dropped
-    // before the await below, keeping the returned future Send.
-    let form_data = {
-        let document = Html::parse_document(&html);
-
-        // If this is an HTML/web game, there is an iframe placeholder with a playable URL.
-        let iframe_selector = Selector::parse("[data-iframe-url]").map_err(|e| e.to_string())?;
-        if document.select(&iframe_selector).next().is_some() {
-            debug!("itch page is a web/HTML game; deferring to browser");
-            return Ok(ItchDownloadResolution::Browser);
-        }
-
-        // Find the download form used by downloadable itch games.
-        let form_selector = Selector::parse("form[action=\"/download_url\"]").map_err(|e| e.to_string())?;
-        let form = match document.select(&form_selector).next() {
-            Some(f) => f,
-            None => {
-                debug!("No /download_url form found on itch page; treating as browser-only");
-                return Ok(ItchDownloadResolution::Browser);
-            }
-        };
-
-        let mut data = std::collections::HashMap::new();
-        let input_selector = Selector::parse("input[type=\"hidden\"]").map_err(|e| e.to_string())?;
-        for input in form.select(&input_selector) {
-            let name = input.value().attr("name").unwrap_or("");
-            let value = input.value().attr("value").unwrap_or("");
-            if !name.is_empty() {
-                data.insert(name.to_string(), value.to_string());
-            }
-        }
-
-        if data.get("csrf_token").is_none() || data.get("game_id").is_none() {
-            warn!("itch download form is missing required fields; treating as browser-only");
-            return Ok(ItchDownloadResolution::Browser);
-        }
-
-        data
-    };
-
-    // Submit the form to obtain the signed download URL.
-    let post_url = "https://itch.io/download_url";
-    let post_resp = client.post(post_url)
-        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-        .header("Referer", url)
-        .form(&form_data)
-        .send().await
-        .map_err(|e| format!("Failed to request download_url: {}", e))?;
-
-    if !post_resp.status().is_success() {
-        return Err(format!("download_url returned status: {}", post_resp.status()));
-    }
-
-    let json = post_resp.json::<serde_json::Value>().await
-        .map_err(|e| format!("Failed to parse download_url response: {}", e))?;
-
-    if let Some(direct_url) = json.get("url").and_then(|v| v.as_str()) {
-        info!("Resolved itch direct download URL");
-        return Ok(ItchDownloadResolution::Direct(direct_url.to_string()));
-    }
-
-    // If the response has an error such as requiring purchase/login, fallback to browser.
-    debug!("download_url response did not contain a URL: {:?}", json);
-    Ok(ItchDownloadResolution::Browser)
-}
-
 /// Result of a successful download + extraction.
 pub struct DownloadedInstall {
     pub install_path: String,
@@ -192,22 +110,46 @@ pub struct DownloadedInstall {
 /// Download an itch game and extract it into a subfolder of the given source.
 /// The returned install path is the folder that contains the game executable.
 pub async fn download_itch_game(
+    app: &AppHandle,
     client: &Client,
+    link_id: &str,
     direct_url: &str,
+    api_key: Option<&str>,
     source_path: &Path,
     title: &str,
+    variant_name: Option<&str>,
+    archive_filename: Option<&str>,
+    upload_platforms: Option<Vec<String>>,
 ) -> Result<DownloadedInstall, String> {
     let base_name = sanitize_folder_name(title);
-    let mut target_dir = source_path.join(&base_name);
+    let clean_variant = clean_variant_name(title, variant_name.unwrap_or(""), upload_platforms.as_deref());
+    let folder_name = match clean_variant {
+        Some(ref v) if !v.trim().is_empty() => {
+            let variant = sanitize_folder_name(v);
+            format!("{} - {}", base_name, variant)
+        }
+        _ => base_name.clone(),
+    };
+    info!(
+        "Download folder: title='{}' raw_variant='{:?}' clean_variant='{:?}' platforms='{:?}' final_folder='{}'",
+        title, variant_name, clean_variant, upload_platforms, folder_name
+    );
+    let mut target_dir = source_path.join(&folder_name);
     ensure_unique_dir(&mut target_dir);
 
     // Download to a temporary archive file next to the target folder.
-    let archive_path = source_path.join(format!("{}.download", base_name));
+    let archive_path = match archive_filename {
+        Some(name) if !name.trim().is_empty() => {
+            let name = sanitize_file_name(name);
+            source_path.join(name)
+        }
+        _ => source_path.join(format!("{}.download", base_name)),
+    };
     let mut unique_archive = archive_path.clone();
     ensure_unique_path(&mut unique_archive);
 
     info!("Downloading itch game to {:?}", unique_archive);
-    download_file(client, direct_url, &unique_archive).await?;
+    download_file(app, link_id, client, direct_url, api_key, &unique_archive).await?;
 
     // The heavy extraction/filesystem work runs in a blocking thread pool
     // so the async runtime stays responsive.
@@ -261,10 +203,12 @@ fn process_downloaded_archive(
     let _ = std::fs::remove_dir_all(&unique_extract);
 
     // Scan the target directory for the best executable.
-    let scanned = crate::commands::scan_directory_internal(target_dir)
-        .map_err(|e| format!("Failed to scan installed directory: {}", e))?;
-
-    let executable_path = scanned.into_iter().next().and_then(|g| g.executable);
+    let executable_path = crate::scanner::find_executable_in_directory(target_dir);
+    info!(
+        "Scanned install directory '{}' for executable: {:?}",
+        target_dir.display(),
+        executable_path
+    );
 
     Ok(DownloadedInstall {
         install_path: target_dir.to_string_lossy().to_string(),
@@ -272,33 +216,105 @@ fn process_downloaded_archive(
     })
 }
 
-/// Download a file from a URL to a local path with streaming.
-async fn download_file(client: &Client, url: &str, path: &Path) -> Result<(), String> {
-    let resp = client.get(url)
+/// Download a file from a URL to a local path with streaming, emitting progress events.
+async fn download_file(
+    app: &AppHandle,
+    link_id: &str,
+    client: &Client,
+    url: &str,
+    api_key: Option<&str>,
+    path: &Path,
+) -> Result<(), String> {
+    info!("Downloading file from {} to {:?}", url, path);
+    let mut req = client
+        .get(url)
         .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-        .send().await
+        .timeout(Duration::from_secs(600));
+    // If the URL is the itch API download endpoint, include the API key so the server accepts the request.
+    if let Some(key) = api_key {
+        if url.contains(crate::itch_api::ITCH_API_BASE) || url.contains("/uploads/") {
+            req = req.header("Authorization", format!("Bearer {}", key));
+        }
+    }
+    let resp = req.send().await
         .map_err(|e| format!("Download request failed: {}", e))?;
 
     if !resp.status().is_success() {
         return Err(format!("Download returned status: {}", resp.status()));
     }
 
+    let total = resp.content_length();
     let mut file = tokio::fs::File::create(path).await
         .map_err(|e| format!("Failed to create download file: {}", e))?;
 
     let mut stream = resp.bytes_stream();
+    let mut downloaded: u64 = 0;
+    let mut last_emitted: u64 = 0;
+    const EMIT_INTERVAL: u64 = 100_000; // ~100 KiB
+
+    let emit = |downloaded: u64, total: Option<u64>| {
+        let payload = DownloadProgress {
+            link_id: link_id.to_string(),
+            downloaded,
+            total: total.unwrap_or(0),
+        };
+        let _ = app.emit("download-progress", payload);
+    };
+
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| format!("Download stream error: {}", e))?;
+        let n = chunk.len() as u64;
         tokio::io::AsyncWriteExt::write_all(&mut file, &chunk).await
             .map_err(|e| format!("Failed to write download chunk: {}", e))?;
+        downloaded += n;
+
+        let should_emit = if let Some(t) = total {
+            downloaded >= t || downloaded - last_emitted >= EMIT_INTERVAL
+        } else {
+            downloaded - last_emitted >= EMIT_INTERVAL
+        };
+
+        if should_emit {
+            emit(downloaded, total);
+            last_emitted = downloaded;
+        }
     }
+
+    // Final progress update so the UI reaches 100%.
+    emit(total.unwrap_or(downloaded), total);
 
     Ok(())
 }
 
+/// Detect archive format from the file's magic bytes.
+fn detect_archive_format(path: &Path) -> Option<&'static str> {
+    let mut file = std::fs::File::open(path).ok()?;
+    let mut buf = [0u8; 512];
+    let n = std::io::Read::read(&mut file, &mut buf).ok()?;
+    if n < 4 {
+        return None;
+    }
+    if &buf[0..4] == b"PK\x03\x04" || &buf[0..4] == b"PK\x05\x06" || &buf[0..4] == b"PK\x07\x08" {
+        return Some("zip");
+    }
+    if &buf[0..2] == b"\x1f\x8b" {
+        return Some("gz");
+    }
+    // tar magic: "ustar" at offset 257
+    if n >= 262 && &buf[257..262] == b"ustar" {
+        return Some("tar");
+    }
+    None
+}
+
 /// Extract a zip or tar.gz archive into the given directory.
 fn extract_archive(archive_path: &Path, target_dir: &Path) -> Result<(), String> {
-    let extension = archive_path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    let mut extension = archive_path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    if extension.is_empty() || !matches!(extension.as_str(), "zip" | "tar" | "gz" | "tgz") {
+        if let Some(magic) = detect_archive_format(archive_path) {
+            extension = magic.to_string();
+        }
+    }
     let file = std::fs::File::open(archive_path)
         .map_err(|e| format!("Failed to open archive: {}", e))?;
 
@@ -353,6 +369,93 @@ fn sanitize_folder_name(name: &str) -> String {
     s.trim_matches(|c: char| c == ' ' || c == '_' || c == '.').to_string()
 }
 
+fn sanitize_file_name(name: &str) -> String {
+    let mut s = name.trim().replace(|c: char| c.is_ascii_control() || r#"\/:*?"<>|"#.contains(c), "_");
+    if s.is_empty() {
+        s = "download".to_string();
+    }
+    s.trim_matches(|c: char| c == ' ' || c == '.').to_string()
+}
+
+fn remove_archive_extension(name: &str) -> &str {
+    let lower = name.to_lowercase();
+    for ext in [".tar.gz", ".zip", ".tar", ".gz", ".tgz", ".rar", ".7z"] {
+        if lower.ends_with(ext) {
+            return &name[..name.len() - ext.len()];
+        }
+    }
+    name
+}
+
+fn strip_title_prefix(title: &str, raw: &str) -> String {
+    let normalized_title = title.to_lowercase().replace([' ', '-', '_'], "");
+    let normalized_raw = raw.to_lowercase().replace([' ', '-', '_'], "");
+    if normalized_title.is_empty() || !normalized_raw.starts_with(&normalized_title) {
+        return raw.to_string();
+    }
+
+    let mut raw_chars = raw.char_indices().peekable();
+    let mut title_chars = normalized_title.chars().peekable();
+
+    while let Some(tc) = title_chars.peek() {
+        if let Some((_, c)) = raw_chars.peek() {
+            if c.to_lowercase().next() == Some(*tc) {
+                raw_chars.next();
+                title_chars.next();
+                continue;
+            }
+        }
+        break;
+    }
+
+    while let Some((_, c)) = raw_chars.peek() {
+        if [' ', '-', '_', '.'].contains(c) {
+            raw_chars.next();
+        } else {
+            break;
+        }
+    }
+
+    let start = raw_chars.peek().map(|(i, _)| *i).unwrap_or(raw.len());
+    raw[start..].to_string()
+}
+
+fn platform_label(platform: &str) -> String {
+    match platform.to_lowercase().as_str() {
+        "windows" => "Windows".to_string(),
+        "linux" => "Linux".to_string(),
+        "osx" | "mac" => "macOS".to_string(),
+        "android" => "Android".to_string(),
+        other => other.to_string(),
+    }
+}
+
+fn clean_variant_name(title: &str, raw: &str, platforms: Option<&[String]>) -> Option<String> {
+    let title = title.trim();
+    let mut name = remove_archive_extension(raw).to_string();
+
+    if !title.is_empty() {
+        name = strip_title_prefix(title, &name);
+    }
+
+    name = name
+        .trim_matches(|c: char| c == ' ' || c == '-' || c == '_' || c == '.')
+        .to_string();
+
+    if !name.is_empty() {
+        return Some(name);
+    }
+
+    if let Some(platforms) = platforms {
+        let labels: Vec<String> = platforms.iter().map(|p| platform_label(p)).collect();
+        if !labels.is_empty() {
+            return Some(labels.join(" "));
+        }
+    }
+
+    None
+}
+
 fn ensure_unique_dir(path: &mut PathBuf) {
     if !path.exists() {
         return;
@@ -394,3 +497,36 @@ fn ensure_unique_path(path: &mut PathBuf) {
 // Required because reqwest::Response::bytes_stream returns a stream that is not Send?
 // Actually we only need StreamExt; keep the trait in scope.
 use futures_util::StreamExt;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_clean_variant_name() {
+        assert_eq!(
+            clean_variant_name("TinyTowns", "TinyTowns_Windows.zip", None),
+            Some("Windows".to_string())
+        );
+        assert_eq!(
+            clean_variant_name("TinyTowns", "Windows.zip", None),
+            Some("Windows".to_string())
+        );
+        assert_eq!(
+            clean_variant_name("TinyTowns", "TinyTowns.zip", None),
+            None
+        );
+        assert_eq!(
+            clean_variant_name("TinyTowns", "TinyTowns.zip", Some(&["windows".to_string()])),
+            Some("Windows".to_string())
+        );
+        assert_eq!(
+            clean_variant_name("TinyTowns", "TinyTowns.zip", Some(&["windows".to_string(), "linux".to_string()])),
+            Some("Windows Linux".to_string())
+        );
+        assert_eq!(
+            clean_variant_name("TinyTowns", "Linux", None),
+            Some("Linux".to_string())
+        );
+    }
+}
