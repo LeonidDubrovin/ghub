@@ -53,6 +53,7 @@ pub async fn search_game_metadata(
                                 tags: None,
                                 genres: None,
                                 external_links: None,
+                                screenshots: None,
                             }
                         }));
                     }
@@ -222,6 +223,12 @@ pub(crate) fn apply_metadata_internal(
     }
     if let Some(links) = &meta.external_links {
         db.add_game_external_links(game_id, links, Some(source_for_classification))
+            .map_err(|e| e.to_string())?;
+    }
+
+    // Replace screenshots with the ones from the selected metadata source
+    if let Some(screenshots) = &meta.screenshots {
+        db.replace_game_screenshots(game_id, source_for_classification, screenshots)
             .map_err(|e| e.to_string())?;
     }
 

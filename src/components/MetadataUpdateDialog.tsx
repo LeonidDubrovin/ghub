@@ -527,6 +527,23 @@ export default function MetadataUpdateDialog({
         </div>
       </div>
 
+      {result.screenshots && result.screenshots.length > 0 && (
+        <div>
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('details.screenshots')}</div>
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {result.screenshots.map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt=""
+                className="h-24 rounded-lg object-cover bg-black/20 flex-shrink-0"
+                onError={e => { e.currentTarget.style.display = 'none'; }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('metadataSelect.fields')}</div>
         <FieldToggle label={t('metadataSelect.title')} value={result.name} checked={fields.title} onChange={() => onToggle('title')} />
@@ -839,6 +856,14 @@ export default function MetadataUpdateDialog({
                     {result.source}
                   </span>
                   {result.developer && <span className="text-xs text-gray-500 truncate">{result.developer}</span>}
+                  {result.screenshots && result.screenshots.length > 0 && (
+                    <img
+                      src={result.screenshots[0]}
+                      alt=""
+                      className="w-8 h-6 rounded object-cover bg-black/20 flex-shrink-0"
+                      onError={e => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  )}
                 </div>
               </div>
             </div>

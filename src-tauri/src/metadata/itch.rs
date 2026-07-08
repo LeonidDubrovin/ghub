@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use scraper::{Html, Selector};
 use serde_json;
 
+
 pub struct ItchStrategy {
     enabled: bool,
 }
@@ -17,6 +18,39 @@ impl ItchStrategy {
     
     pub fn with_enabled(enabled: bool) -> Self {
         Self { enabled }
+    }
+
+    fn extract_screenshots(&self, document: &Html) -> Vec<String> {
+        let selectors = [
+            ".screenshot_list a",
+            ".screenshot_list img",
+            ".game_media a",
+            ".game_media img",
+            ".gallery_item a",
+            ".gallery_item img",
+        ];
+        let mut urls = Vec::new();
+        for selector_str in &selectors {
+            if let Ok(selector) = Selector::parse(selector_str) {
+                for el in document.select(&selector) {
+                    let url = el.value().attr("href")
+                        .or_else(|| el.value().attr("src"))
+                        .map(|s| s.to_string());
+                    if let Some(u) = url {
+                        if u.starts_with("http") && !urls.contains(&u) {
+                            urls.push(u);
+                            if urls.len() >= 3 {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if urls.len() >= 3 {
+                break;
+            }
+        }
+        urls
     }
 }
 
@@ -72,12 +106,26 @@ impl MetadataStrategy for ItchStrategy {
                                     tags: None,
                                     genres: None,
                                     external_links: None,
+                                    screenshots: None,
                                 });
                             }
                             if results.len() >= 5 { break; }
                         }
                         if !results.is_empty() {
-                            return Ok(results);
+                            let mut enriched = Vec::new();
+                            for mut res in results {
+                                if let Some(ref game_url) = res.url {
+                                    if let Ok(Some(details)) = self.get_details(client, game_url).await {
+                                        res.screenshots = details.screenshots.or(res.screenshots);
+                                        res.description = details.description.or(res.description);
+                                        res.tags = details.tags.or(res.tags);
+                                        res.genres = details.genres.or(res.genres);
+                                        res.external_links = details.external_links.or(res.external_links);
+                                    }
+                                }
+                                enriched.push(res);
+                            }
+                            return Ok(enriched);
                         }
                     }
                 }
@@ -242,6 +290,8 @@ impl MetadataStrategy for ItchStrategy {
             }
         }
         
+        let screenshots = self.extract_screenshots(&document);
+
         Ok(Some(MetadataSearchResult {
             id: url.to_string(),
             name: title,
@@ -256,6 +306,8 @@ impl MetadataStrategy for ItchStrategy {
             tags: if tags.is_empty() { None } else { Some(tags) },
             genres: if genres.is_empty() { None } else { Some(genres) },
             external_links: if external_links.is_empty() { None } else { Some(external_links) },
+            screenshots: if screenshots.is_empty() { None } else { Some(screenshots) },
         }))
     }
+
 }

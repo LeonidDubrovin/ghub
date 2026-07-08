@@ -713,6 +713,15 @@ export default function MetadataSearchDialog({
                       {result.developer && (
                         <span className="text-xs text-gray-500 truncate">{result.developer}</span>
                       )}
+                      {result.screenshots && result.screenshots.length > 0 && (
+                        <img
+                          src={result.screenshots[0]}
+                          alt=""
+                          className="w-8 h-6 rounded object-cover bg-black/20 flex-shrink-0"
+                          onError={e => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      )}
+
                     </div>
                   </div>
                 </div>
@@ -765,6 +774,26 @@ export default function MetadataSearchDialog({
                       </p>
                     </div>
                   </div>
+
+                  {/* Screenshots preview */}
+                  {selectedResult.screenshots && selectedResult.screenshots.length > 0 && (
+                    <div>
+                      <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                        {t('details.screenshots')}
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {selectedResult.screenshots.map((url, idx) => (
+                          <img
+                            key={idx}
+                            src={url}
+                            alt=""
+                            className="h-24 rounded-lg object-cover bg-black/20 flex-shrink-0"
+                            onError={e => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Fields to update */}
                   <div className="space-y-2">

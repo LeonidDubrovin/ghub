@@ -355,7 +355,8 @@
     "deleteInstallFiles": "Удалить файлы с диска",
     "deleteInstallConfirm": "Удалить",
     "deleteInstallCancel": "Отмена",
-    "copyLink": "Копировать ссылку"
+    "copyLink": "Копировать ссылку",
+    "screenshots": "Скриншоты"
   },
   "sort": {
     "title": "Название",

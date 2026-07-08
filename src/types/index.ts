@@ -60,6 +60,7 @@ export interface Game {
   genres?: string[];
   tags?: string[];
   external_links?: ExternalLink[];
+  screenshots?: string[];
   // Optional fields for UI display (populated when joining with installs/spaces)
   space_id?: string;
   space_name?: string;
@@ -151,6 +152,7 @@ export interface MetadataSearchResult {
   tags: string[] | null;
   genres: string[] | null;
   external_links: ExternalLink[] | null;
+  screenshots: string[] | null;
 }
 
 export interface AddSpaceSourceRequest {

@@ -80,6 +80,7 @@ mod tests {
             tags: Some(vec!["Action".to_string(), "Adventure".to_string()]),
             genres: Some(vec!["RPG".to_string()]),
             external_links: None,
+            screenshots: None,
         };
         
         assert_eq!(result.id, "123");

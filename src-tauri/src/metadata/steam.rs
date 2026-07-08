@@ -4,6 +4,7 @@ use crate::metadata::strategy::MetadataStrategy;
 use reqwest::Client;
 use async_trait::async_trait;
 use scraper::{Html, Selector};
+use log::debug;
 
 pub struct SteamStrategy {
     enabled: bool,
@@ -16,6 +17,42 @@ impl SteamStrategy {
     
     pub fn with_enabled(enabled: bool) -> Self {
         Self { enabled }
+    }
+
+    async fn get_screenshots(&self, client: &Client, app_id: &str) -> Vec<String> {
+        let url = format!("https://store.steampowered.com/api/appdetails?appids={}", app_id);
+        let resp = match client.get(&url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept-Language", ACCEPT_LANGUAGE)
+            .header("Cookie", STEAM_AGE_GATE_COOKIE)
+            .send().await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                debug!("Steam screenshots API request failed: {}", e);
+                return Vec::new();
+            }
+        };
+
+        let json = match resp.json::<serde_json::Value>().await {
+            Ok(j) => j,
+            Err(e) => {
+                debug!("Steam screenshots API response parse failed: {}", e);
+                return Vec::new();
+            }
+        };
+
+        json.get(app_id)
+            .and_then(|v| v.get("data"))
+            .and_then(|v| v.get("screenshots"))
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .take(3)
+                    .filter_map(|s| s.get("path_full").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 }
 
@@ -92,6 +129,7 @@ impl MetadataStrategy for SteamStrategy {
                     tags: None,
                     genres: None,
                     external_links: None,
+                    screenshots: None,
                 });
                 
                 if results.len() >= 5 { break; }
@@ -127,6 +165,7 @@ impl MetadataStrategy for SteamStrategy {
             .send().await.map_err(|e| e.to_string())?;
             
         let html = resp.text().await.map_err(|e| e.to_string())?;
+        let screenshots = self.get_screenshots(client, app_id).await;
         let document = Html::parse_document(&html);
         
         let title_selector = Selector::parse("title").unwrap();
@@ -185,6 +224,8 @@ impl MetadataStrategy for SteamStrategy {
             tags: if tags.is_empty() { None } else { Some(tags) },
             genres: if genres.is_empty() { None } else { Some(genres) },
             external_links: None,
+            screenshots: if screenshots.is_empty() { None } else { Some(screenshots) },
         }))
     }
+
 }

@@ -66,6 +66,8 @@ pub struct Game {
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub external_links: Option<Vec<ExternalLink>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub screenshots: Option<Vec<String>>,
     // Optional fields for UI display (populated when joining with installs/spaces)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub space_id: Option<String>,
@@ -190,4 +192,6 @@ pub struct MetadataSearchResult {
     pub tags: Option<Vec<String>>,
     pub genres: Option<Vec<String>>,
     pub external_links: Option<Vec<ExternalLink>>,
+    pub screenshots: Option<Vec<String>>,
 }
+

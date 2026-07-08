@@ -162,7 +162,27 @@ export default function GameDetailsView({
     fetchInstalls();
   }, [selectedGame]);
 
+  // Fetch full game details (including screenshots) when the selected game changes
+  const [fullGame, setFullGame] = useState<Game | null>(null);
+  useEffect(() => {
+    if (!selectedGame) {
+      setFullGame(null);
+      return;
+    }
+    let cancelled = false;
+    invoke<Game>('get_game_by_id', { gameId: selectedGame.id })
+      .then(game => {
+        if (!cancelled) setFullGame(game);
+      })
+      .catch(err => {
+        console.error('Failed to fetch game details:', err);
+        if (!cancelled) setFullGame(null);
+      });
+    return () => { cancelled = true; };
+  }, [selectedGame?.id]);
+
   const bg = selectedGame?.cover_image ? coverUrl(selectedGame.cover_image) : null;
+  const screenshots = fullGame?.screenshots ?? selectedGame?.screenshots;
   const run = selectedGame ? isGameRunning?.(selectedGame.id) ?? false : false;
 
   const activeLink = useMemo(() => {
@@ -649,6 +669,22 @@ export default function GameDetailsView({
                      )}
                  </div>
                </div>
+               {screenshots && screenshots.length > 0 && (
+                 <div className="mb-8">
+                   <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">{t('details.screenshots')}</h2>
+                   <div className="flex gap-3 overflow-x-auto pb-2">
+                     {screenshots.map((url, idx) => (
+                       <img
+                         key={idx}
+                         src={coverUrl(url) || ''}
+                         alt=""
+                         className="h-36 rounded-lg object-cover bg-surface-300 flex-shrink-0"
+                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                       />
+                     ))}
+                   </div>
+                 </div>
+               )}
                <div className="flex gap-4 mb-8">
                 <div className="bg-black/30 rounded-lg px-4 py-3">
                   <div className="text-gray-500 text-xs mb-1">{t('details.playtime')}</div>

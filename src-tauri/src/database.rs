@@ -194,6 +194,17 @@ impl Database {
             );
             CREATE INDEX IF NOT EXISTS idx_game_external_links_game ON game_external_links(game_id);
             
+            -- Game screenshots (from metadata sources like Steam/itch)
+            CREATE TABLE IF NOT EXISTS game_screenshots (
+                id              TEXT PRIMARY KEY,
+                game_id         TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                url             TEXT NOT NULL,
+                source          TEXT,
+                sort_order      INTEGER DEFAULT 0,
+                created_at      TEXT DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_game_screenshots_game ON game_screenshots(game_id);
+            
             -- Indexes
             CREATE INDEX IF NOT EXISTS idx_games_title ON games(title COLLATE NOCASE);
             CREATE INDEX IF NOT EXISTS idx_games_last_played ON games(last_played_at DESC);
@@ -742,6 +753,7 @@ impl Database {
             genres: None,
             tags: None,
             external_links: None,
+            screenshots: None,
             space_id: None,
             space_name: None,
             space_type: None,
@@ -890,6 +902,8 @@ impl Database {
         game.genres = Some(self.get_game_genres(id)?);
         game.tags = Some(self.get_game_tags(id)?);
         game.external_links = Some(self.get_game_external_links(id)?);
+        let screenshots = self.get_game_screenshots(id)?;
+        game.screenshots = Some(screenshots).filter(|s| !s.is_empty());
         Ok(game)
     }
 
@@ -1172,6 +1186,44 @@ impl Database {
             })
         })?;
         rows.collect::<Result<Vec<_>>>()
+    }
+
+    pub fn get_game_screenshots(&self, game_id: &str) -> Result<Vec<String>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT url FROM game_screenshots
+             WHERE game_id = ?
+             ORDER BY sort_order"
+        )?;
+        let rows = stmt.query_map([game_id], |row| row.get::<_, String>(0))?;
+        rows.collect::<Result<Vec<_>>>()
+    }
+
+    pub fn replace_game_screenshots(
+        &self,
+        game_id: &str,
+        source: &str,
+        urls: &[String],
+    ) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM game_screenshots WHERE game_id = ?",
+            params![game_id],
+        )?;
+        for (order, url) in urls.iter().enumerate() {
+            let id = uuid::Uuid::new_v4().to_string();
+            self.conn.execute(
+                "INSERT INTO game_screenshots (id, game_id, url, source, sort_order) VALUES (?, ?, ?, ?, ?)",
+                params![id, game_id, url, source, order as i32],
+            )?;
+        }
+        Ok(())
+    }
+
+    pub fn delete_game_screenshots(&self, game_id: &str) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM game_screenshots WHERE game_id = ?",
+            params![game_id],
+        )?;
+        Ok(())
     }
 
     pub fn get_all_genres(&self) -> Result<Vec<(String, i64)>> {

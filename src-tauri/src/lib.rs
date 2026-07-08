@@ -103,6 +103,7 @@ pub fn run() {
             commands::get_all_games,
             commands::get_games_by_space,
             commands::get_games_by_source,
+            commands::get_game_by_id,
             commands::create_game,
             commands::create_game_from_link,
             commands::get_download_games,
