@@ -607,7 +607,7 @@ impl Database {
             // Find all installs for this source
             let mut stmt = tx.prepare(
                 "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments,
-                        working_directory, status, version, install_size_bytes, installed_at, fingerprint
+                        working_directory, status, version, install_size_bytes, installed_at, fingerprint, upload_id
                  FROM installs
                  WHERE space_id = ? AND install_path >= ? AND install_path < ?"
             )?;
@@ -1303,7 +1303,7 @@ impl Database {
     pub fn get_install_by_id(&self, install_id: &str) -> Result<Option<Install>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments,
-                    working_directory, status, version, install_size_bytes, installed_at, fingerprint
+                    working_directory, status, version, install_size_bytes, installed_at, fingerprint, upload_id
              FROM installs WHERE id = ?"
         )?;
 
@@ -1854,7 +1854,7 @@ impl Database {
     ) -> Result<Option<Install>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments,
-                    working_directory, status, version, install_size_bytes, installed_at, fingerprint
+                    working_directory, status, version, install_size_bytes, installed_at, fingerprint, upload_id
              FROM installs
              WHERE space_id = ? AND install_path = ?"
         )?;
@@ -1951,7 +1951,7 @@ impl Database {
         
         let mut stmt = self.conn.prepare(
             "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments,
-                    working_directory, status, version, install_size_bytes, installed_at, fingerprint
+                    working_directory, status, version, install_size_bytes, installed_at, fingerprint, upload_id
              FROM installs
              WHERE space_id = ? AND install_path >= ? AND install_path < ?"
         )?;
