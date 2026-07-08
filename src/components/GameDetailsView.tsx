@@ -842,6 +842,7 @@ export default function GameDetailsView({
           uploads={uploads}
           isLoading={isFetchingUploads}
           linkUrl={itchLink?.url}
+          installedUploadIds={installs.map(i => i.upload_id).filter((id): id is number => id !== undefined && id !== null)}
           onClose={() => {
             setShowUploadDialog(false);
             setIsFetchingUploads(false);

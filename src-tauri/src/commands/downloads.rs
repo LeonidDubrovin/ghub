@@ -196,6 +196,7 @@ pub async fn download_game_link(
         &downloaded.install_path,
         downloaded.executable_path.as_deref(),
         Some(&upload_name),
+        Some(upload_id),
     )
     .map_err(|e| e.to_string())?;
 

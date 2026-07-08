@@ -67,6 +67,7 @@ pub async fn create_game(state: State<'_, AppState>, request: CreateGameRequest)
             &request.install_path,
             request.executable_path.as_deref(),
             None,
+            None,
         ).map_err(|e| e.to_string())?;
 
         game

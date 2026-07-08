@@ -224,7 +224,8 @@
       "noUploadsDescription": "This game may be paid, require claiming on itch.io, or be browser-only.",
       "openPage": "Open on itch.io",
       "loading": "Loading upload list...",
-      "addedAt": "Added: {{date}}"
+      "addedAt": "Added: {{date}}",
+      "alreadyDownloaded": "Already downloaded"
     }
   },
   "batch": {

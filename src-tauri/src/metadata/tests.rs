@@ -79,6 +79,7 @@ mod tests {
             url: Some("https://store.steampowered.com/app/123".to_string()),
             tags: Some(vec!["Action".to_string(), "Adventure".to_string()]),
             genres: Some(vec!["RPG".to_string()]),
+            external_links: None,
         };
         
         assert_eq!(result.id, "123");

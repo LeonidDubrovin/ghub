@@ -123,19 +123,20 @@ pub async fn download_itch_game(
 ) -> Result<DownloadedInstall, String> {
     let base_name = sanitize_folder_name(title);
     let clean_variant = clean_variant_name(title, variant_name.unwrap_or(""), upload_platforms.as_deref());
-    let folder_name = match clean_variant {
+    let base_dir = source_path.join(&base_name);
+    let target_dir = match clean_variant {
         Some(ref v) if !v.trim().is_empty() => {
             let variant = sanitize_folder_name(v);
-            format!("{} - {}", base_name, variant)
+            base_dir.join(variant)
         }
-        _ => base_name.clone(),
+        _ => base_dir.join("default"),
     };
-    info!(
-        "Download folder: title='{}' raw_variant='{:?}' clean_variant='{:?}' platforms='{:?}' final_folder='{}'",
-        title, variant_name, clean_variant, upload_platforms, folder_name
-    );
-    let mut target_dir = source_path.join(&folder_name);
+    let mut target_dir = target_dir;
     ensure_unique_dir(&mut target_dir);
+    info!(
+        "Download folder: title='{}' raw_variant='{:?}' clean_variant='{:?}' platforms='{:?}' base_dir='{}' final_folder='{}'",
+        title, variant_name, clean_variant, upload_platforms, base_dir.display(), target_dir.display()
+    );
 
     // Download to a temporary archive file next to the target folder.
     let archive_path = match archive_filename {
@@ -196,6 +197,12 @@ fn process_downloaded_archive(
 
     // Determine the actual game directory within the extracted contents.
     let game_dir = find_game_directory(&unique_extract)?;
+
+    // Ensure the shared game folder exists before moving the variant into it.
+    if let Some(parent) = target_dir.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create parent directory for target: {}", e))?;
+    }
 
     // Move the game directory to the final target.
     std::fs::rename(&game_dir, target_dir)

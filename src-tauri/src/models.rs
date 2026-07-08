@@ -97,6 +97,7 @@ pub struct Install {
     pub install_size_bytes: Option<i64>,
     pub installed_at: String,
     pub fingerprint: Option<String>,
+    pub upload_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

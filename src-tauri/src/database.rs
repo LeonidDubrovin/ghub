@@ -99,7 +99,8 @@ impl Database {
                 status          TEXT DEFAULT 'installed',
                 version         TEXT,
                 install_size_bytes INTEGER,
-                installed_at    TEXT DEFAULT (datetime('now'))
+                installed_at    TEXT DEFAULT (datetime('now')),
+                upload_id       INTEGER
             );
             
             -- Settings table
@@ -220,6 +221,7 @@ impl Database {
         self.add_column_if_missing("space_sources", "scan_completed_at TEXT")?;
         self.add_column_if_missing("installs", "status TEXT DEFAULT 'installed'")?;
         self.add_column_if_missing("installs", "fingerprint TEXT")?;
+        self.add_column_if_missing("installs", "upload_id INTEGER")?;
         self.add_column_if_missing("game_links", "download_status TEXT")?;
         self.add_column_if_missing("game_links", "queue_space TEXT")?;
         self.add_column_if_missing("game_links", "canonical_url TEXT")?;
@@ -430,9 +432,10 @@ impl Database {
                 version         TEXT,
                 install_size_bytes INTEGER,
                 installed_at    TEXT DEFAULT (datetime('now')),
-                fingerprint     TEXT
+                fingerprint     TEXT,
+                upload_id       INTEGER
             );
-            INSERT INTO installs_new SELECT id, game_id, space_id, install_path, executable_path, launch_arguments, working_directory, status, version, install_size_bytes, installed_at, fingerprint FROM installs;
+            INSERT INTO installs_new SELECT id, game_id, space_id, install_path, executable_path, launch_arguments, working_directory, status, version, install_size_bytes, installed_at, fingerprint, upload_id FROM installs;
             DROP TABLE installs;
             ALTER TABLE installs_new RENAME TO installs;
             CREATE INDEX IF NOT EXISTS idx_installs_game ON installs(game_id);
@@ -622,6 +625,7 @@ impl Database {
                     install_size_bytes: row.get(9)?,
                     installed_at: row.get(10)?,
                     fingerprint: row.get(11)?,
+                    upload_id: row.get(12)?,
                 })
             })?.collect::<Result<Vec<_>>>()?;
             
@@ -1254,10 +1258,11 @@ impl Database {
         install_path: &str,
         executable_path: Option<&str>,
         version: Option<&str>,
+        upload_id: Option<i64>,
     ) -> Result<()> {
         self.conn.execute(
-            "INSERT INTO installs (id, game_id, space_id, install_path, executable_path, version) VALUES (?, ?, ?, ?, ?, ?)",
-            params![id, game_id, space_id, install_path, executable_path, version]
+            "INSERT INTO installs (id, game_id, space_id, install_path, executable_path, version, upload_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            params![id, game_id, space_id, install_path, executable_path, version, upload_id]
         )?;
         Ok(())
     }
@@ -1265,7 +1270,7 @@ impl Database {
     pub fn get_install(&self, game_id: &str, space_id: &str) -> Result<Option<Install>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments, 
-                    working_directory, status, version, install_size_bytes, installed_at, fingerprint
+                    working_directory, status, version, install_size_bytes, installed_at, fingerprint, upload_id
              FROM installs
              WHERE game_id = ? AND space_id = ?"
         )?;
@@ -1284,6 +1289,7 @@ impl Database {
                 install_size_bytes: row.get(9)?,
                 installed_at: row.get(10)?,
                 fingerprint: row.get(11)?,
+                upload_id: row.get(12)?,
             })
         });
 
@@ -1315,6 +1321,7 @@ impl Database {
                 install_size_bytes: row.get(9)?,
                 installed_at: row.get(10)?,
                 fingerprint: row.get(11)?,
+                upload_id: row.get(12)?,
             })
         });
 
@@ -1328,7 +1335,7 @@ impl Database {
     pub fn get_installs_for_game(&self, game_id: &str) -> Result<Vec<Install>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, game_id, space_id, install_path, executable_path, launch_arguments, 
-                    working_directory, status, version, install_size_bytes, installed_at, fingerprint
+                    working_directory, status, version, install_size_bytes, installed_at, fingerprint, upload_id
              FROM installs WHERE game_id = ?"
         )?;
 
@@ -1347,6 +1354,7 @@ impl Database {
                     install_size_bytes: row.get(9)?,
                     installed_at: row.get(10)?,
                     fingerprint: row.get(11)?,
+                    upload_id: row.get(12)?,
                 })
             })?
             .collect::<Result<Vec<_>>>()?;
@@ -1865,6 +1873,7 @@ impl Database {
                 install_size_bytes: row.get(9)?,
                 installed_at: row.get(10)?,
                 fingerprint: row.get(11)?,
+                upload_id: row.get(12)?,
             })
         });
 
@@ -1962,6 +1971,7 @@ impl Database {
                     install_size_bytes: row.get(9)?,
                     installed_at: row.get(10)?,
                     fingerprint: row.get(11)?,
+                    upload_id: row.get(12)?,
                 })
             })?
             .collect::<Result<Vec<_>>>()?;

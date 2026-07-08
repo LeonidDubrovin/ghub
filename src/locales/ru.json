@@ -219,7 +219,8 @@
       "noUploadsDescription": "Возможно, игра платная, требует claim на itch.io, или доступна только в браузере.",
       "openPage": "Открыть на itch.io",
       "loading": "Загрузка списка файлов...",
-      "addedAt": "Добавлен: {{date}}"
+      "addedAt": "Добавлен: {{date}}",
+      "alreadyDownloaded": "Уже скачано"
     }
   },
   "batch": {

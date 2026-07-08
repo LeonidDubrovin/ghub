@@ -81,6 +81,7 @@ export interface Install {
   install_size_bytes: number | null;
   installed_at: string;
   fingerprint?: string;
+  upload_id?: number;
 }
 
 export interface ScannedGame {
