@@ -1,5 +1,5 @@
 use crate::http_constants::{ACCEPT_LANGUAGE, USER_AGENT};
-use crate::models::MetadataSearchResult;
+use crate::models::{ExternalLink, MetadataSearchResult};
 use crate::metadata::strategy::MetadataStrategy;
 use reqwest::Client;
 use async_trait::async_trait;
@@ -71,6 +71,7 @@ impl MetadataStrategy for ItchStrategy {
                                     url,
                                     tags: None,
                                     genres: None,
+                                    external_links: None,
                                 });
                             }
                             if results.len() >= 5 { break; }
@@ -191,6 +192,56 @@ impl MetadataStrategy for ItchStrategy {
             }
         }
         
+        let mut genres: Vec<String> = Vec::new();
+        let mut tags: Vec<String> = Vec::new();
+        let mut external_links: Vec<ExternalLink> = Vec::new();
+        
+        let info_table_selector = Selector::parse(".game_info_panel_widget").map_err(|e| e.to_string())?;
+        let tr_selector = Selector::parse("tr").map_err(|e| e.to_string())?;
+        let td_selector = Selector::parse("td").map_err(|e| e.to_string())?;
+        let a_selector = Selector::parse("a").map_err(|e| e.to_string())?;
+        
+        if let Some(table) = document.select(&info_table_selector).next() {
+            for row in table.select(&tr_selector) {
+                let mut tds = row.select(&td_selector);
+                let label = tds.next()
+                    .map(|el| el.text().collect::<String>().trim().to_lowercase())
+                    .unwrap_or_default();
+                let value_cell = tds.next();
+                
+                match label.as_str() {
+                    "genre" => {
+                        if let Some(cell) = value_cell {
+                            for a in cell.select(&a_selector) {
+                                let name = a.text().collect::<String>().trim().to_string();
+                                if !name.is_empty() { genres.push(name); }
+                            }
+                        }
+                    }
+                    "tags" => {
+                        if let Some(cell) = value_cell {
+                            for a in cell.select(&a_selector) {
+                                let name = a.text().collect::<String>().trim().to_string();
+                                if !name.is_empty() { tags.push(name); }
+                            }
+                        }
+                    }
+                    "links" => {
+                        if let Some(cell) = value_cell {
+                            for a in cell.select(&a_selector) {
+                                let link_label = a.text().collect::<String>().trim().to_string();
+                                let link_url = a.value().attr("href").unwrap_or("").to_string();
+                                if !link_url.is_empty() {
+                                    external_links.push(ExternalLink { label: link_label, url: link_url });
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        
         Ok(Some(MetadataSearchResult {
             id: url.to_string(),
             name: title,
@@ -202,8 +253,9 @@ impl MetadataStrategy for ItchStrategy {
             rating: None,
             source: "itch".to_string(),
             url: Some(url.to_string()),
-            tags: None,
-            genres: None,
+            tags: if tags.is_empty() { None } else { Some(tags) },
+            genres: if genres.is_empty() { None } else { Some(genres) },
+            external_links: if external_links.is_empty() { None } else { Some(external_links) },
         }))
     }
 }

@@ -1,4 +1,4 @@
-use crate::models::{Game, Install, Setting, Space, SpaceSource, GameLink};
+use crate::models::{Game, ExternalLink, Install, Setting, Space, SpaceSource, GameLink};
 use rusqlite::{params, params_from_iter, Connection, Result};
 use serde_json;
 use std::path::Path;
@@ -148,6 +148,51 @@ impl Database {
 
             CREATE INDEX IF NOT EXISTS idx_game_links_game ON game_links(game_id);
 
+            -- Genres
+            CREATE TABLE IF NOT EXISTS genres (
+                id              TEXT PRIMARY KEY,
+                name            TEXT NOT NULL,
+                normalized_name TEXT NOT NULL UNIQUE
+            );
+            
+            -- Tags
+            CREATE TABLE IF NOT EXISTS tags (
+                id              TEXT PRIMARY KEY,
+                name            TEXT NOT NULL,
+                normalized_name TEXT NOT NULL UNIQUE
+            );
+            
+            -- Game genres
+            CREATE TABLE IF NOT EXISTS game_genres (
+                game_id         TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                genre_id        TEXT NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+                source          TEXT,
+                PRIMARY KEY (game_id, genre_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_game_genres_game ON game_genres(game_id);
+            CREATE INDEX IF NOT EXISTS idx_game_genres_genre ON game_genres(genre_id);
+            
+            -- Game tags
+            CREATE TABLE IF NOT EXISTS game_tags (
+                game_id         TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                tag_id          TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+                source          TEXT,
+                PRIMARY KEY (game_id, tag_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_game_tags_game ON game_tags(game_id);
+            CREATE INDEX IF NOT EXISTS idx_game_tags_tag ON game_tags(tag_id);
+            
+            -- Game external links
+            CREATE TABLE IF NOT EXISTS game_external_links (
+                id              TEXT PRIMARY KEY,
+                game_id         TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+                label           TEXT,
+                url             TEXT NOT NULL,
+                source          TEXT,
+                UNIQUE(game_id, url)
+            );
+            CREATE INDEX IF NOT EXISTS idx_game_external_links_game ON game_external_links(game_id);
+            
             -- Indexes
             CREATE INDEX IF NOT EXISTS idx_games_title ON games(title COLLATE NOCASE);
             CREATE INDEX IF NOT EXISTS idx_games_last_played ON games(last_played_at DESC);
@@ -682,6 +727,9 @@ impl Database {
             added_at: row.get(16)?,
             updated_at: row.get(17)?,
             external_link: row.get(18).ok(),
+            genres: None,
+            tags: None,
+            external_links: None,
             space_id: None,
             space_name: None,
             space_type: None,
@@ -721,12 +769,13 @@ impl Database {
              ORDER BY g.title COLLATE NOCASE"
         )?;
 
-        let games = stmt
+        let mut games = stmt
             .query_map([], |row| {
                 Self::map_game_row_with_install(row)
             })?
             .collect::<Result<Vec<_>>>()?;
 
+        self.load_game_classifications(&mut games)?;
         Ok(games)
     }
 
@@ -745,12 +794,13 @@ impl Database {
              ORDER BY g.title COLLATE NOCASE"
         )?;
 
-        let games = stmt
+        let mut games = stmt
             .query_map([space_id], |row| {
                 Self::map_game_row_with_install(row)
             })?
             .collect::<Result<Vec<_>>>()?;
 
+        self.load_game_classifications(&mut games)?;
         Ok(games)
     }
 
@@ -781,12 +831,13 @@ impl Database {
         )?;
 
         let pattern = format!("{}%", prefix);
-        let games = stmt
+        let mut games = stmt
             .query_map(params![space_id, pattern], |row| {
                 Self::map_game_row_with_install(row)
             })?
             .collect::<Result<Vec<_>>>()?;
 
+        self.load_game_classifications(&mut games)?;
         Ok(games)
     }
 
@@ -823,7 +874,11 @@ impl Database {
              WHERE g.id = ?"
         )?;
 
-        stmt.query_row([id], |row| Self::map_game_row_with_install(row))
+        let mut game = stmt.query_row([id], |row| Self::map_game_row_with_install(row))?;
+        game.genres = Some(self.get_game_genres(id)?);
+        game.tags = Some(self.get_game_tags(id)?);
+        game.external_links = Some(self.get_game_external_links(id)?);
+        Ok(game)
     }
 
     /// Find a game by its fingerprint (title + developer)
@@ -985,6 +1040,199 @@ impl Database {
 
     pub fn delete_game(&self, id: &str) -> Result<()> {
         self.conn.execute("DELETE FROM games WHERE id = ?", [id])?;
+        Ok(())
+    }
+
+    // ============ CLASSIFICATIONS (genres, tags, external links) ============
+
+    fn normalize_classification(name: &str) -> String {
+        name.trim().to_lowercase()
+    }
+
+    pub fn get_or_create_genre(&self, name: &str) -> Result<String> {
+        let normalized = Self::normalize_classification(name);
+        let mut stmt = self.conn.prepare("SELECT id FROM genres WHERE normalized_name = ?")?;
+        if let Ok(id) = stmt.query_row([&normalized], |row| row.get::<_, String>(0)) {
+            return Ok(id);
+        }
+        drop(stmt);
+        let id = uuid::Uuid::new_v4().to_string();
+        self.conn.execute(
+            "INSERT INTO genres (id, name, normalized_name) VALUES (?, ?, ?)",
+            params![id, name.trim(), normalized],
+        )?;
+        Ok(id)
+    }
+
+    pub fn get_or_create_tag(&self, name: &str) -> Result<String> {
+        let normalized = Self::normalize_classification(name);
+        let mut stmt = self.conn.prepare("SELECT id FROM tags WHERE normalized_name = ?")?;
+        if let Ok(id) = stmt.query_row([&normalized], |row| row.get::<_, String>(0)) {
+            return Ok(id);
+        }
+        drop(stmt);
+        let id = uuid::Uuid::new_v4().to_string();
+        self.conn.execute(
+            "INSERT INTO tags (id, name, normalized_name) VALUES (?, ?, ?)",
+            params![id, name.trim(), normalized],
+        )?;
+        Ok(id)
+    }
+
+    pub fn add_game_genres(
+        &self,
+        game_id: &str,
+        genre_ids: &[String],
+        source: Option<&str>,
+    ) -> Result<()> {
+        for genre_id in genre_ids {
+            self.conn.execute(
+                "INSERT OR IGNORE INTO game_genres (game_id, genre_id, source) VALUES (?, ?, ?)",
+                params![game_id, genre_id, source.unwrap_or("unknown")],
+            )?;
+        }
+        Ok(())
+    }
+
+    pub fn add_game_tags(
+        &self,
+        game_id: &str,
+        tag_ids: &[String],
+        source: Option<&str>,
+    ) -> Result<()> {
+        for tag_id in tag_ids {
+            self.conn.execute(
+                "INSERT OR IGNORE INTO game_tags (game_id, tag_id, source) VALUES (?, ?, ?)",
+                params![game_id, tag_id, source.unwrap_or("unknown")],
+            )?;
+        }
+        Ok(())
+    }
+
+    pub fn add_game_external_links(
+        &self,
+        game_id: &str,
+        links: &[ExternalLink],
+        source: Option<&str>,
+    ) -> Result<()> {
+        for link in links {
+            let id = uuid::Uuid::new_v4().to_string();
+            self.conn.execute(
+                "INSERT OR IGNORE INTO game_external_links (id, game_id, label, url, source) VALUES (?, ?, ?, ?, ?)",
+                params![id, game_id, link.label.as_str(), link.url.as_str(), source.unwrap_or("unknown")],
+            )?;
+        }
+        Ok(())
+    }
+
+    pub fn get_game_genres(&self, game_id: &str) -> Result<Vec<String>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT g.name FROM genres g
+             JOIN game_genres gg ON gg.genre_id = g.id
+             WHERE gg.game_id = ?
+             ORDER BY g.name"
+        )?;
+        let rows = stmt.query_map([game_id], |row| row.get::<_, String>(0))?;
+        rows.collect::<Result<Vec<_>>>()
+    }
+
+    pub fn get_game_tags(&self, game_id: &str) -> Result<Vec<String>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT t.name FROM tags t
+             JOIN game_tags gt ON gt.tag_id = t.id
+             WHERE gt.game_id = ?
+             ORDER BY t.name"
+        )?;
+        let rows = stmt.query_map([game_id], |row| row.get::<_, String>(0))?;
+        rows.collect::<Result<Vec<_>>>()
+    }
+
+    pub fn get_game_external_links(&self, game_id: &str) -> Result<Vec<ExternalLink>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT label, url FROM game_external_links
+             WHERE game_id = ?
+             ORDER BY label"
+        )?;
+        let rows = stmt.query_map([game_id], |row| {
+            Ok(ExternalLink {
+                label: row.get(0)?,
+                url: row.get(1)?,
+            })
+        })?;
+        rows.collect::<Result<Vec<_>>>()
+    }
+
+    pub fn get_all_genres(&self) -> Result<Vec<(String, i64)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT g.name, COUNT(*) as cnt
+             FROM genres g
+             JOIN game_genres gg ON gg.genre_id = g.id
+             GROUP BY g.id, g.name
+             ORDER BY cnt DESC, g.name"
+        )?;
+        let rows = stmt.query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)))?;
+        rows.collect::<Result<Vec<_>>>()
+    }
+
+    pub fn get_all_tags(&self) -> Result<Vec<(String, i64)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT t.name, COUNT(*) as cnt
+             FROM tags t
+             JOIN game_tags gt ON gt.tag_id = t.id
+             GROUP BY t.id, t.name
+             ORDER BY cnt DESC, t.name"
+        )?;
+        let rows = stmt.query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)))?;
+        rows.collect::<Result<Vec<_>>>()
+    }
+
+    /// Populate genres and tags for a list of games in-place.
+    /// External links are intentionally not loaded for lists to avoid extra overhead.
+    pub fn load_game_classifications(&self, games: &mut [Game]) -> Result<()> {
+        if games.is_empty() {
+            return Ok(());
+        }
+        let ids: Vec<String> = games.iter().map(|g| g.id.clone()).collect();
+        let placeholders = (0..ids.len()).map(|_| "?").collect::<Vec<_>>().join(",");
+
+        let mut genres_map: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+        let mut tags_map: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+
+        let genres_sql = format!(
+            "SELECT gg.game_id, g.name FROM genres g
+             JOIN game_genres gg ON gg.genre_id = g.id
+             WHERE gg.game_id IN ({}) ORDER BY g.name",
+            placeholders
+        );
+        let mut genres_stmt = self.conn.prepare(&genres_sql)?;
+        let genre_params = params_from_iter(ids.iter().map(|s| s.as_str()));
+        for row in genres_stmt.query_map(genre_params, |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })? {
+            let (game_id, name) = row?;
+            genres_map.entry(game_id).or_default().push(name);
+        }
+
+        let tags_sql = format!(
+            "SELECT gt.game_id, t.name FROM tags t
+             JOIN game_tags gt ON gt.tag_id = t.id
+             WHERE gt.game_id IN ({}) ORDER BY t.name",
+            placeholders
+        );
+        let mut tags_stmt = self.conn.prepare(&tags_sql)?;
+        let tag_params = params_from_iter(ids.iter().map(|s| s.as_str()));
+        for row in tags_stmt.query_map(tag_params, |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })? {
+            let (game_id, name) = row?;
+            tags_map.entry(game_id).or_default().push(name);
+        }
+
+        for game in games.iter_mut() {
+            game.genres = genres_map.remove(&game.id).or_else(|| Some(Vec::new()));
+            game.tags = tags_map.remove(&game.id).or_else(|| Some(Vec::new()));
+        }
+
         Ok(())
     }
 
@@ -1290,6 +1538,53 @@ impl Database {
                 created_at: row.get(8)?,
             })
         })
+    }
+
+    pub fn get_game_link_by_url(&self, game_id: &str, url: &str) -> Result<Option<GameLink>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, game_id, url, canonical_url, title, source_type, download_status, queue_space, created_at
+             FROM game_links
+             WHERE game_id = ? AND url = ?
+             LIMIT 1"
+        )?;
+
+        let result = stmt.query_row(params![game_id, url], |row| {
+            Ok(GameLink {
+                id: row.get(0)?,
+                game_id: row.get(1)?,
+                url: row.get(2)?,
+                canonical_url: row.get(3)?,
+                title: row.get(4)?,
+                source_type: row.get(5)?,
+                download_status: row.get(6)?,
+                queue_space: row.get(7)?,
+                created_at: row.get(8)?,
+            })
+        });
+
+        match result {
+            Ok(link) => Ok(Some(link)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn add_or_update_game_link(
+        &self,
+        game_id: &str,
+        url: &str,
+        source_type: Option<&str>,
+        title: Option<&str>,
+    ) -> Result<GameLink> {
+        if let Some(link) = self.get_game_link_by_url(game_id, url)? {
+            self.conn.execute(
+                "UPDATE game_links SET source_type = COALESCE(?, source_type), title = COALESCE(?, title) WHERE id = ?",
+                params![source_type, title, link.id],
+            )?;
+            return self.get_game_link_by_id(&link.id);
+        }
+        let id = uuid::Uuid::new_v4().to_string();
+        self.create_game_link(&id, game_id, url, None, title, source_type, None, None)
     }
 
     pub fn get_game_links(&self, game_id: &str) -> Result<Vec<GameLink>> {

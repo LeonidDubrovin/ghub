@@ -32,6 +32,11 @@ export interface SpaceSource {
   scan_completed_at?: string;
 }
 
+export interface ExternalLink {
+  label: string;
+  url: string;
+}
+
 export interface Game {
   id: string;
   title: string;
@@ -52,6 +57,9 @@ export interface Game {
   added_at: string;
   updated_at: string;
   external_link?: string;
+  genres?: string[];
+  tags?: string[];
+  external_links?: ExternalLink[];
   // Optional fields for UI display (populated when joining with installs/spaces)
   space_id?: string;
   space_name?: string;
@@ -141,6 +149,7 @@ export interface MetadataSearchResult {
   url: string | null;
   tags: string[] | null;
   genres: string[] | null;
+  external_links: ExternalLink[] | null;
 }
 
 export interface AddSpaceSourceRequest {

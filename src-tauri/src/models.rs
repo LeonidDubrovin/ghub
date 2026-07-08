@@ -34,6 +34,12 @@ pub struct SpaceSource {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExternalLink {
+    pub label: String,
+    pub url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Game {
     pub id: String,
     pub title: String,
@@ -54,6 +60,12 @@ pub struct Game {
     pub added_at: String,
     pub updated_at: String,
     pub external_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_links: Option<Vec<ExternalLink>>,
     // Optional fields for UI display (populated when joining with installs/spaces)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub space_id: Option<String>,
@@ -176,4 +188,5 @@ pub struct MetadataSearchResult {
     pub url: Option<String>,
     pub tags: Option<Vec<String>>,
     pub genres: Option<Vec<String>>,
+    pub external_links: Option<Vec<ExternalLink>>,
 }

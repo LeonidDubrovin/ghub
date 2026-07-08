@@ -64,6 +64,8 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showMetadataUpdateDialog, setShowMetadataUpdateDialog] = useState(false);
   const [selectedGameForMetadataUpdate, setSelectedGameForMetadataUpdate] = useState<Game | null>(null);
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   const [sidebarWidth, setSidebarWidth] = useState(240);
   const [gameListWidth, setGameListWidth] = useState(280);
@@ -144,6 +146,12 @@ function App() {
       weekAgo.setDate(weekAgo.getDate() - 7);
       result = result.filter(game => game.last_played_at && new Date(game.last_played_at) > weekAgo);
     }
+    if (selectedGenre) {
+      result = result.filter(game => game.genres?.includes(selectedGenre));
+    }
+    if (selectedTag) {
+      result = result.filter(game => game.tags?.includes(selectedTag));
+    }
 
     // Apply sorting
     result = [...result].sort((a, b) => {
@@ -172,7 +180,23 @@ function App() {
     });
 
     return result;
-  }, [games, searchQuery, selectedFilter, sortBy, sortOrder]);
+  }, [games, searchQuery, selectedFilter, selectedGenre, selectedTag, sortBy, sortOrder]);
+
+  const genreCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    games.forEach(game => {
+      game.genres?.forEach(genre => counts.set(genre, (counts.get(genre) || 0) + 1));
+    });
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [games]);
+
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    games.forEach(game => {
+      game.tags?.forEach(tag => counts.set(tag, (counts.get(tag) || 0) + 1));
+    });
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [games]);
 
   const favoritesCount = useMemo(() => games.filter(g => g.is_favorite).length, [games]);
   const recentCount = useMemo(() => {
@@ -271,12 +295,16 @@ function App() {
   const handleSelectFilter = (filter: FilterType) => {
     setSelectedFilter(filter);
     setSelectedSource(null);
+    setSelectedGenre(null);
+    setSelectedTag(null);
     clearSelection();
   };
 
   const handleSelectSpace = (spaceId: string | null) => {
     setSelectedSpaceId(spaceId);
     setSelectedSource(null);
+    setSelectedGenre(null);
+    setSelectedTag(null);
     clearSelection();
   };
 
@@ -287,11 +315,15 @@ function App() {
     } else {
       setSelectedSource(null);
     }
+    setSelectedGenre(null);
+    setSelectedTag(null);
     clearSelection();
   };
 
   const handleOpenGameCard = (game: Game, link?: GameLink) => {
     setSelectedFilter('all');
+    setSelectedGenre(null);
+    setSelectedTag(null);
     if (link?.queue_space) {
       setSelectedSpaceId(link.queue_space);
       setSelectedSource(null);
@@ -479,6 +511,12 @@ function App() {
           isLoading={spacesLoading}
           favoritesCount={favoritesCount}
           recentCount={recentCount}
+          genres={genreCounts}
+          tags={tagCounts}
+          selectedGenre={selectedGenre}
+          selectedTag={selectedTag}
+          onSelectGenre={setSelectedGenre}
+          onSelectTag={setSelectedTag}
         />
       </aside>
       
@@ -560,6 +598,8 @@ function App() {
               isSelectionMode={isSelectionMode}
               onSave={handleGameSaved}
               onGameDownloaded={handleGameDownloaded}
+              onSelectGenre={setSelectedGenre}
+              onSelectTag={setSelectedTag}
             />
           )}
         </div>

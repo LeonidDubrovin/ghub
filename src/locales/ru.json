@@ -22,7 +22,9 @@
     "noSpaces": "Нет пространств",
     "addLink": "Добавить ссылку",
     "settings": "Настройки",
-    "system": "Системные"
+    "system": "Системные",
+    "genres": "Жанры",
+    "tags": "Теги"
   },
   "games": {
     "noGames": "Игр пока нет",
@@ -310,7 +312,11 @@
     "developer": "Разработчик",
     "publisher": "Издатель",
     "description": "Описание",
-    "cover": "Обложка"
+    "cover": "Обложка",
+    "classifications": "Классификации",
+    "genres": "Жанры",
+    "tags": "Теги",
+    "externalLinks": "Ссылки"
   },
   "status": {
     "notPlayed": "Не играл",
@@ -335,6 +341,9 @@
     "space": "Пространство",
     "noInstallPath": "Путь установки не указан",
     "sourceLinks": "Ссылки на источники",
+    "links": "Ссылки",
+    "genres": "Жанры",
+    "tags": "Теги",
     "refreshMetadata": "Обновить метаданные",
     "refreshFromLocal": "Обновить из локальной папки",
     "installedVariants": "Установленные варианты",

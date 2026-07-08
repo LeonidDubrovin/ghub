@@ -325,18 +325,16 @@ export default function MetadataSearchDialog({
     setDuplicateLink(null);
     let linkDuplicate: { game: Game; link: GameLink } | null = null;
 
-    try {
-      await invoke('update_game', {
-        request: {
-          id: currentGame.id,
-          title: fields.title ? selectedResult.name : null,
-          description: fields.description && selectedResult.description ? selectedResult.description : null,
-          developer: fields.developer && selectedResult.developer ? selectedResult.developer : null,
-          publisher: fields.publisher && selectedResult.publisher ? selectedResult.publisher : null,
-          cover_image: fields.cover && selectedResult.cover_url ? selectedResult.cover_url : null,
-        },
-      });
+    const resultToApply: MetadataSearchResult = {
+      ...selectedResult,
+      name: fields.title ? selectedResult.name : currentGame.title,
+      description: fields.description ? selectedResult.description : currentGame.description,
+      developer: fields.developer ? selectedResult.developer : currentGame.developer,
+      publisher: fields.publisher ? selectedResult.publisher : currentGame.publisher,
+      cover_url: fields.cover ? selectedResult.cover_url : currentGame.cover_image,
+    };
 
+    try {
       if (selectedResult.url) {
         try {
           const response = await invoke<AddGameLinkResponse>('add_game_link', {
@@ -358,6 +356,11 @@ export default function MetadataSearchDialog({
       }
 
       if (!linkDuplicate) {
+        await invoke('apply_game_metadata', {
+          gameId: currentGame.id,
+          sourceType: selectedResult.source,
+          meta: resultToApply,
+        });
         onSave();
       }
       return true;
@@ -812,6 +815,41 @@ export default function MetadataSearchDialog({
                       />
                     )}
                   </div>
+
+                  {((selectedResult.genres?.length ?? 0) + (selectedResult.tags?.length ?? 0)) > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                        {t('metadataSelect.classifications')}
+                      </div>
+                      {selectedResult.genres && selectedResult.genres.length > 0 && (
+                        <div className="text-sm text-gray-300">
+                          <span className="text-gray-500">{t('metadataSelect.genres')}:</span>{' '}
+                          {selectedResult.genres.join(', ')}
+                        </div>
+                      )}
+                      {selectedResult.tags && selectedResult.tags.length > 0 && (
+                        <div className="text-sm text-gray-300">
+                          <span className="text-gray-500">{t('metadataSelect.tags')}:</span>{' '}
+                          {selectedResult.tags.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedResult.external_links && selectedResult.external_links.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                        {t('metadataSelect.externalLinks')}
+                      </div>
+                      <div className="space-y-1">
+                        {selectedResult.external_links.map(link => (
+                          <div key={link.url} className="text-sm text-gray-300 truncate">
+                            <a href={link.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">{link.label || link.url}</a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -26,7 +26,9 @@
     "noSpaces": "No spaces",
     "addLink": "Add link",
     "settings": "Settings",
-    "system": "System"
+    "system": "System",
+    "genres": "Genres",
+    "tags": "Tags"
   },
   "games": {
     "noGames": "No games yet",
@@ -315,7 +317,11 @@
     "developer": "Developer",
     "publisher": "Publisher",
     "description": "Description",
-    "cover": "Cover"
+    "cover": "Cover",
+    "classifications": "Classifications",
+    "genres": "Genres",
+    "tags": "Tags",
+    "externalLinks": "Links"
   },
   "status": {
     "notPlayed": "Not played",
@@ -347,6 +353,9 @@
     "space": "Space",
     "noInstallPath": "No install path",
     "sourceLinks": "Source links",
+    "links": "Links",
+    "genres": "Genres",
+    "tags": "Tags",
     "refreshMetadata": "Refresh metadata",
     "refreshFromLocal": "Refresh from local",
     "installedVariants": "Installed variants",

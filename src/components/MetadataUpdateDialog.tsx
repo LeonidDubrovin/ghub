@@ -138,16 +138,14 @@ export default function MetadataUpdateDialog({
   }, []);
 
   const applyMetadata = useCallback(async (result: MetadataSearchResult, fields: FieldSelection) => {
-    await invoke('update_game', {
-      request: {
-        id: game.id,
-        title: fields.title ? result.name : null,
-        description: fields.description && result.description ? result.description : null,
-        developer: fields.developer && result.developer ? result.developer : null,
-        publisher: fields.publisher && result.publisher ? result.publisher : null,
-        cover_image: fields.cover && result.cover_url ? result.cover_url : null,
-      },
-    });
+    const resultToApply: MetadataSearchResult = {
+      ...result,
+      name: fields.title ? result.name : game.title,
+      description: fields.description ? result.description : game.description,
+      developer: fields.developer ? result.developer : game.developer,
+      publisher: fields.publisher ? result.publisher : game.publisher,
+      cover_url: fields.cover ? result.cover_url : game.cover_image,
+    };
 
     if (result.url) {
       try {
@@ -161,12 +159,19 @@ export default function MetadataUpdateDialog({
         });
         if (response.is_duplicate && response.existing_game) {
           setDuplicateLink({ game: response.existing_game, link: response.link });
+          return;
         }
       } catch (linkErr) {
         logger.warn('Failed to add source link:', linkErr);
       }
     }
-  }, [game.id, logger]);
+
+    await invoke('apply_game_metadata', {
+      gameId: game.id,
+      sourceType: result.source,
+      meta: resultToApply,
+    });
+  }, [game, logger]);
 
   // Local section handlers
   const scanLocal = useCallback(async (installList?: Install[]) => {
@@ -530,6 +535,37 @@ export default function MetadataUpdateDialog({
         {result.description && <FieldToggle label={t('metadataSelect.description')} value={result.description} checked={fields.description} onChange={() => onToggle('description')} />}
         {result.cover_url && <FieldToggle label={t('metadataSelect.cover')} value={result.cover_url} checked={fields.cover} onChange={() => onToggle('cover')} />}
       </div>
+
+      {((result.genres?.length ?? 0) + (result.tags?.length ?? 0)) > 0 && (
+        <div className="space-y-2">
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('metadataSelect.classifications')}</div>
+          {result.genres && result.genres.length > 0 && (
+            <div className="text-sm text-gray-300">
+              <span className="text-gray-500">{t('metadataSelect.genres')}:</span>{' '}
+              {result.genres.join(', ')}
+            </div>
+          )}
+          {result.tags && result.tags.length > 0 && (
+            <div className="text-sm text-gray-300">
+              <span className="text-gray-500">{t('metadataSelect.tags')}:</span>{' '}
+              {result.tags.join(', ')}
+            </div>
+          )}
+        </div>
+      )}
+
+      {result.external_links && result.external_links.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('metadataSelect.externalLinks')}</div>
+          <div className="space-y-1">
+            {result.external_links.map(link => (
+              <div key={link.url} className="text-sm text-gray-300 truncate">
+                <a href={link.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">{link.label || link.url}</a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 

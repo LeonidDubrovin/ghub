@@ -21,6 +21,12 @@ interface SidebarProps {
   isLoading: boolean;
   favoritesCount: number;
   recentCount: number;
+  genres: [string, number][];
+  tags: [string, number][];
+  selectedGenre: string | null;
+  selectedTag: string | null;
+  onSelectGenre: (genre: string | null) => void;
+  onSelectTag: (tag: string | null) => void;
 }
 
 // SVG Icons
@@ -74,10 +80,56 @@ export default function Sidebar({
   isLoading,
   favoritesCount,
   recentCount,
+  genres,
+  tags,
+  selectedGenre,
+  selectedTag,
+  onSelectGenre,
+  onSelectTag,
 }: SidebarProps) {
   const { t } = useTranslation();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; space: Space } | null>(null);
   const [settingsSpace, setSettingsSpace] = useState<Space | null>(null);
+
+  const ClassificationSection = ({
+    title,
+    items,
+    selected,
+    onSelect,
+  }: {
+    title: string;
+    items: [string, number][];
+    selected: string | null;
+    onSelect: (item: string | null) => void;
+  }) => {
+    const [expanded, setExpanded] = useState(true);
+    if (!items.length) return null;
+    return (
+      <div className="mt-4 pt-4 border-t border-surface-100">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="px-4 py-1 w-full flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-300"
+        >
+          <span>{title}</span>
+          <span className="text-[10px]">{expanded ? '▼' : '▶'}</span>
+        </button>
+        {expanded && (
+          <nav className="px-3 mt-1 space-y-1 max-h-48 overflow-y-auto">
+            {items.map(([name, count]) => (
+              <button
+                key={name}
+                onClick={() => onSelect(selected === name ? null : name)}
+                className={clsx('sidebar-item w-full', selected === name && 'active')}
+              >
+                <span className="flex-1 text-left truncate text-sm">{name}</span>
+                <span className="text-xs bg-surface-300 text-gray-400 px-1.5 py-0.5 rounded">{count}</span>
+              </button>
+            ))}
+          </nav>
+        )}
+      </div>
+    );
+  };
 
   const handleFilterClick = (filter: FilterType) => {
     onSelectFilter(filter);
@@ -179,6 +231,19 @@ export default function Sidebar({
               ))}
             </nav>
           )}
+
+          <ClassificationSection
+            title={t('sidebar.genres')}
+            items={genres}
+            selected={selectedGenre}
+            onSelect={onSelectGenre}
+          />
+          <ClassificationSection
+            title={t('sidebar.tags')}
+            items={tags}
+            selected={selectedTag}
+            onSelect={onSelectTag}
+          />
         </div>
 
         <div className="p-3 border-t border-surface-100 flex flex-col gap-1">

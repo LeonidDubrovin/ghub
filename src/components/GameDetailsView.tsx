@@ -28,6 +28,8 @@ interface Props {
   isSelectionMode?: boolean; // Added
   onSave?: () => void;
   onGameDownloaded?: (game: Game, spaceId: string, sourcePath: string) => void;
+  onSelectGenre?: (genre: string) => void;
+  onSelectTag?: (tag: string) => void;
 }
 
 const fmt = (s: number, t: (k: string) => string) => {
@@ -68,7 +70,9 @@ export default function GameDetailsView({
   onGameListResize,
   isSelectionMode,
   onSave,
-  onGameDownloaded
+  onGameDownloaded,
+  onSelectGenre,
+  onSelectTag,
 }: Props) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
@@ -405,6 +409,26 @@ export default function GameDetailsView({
     return t(`sources.${sourceKey}`, link.source_type || 'Other');
   };
 
+  const ClassificationPills = ({ title, items, onClick }: { title: string; items: string[]; onClick?: (item: string) => void }) => {
+    if (!items.length) return null;
+    return (
+      <div className="mb-3">
+        <div className="text-xs text-gray-500 uppercase mb-2">{title}</div>
+        <div className="flex flex-wrap gap-2">
+          {items.map(item => (
+            <button
+              key={item}
+              onClick={() => onClick?.(item)}
+              className="px-2.5 py-1 rounded-full bg-surface-200 hover:bg-accent/20 text-xs text-gray-300 hover:text-white transition-colors"
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-full overflow-hidden">
       <div ref={ref} className="flex-shrink-0 bg-surface-400 overflow-y-auto py-2" style={{ width: gameListWidth }}>
@@ -472,7 +496,11 @@ export default function GameDetailsView({
                     {run && <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs animate-pulse">{t('details.running')}</span>}
                   </div>
                   <h1 className="text-4xl font-bold text-white mb-2">{selectedGame.title}</h1>
-                  <div className="text-gray-400 mb-6 text-sm">{selectedGame.developer}{selectedGame.publisher && ` | ${selectedGame.publisher}`}</div>
+                  <div className="text-gray-400 mb-2 text-sm">{selectedGame.developer}{selectedGame.publisher && ` | ${selectedGame.publisher}`}</div>
+                  <div className="mb-6">
+                    <ClassificationPills title={t('details.genres')} items={selectedGame.genres || []} onClick={onSelectGenre} />
+                    <ClassificationPills title={t('details.tags')} items={selectedGame.tags || []} onClick={onSelectTag} />
+                  </div>
                    <div className="flex gap-3 flex-wrap">
                        {selectedSpaceId === 'incoming' && activeLink ? (
                          <>
@@ -679,31 +707,55 @@ export default function GameDetailsView({
                 )}
                 
                  {gameLinks.length > 0 && (
-                   <div className="mt-4 pt-4 border-t border-white/10">
-                     <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2">{t('details.sourceLinks')}</h3>
-                     <div className="space-y-2">
-                        {gameLinks.map(link => (
-                          <div key={link.id} className="flex items-center gap-1">
-                            <button
-                              onClick={() => openGameLink(link)}
-                              className="flex-1 flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm transition-colors text-left"
-                              title={link.url}
-                            >
-                              <span className="text-base">{getSourceIcon(link.source_type)}</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="truncate">{getSourceLabel(link)}</div>
-                                <div className="text-xs text-blue-200/60 truncate">{link.url}</div>
-                              </div>
-                            </button>
-                            <CopyButton url={link.url} />
-                          </div>
-                        ))}
-                     </div>
-                   </div>
-                 )}
-               </div>
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2">{t('details.sourceLinks')}</h3>
+                      <div className="space-y-2">
+                         {gameLinks.map(link => (
+                           <div key={link.id} className="flex items-center gap-1">
+                             <button
+                               onClick={() => openGameLink(link)}
+                               className="flex-1 flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm transition-colors text-left"
+                               title={link.url}
+                             >
+                               <span className="text-base">{getSourceIcon(link.source_type)}</span>
+                               <div className="flex-1 min-w-0">
+                                 <div className="truncate">{getSourceLabel(link)}</div>
+                                 <div className="text-xs text-blue-200/60 truncate">{link.url}</div>
+                               </div>
+                             </button>
+                             <CopyButton url={link.url} />
+                           </div>
+                         ))}
+                      </div>
+                    </div>
+                  )}
 
-               {installs.length > 0 && (
+                  {selectedGame.external_links && selectedGame.external_links.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2">{t('details.links')}</h3>
+                      <div className="space-y-2">
+                         {selectedGame.external_links.map(link => (
+                           <div key={link.url} className="flex items-center gap-1">
+                             <button
+                               onClick={() => open(link.url)}
+                               className="flex-1 flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-sm transition-colors text-left"
+                               title={link.url}
+                             >
+                               <span className="text-base">🔗</span>
+                               <div className="flex-1 min-w-0">
+                                 <div className="truncate">{link.label || link.url}</div>
+                                 <div className="text-xs text-blue-200/60 truncate">{link.url}</div>
+                               </div>
+                             </button>
+                             <CopyButton url={link.url} />
+                           </div>
+                         ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {installs.length > 0 && (
                  <div className="bg-black/30 rounded-xl p-5 mb-8">
                    <h2 className="text-sm font-semibold text-gray-400 uppercase mb-3">{t('details.installedVariants')}</h2>
                    <div className="space-y-2">

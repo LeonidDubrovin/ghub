@@ -91,6 +91,7 @@ impl MetadataStrategy for SteamStrategy {
                     url: Some(href.to_string()),
                     tags: None,
                     genres: None,
+                    external_links: None,
                 });
                 
                 if results.len() >= 5 { break; }
@@ -107,6 +108,7 @@ impl MetadataStrategy for SteamStrategy {
                     res.publisher = details.publisher.or(res.publisher);
                     res.tags = details.tags.or(res.tags);
                     res.genres = details.genres.or(res.genres);
+                    res.external_links = details.external_links.or(res.external_links);
                 }
             }
             enriched_results.push(res);
@@ -182,6 +184,7 @@ impl MetadataStrategy for SteamStrategy {
             url: Some(url.to_string()),
             tags: if tags.is_empty() { None } else { Some(tags) },
             genres: if genres.is_empty() { None } else { Some(genres) },
+            external_links: None,
         }))
     }
 }

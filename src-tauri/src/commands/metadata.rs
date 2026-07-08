@@ -52,6 +52,7 @@ pub async fn search_game_metadata(
                                 url: Some(g.url),
                                 tags: None,
                                 genres: None,
+                                external_links: None,
                             }
                         }));
                     }
@@ -158,10 +159,13 @@ pub async fn fetch_metadata_by_url_command(
 }
 
 /// Apply metadata to a game while respecting existing fields.
-fn apply_metadata(
+/// When `source_url` is provided, the source link is added/updated in `game_links`.
+fn apply_metadata_internal(
     db: &crate::database::Database,
     game_id: &str,
     meta: &MetadataSearchResult,
+    source_type: Option<&str>,
+    source_url: Option<&str>,
 ) -> Result<(), String> {
     let game = db.get_game_by_id(game_id).map_err(|e| e.to_string())?;
 
@@ -188,7 +192,54 @@ fn apply_metadata(
         None, // user_rating
     ).map_err(|e| e.to_string())?;
 
+    // Add or update the source link when a URL is provided.
+    if let Some(url) = source_url {
+        let st = source_type.unwrap_or(meta.source.as_str());
+        let title = if meta.name.is_empty() { None } else { Some(meta.name.as_str()) };
+        db.add_or_update_game_link(game_id, url, Some(st), title)
+            .map_err(|e| e.to_string())?;
+    }
+
+    // Merge genres/tags and external links with the source they came from.
+    let source_for_classification = source_type.unwrap_or(meta.source.as_str());
+    if let Some(genres) = &meta.genres {
+        let genre_ids: Vec<String> = genres
+            .iter()
+            .map(|name| db.get_or_create_genre(name))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        db.add_game_genres(game_id, &genre_ids, Some(source_for_classification))
+            .map_err(|e| e.to_string())?;
+    }
+    if let Some(tags) = &meta.tags {
+        let tag_ids: Vec<String> = tags
+            .iter()
+            .map(|name| db.get_or_create_tag(name))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        db.add_game_tags(game_id, &tag_ids, Some(source_for_classification))
+            .map_err(|e| e.to_string())?;
+    }
+    if let Some(links) = &meta.external_links {
+        db.add_game_external_links(game_id, links, Some(source_for_classification))
+            .map_err(|e| e.to_string())?;
+    }
+
     Ok(())
+}
+
+/// Apply a selected metadata result to a game, including its source link, genres/tags, and external links.
+#[tauri::command]
+pub fn apply_game_metadata(
+    state: State<AppState>,
+    game_id: String,
+    source_type: String,
+    meta: MetadataSearchResult,
+) -> Result<Game, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let source_url = meta.url.clone().filter(|u| !u.is_empty());
+    apply_metadata_internal(&db, &game_id, &meta, Some(&source_type), source_url.as_deref())?;
+    db.get_game_by_id(&game_id).map_err(|e| e.to_string())
 }
 
 /// Scan the install directory of a game and return the discovered metadata
@@ -340,7 +391,7 @@ pub async fn fetch_and_update_game_metadata(state: State<'_, AppState>, game_id:
     if let Some(meta) = best_match {
         info!("   Applying metadata: {}", meta.name);
         let db = state.db.lock().map_err(|e| e.to_string())?;
-        apply_metadata(&db, &game_id, &meta)?;
+        apply_metadata_internal(&db, &game_id, &meta, Some(&source_type), None)?;
         info!("   ✅ Metadata updated successfully");
     } else {
         warn!("   ⚠️ Could not fetch metadata from source page");

@@ -128,6 +128,7 @@ pub fn run() {
             commands::scan_local_metadata,
             commands::refresh_game_from_local,
             commands::fetch_and_update_game_metadata,
+            commands::apply_game_metadata,
             commands::backup_database,
             commands::log_frontend,
             commands::open_folder,
