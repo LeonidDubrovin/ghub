@@ -1588,18 +1588,6 @@ mod tests {
     }
 }
 
-/// Check if a title is too generic to be used as a search query.
-pub fn is_generic_title(title: &str) -> bool {
-    let lower = title.to_lowercase().trim().to_string();
-    matches!(
-        lower.as_str(),
-        "game" | "games" | "demo" | "test" | "sample" |
-        "app" | "application" | "program" | "software" |
-        "build" | "release" | "version" | "prototype" |
-        "alpha" | "beta" | "preview" | "trial"
-    )
-}
-
 /// Check if a company name is a generic engine/tool name rather than the real developer.
 pub fn is_generic_company_name(name: &str) -> bool {
     let lower = name.to_lowercase().trim().to_string();
