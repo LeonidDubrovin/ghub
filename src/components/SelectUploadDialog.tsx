@@ -1,14 +1,16 @@
 import { useTranslation } from 'react-i18next';
+import { open } from '@tauri-apps/plugin-shell';
 import type { ItchUpload } from '../types';
 
 interface SelectUploadDialogProps {
   uploads: ItchUpload[];
   isLoading?: boolean;
+  linkUrl?: string;
   onClose: () => void;
   onSelect: (upload: ItchUpload) => void;
 }
 
-export default function SelectUploadDialog({ uploads, isLoading, onClose, onSelect }: SelectUploadDialogProps) {
+export default function SelectUploadDialog({ uploads, isLoading, linkUrl, onClose, onSelect }: SelectUploadDialogProps) {
   const { t } = useTranslation();
 
   const formatBytes = (bytes: number) => {
@@ -48,7 +50,18 @@ export default function SelectUploadDialog({ uploads, isLoading, onClose, onSele
             <p className="text-sm">{t('dialog.selectUpload.loading')}</p>
           </div>
         ) : uploads.length === 0 ? (
-          <p className="text-sm text-gray-400 mb-4">{t('dialog.selectUpload.noUploads')}</p>
+          <div className="mb-4 space-y-2">
+            <p className="text-sm text-gray-400">{t('dialog.selectUpload.noUploads')}</p>
+            <p className="text-sm text-gray-500">{t('dialog.selectUpload.noUploadsDescription')}</p>
+            {linkUrl && (
+              <button
+                onClick={() => open(linkUrl)}
+                className="btn btn-primary"
+              >
+                {t('dialog.selectUpload.openPage')}
+              </button>
+            )}
+          </div>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto mb-4">
             {uploads.map(upload => {

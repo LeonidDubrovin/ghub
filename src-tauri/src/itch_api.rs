@@ -46,7 +46,8 @@ pub struct ItchUploadPlatforms {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ItchUploadsResponse {
-    pub uploads: Option<Vec<ItchApiUpload>>,
+    #[serde(default)]
+    pub uploads: Option<Value>,
 }
 
 /// A single game returned by the authenticated itch.io search API.
@@ -115,7 +116,20 @@ impl ItchApiClient {
         let parsed: ItchUploadsResponse = serde_json::from_slice(&body)
             .map_err(|e| format!("Failed to parse uploads response: {} (body: {})", e, String::from_utf8_lossy(&body)))?;
 
-        Ok(parsed.uploads.unwrap_or_default())
+        let uploads = match parsed.uploads {
+            Some(Value::Array(arr)) => arr
+                .iter()
+                .map(|v| serde_json::from_value(v.clone()).map_err(|e| format!("Invalid upload item: {}", e)))
+                .collect::<Result<Vec<_>, _>>()?,
+            Some(Value::Object(map)) => map
+                .values()
+                .map(|v| serde_json::from_value(v.clone()).map_err(|e| format!("Invalid upload item: {}", e)))
+                .collect::<Result<Vec<_>, _>>()?,
+            Some(Value::Null) | None => Vec::new(),
+            _ => return Err(format!("Unexpected uploads type in response: {}", String::from_utf8_lossy(&body))),
+        };
+
+        Ok(uploads)
     }
 
     /// Request a signed download URL for a specific upload.

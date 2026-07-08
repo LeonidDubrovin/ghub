@@ -221,6 +221,8 @@
       "title": "Select upload variant",
       "description": "Choose the file to download",
       "noUploads": "No uploads available",
+      "noUploadsDescription": "This game may be paid, require claiming on itch.io, or be browser-only.",
+      "openPage": "Open on itch.io",
       "loading": "Loading upload list...",
       "addedAt": "Added: {{date}}"
     }

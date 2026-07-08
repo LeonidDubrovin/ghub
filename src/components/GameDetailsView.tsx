@@ -315,12 +315,6 @@ export default function GameDetailsView({
         return;
       }
       const data = await invoke<ItchUpload[]>('get_itch_game_uploads', { gameUrl: itchLink.url, gameTitle: selectedGame.title });
-      if (data.length === 0) {
-        setShowUploadDialog(false);
-        setDownloadError(t('errors.noUploads'));
-        setDownloadErrorLinkId(itchLink.id);
-        return;
-      }
       setUploads(data);
     } catch (e) {
       console.error('Failed to start download:', e);
@@ -847,6 +841,7 @@ export default function GameDetailsView({
         <SelectUploadDialog
           uploads={uploads}
           isLoading={isFetchingUploads}
+          linkUrl={itchLink?.url}
           onClose={() => {
             setShowUploadDialog(false);
             setIsFetchingUploads(false);
