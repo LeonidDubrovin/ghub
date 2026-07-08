@@ -1737,12 +1737,13 @@ impl Database {
              ORDER BY g.added_at DESC"
         )?;
 
-        let games = stmt
+        let mut games = stmt
             .query_map([queue_space], |row| {
                 Self::map_game_row_with_install(row)
             })?
             .collect::<Result<Vec<_>>>()?;
 
+        self.load_game_classifications(&mut games)?;
         Ok(games)
     }
 
