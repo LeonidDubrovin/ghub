@@ -202,6 +202,13 @@ export default function Sidebar({
                 <span className="flex-1 text-left">{space.name}</span>
               </button>
             ))}
+            <button
+              onClick={onAddLink}
+              className="sidebar-item w-full text-accent hover:bg-accent/10"
+            >
+              <LinkIcon />
+              <span className="flex-1 text-left">{t('sidebar.addLink')}</span>
+            </button>
           </div>
         </nav>
 
@@ -247,13 +254,6 @@ export default function Sidebar({
         </div>
 
         <div className="p-3 border-t border-surface-100 flex flex-col gap-1">
-          <button
-            onClick={onAddLink}
-            className="sidebar-item w-full justify-center text-accent hover:bg-accent/10"
-          >
-            <LinkIcon />
-            <span>{t('sidebar.addLink')}</span>
-          </button>
           <button
             onClick={onAddSpace}
             className="sidebar-item w-full justify-center text-accent hover:bg-accent/10"
