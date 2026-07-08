@@ -90,6 +90,7 @@ pub fn run() {
             commands::get_all_spaces,
             commands::create_space,
             commands::delete_space,
+            commands::update_space_name,
             commands::get_space_sources,
             commands::add_space_source,
             commands::remove_space_source,

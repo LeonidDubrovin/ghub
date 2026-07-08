@@ -24,6 +24,19 @@ export function useCreateSpace() {
   });
 }
 
+export function useUpdateSpaceName() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      return await invoke('update_space_name', { id, name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['spaces'] });
+    },
+  });
+}
+
 export function useDeleteSpace() {
   const queryClient = useQueryClient();
   

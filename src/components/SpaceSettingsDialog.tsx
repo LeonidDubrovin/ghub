@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSpaceSources, useAddSpaceSource, useRemoveSpaceSource, useUpdateSpaceSource } from '../hooks/useSpaces';
+import { useSpaceSources, useAddSpaceSource, useRemoveSpaceSource, useUpdateSpaceSource, useUpdateSpaceName } from '../hooks/useSpaces';
 import { open } from '@tauri-apps/plugin-dialog';
 import type { Space, SpaceSource } from '../types';
 
@@ -15,9 +15,11 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
   const addSpaceSource = useAddSpaceSource();
   const removeSpaceSource = useRemoveSpaceSource();
   const updateSpaceSource = useUpdateSpaceSource();
-   
+  const updateSpaceName = useUpdateSpaceName();
+
   const [isSelectingFolder, setIsSelectingFolder] = useState(false);
   const [removingSource, setRemovingSource] = useState<string | null>(null);
+  const [spaceName, setSpaceName] = useState(space.name);
   
   const handleSelectFolder = async () => {
     try {
@@ -83,6 +85,16 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
     });
     refetchSources();
   };
+
+  const handleSaveName = async () => {
+    if (!spaceName.trim() || spaceName.trim() === space.name) return;
+    try {
+      await updateSpaceName.mutateAsync({ id: space.id, name: spaceName.trim() });
+    } catch (err) {
+      console.error('Failed to rename space:', err);
+      alert(err instanceof Error ? err.message : String(err));
+    }
+  };
   
   
   return (
@@ -91,11 +103,23 @@ export default function SpaceSettingsDialog({ space, onClose }: SpaceSettingsDia
         <div className="bg-surface-300 rounded-xl w-full max-w-2xl shadow-2xl">
           {/* Header */}
           <div className="p-4 border-b border-surface-100 flex items-center justify-between">
-            <div>
+            <div className="flex-1 min-w-0 mr-4">
               <h2 className="text-lg font-semibold">{t('space.settingsTitle')}</h2>
-              <p className="text-sm text-gray-400">{space.name}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="text"
+                  value={spaceName}
+                  onChange={(e) => setSpaceName(e.target.value)}
+                  onBlur={handleSaveName}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); } }}
+                  className="flex-1 min-w-0 px-2 py-1 bg-surface-200 rounded text-sm text-white focus:ring-1 focus:ring-accent outline-none"
+                />
+                {updateSpaceName.isPending && (
+                  <span className="text-xs text-gray-400">{t('common.saving')}</span>
+                )}
+              </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="text-gray-500 hover:text-white"
             >

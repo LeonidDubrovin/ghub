@@ -83,6 +83,12 @@ pub fn remove_space_source(
 }
 
 #[tauri::command]
+pub fn update_space_name(state: State<AppState>, id: String, name: String) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.update_space_name(&id, &name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn delete_space(state: State<AppState>, id: String) -> Result<(), String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
     let space = db.get_space_by_id(&id).map_err(|e| e.to_string())?;

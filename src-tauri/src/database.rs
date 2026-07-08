@@ -513,6 +513,14 @@ impl Database {
         self.get_space_by_id(id)
     }
 
+    pub fn update_space_name(&self, id: &str, name: &str) -> Result<()> {
+        self.conn.execute(
+            "UPDATE spaces SET name = ?, updated_at = datetime('now') WHERE id = ?",
+            params![name, id],
+        )?;
+        Ok(())
+    }
+
     pub fn delete_space(&self, id: &str) -> Result<()> {
         self.conn
             .execute("UPDATE spaces SET is_active = 0 WHERE id = ?", [id])?;
