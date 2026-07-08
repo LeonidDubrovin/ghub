@@ -303,3 +303,13 @@ fn normalize_path(path: &Path) -> PathBuf {
     std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
+#[tauri::command]
+pub fn get_last_scan_result(
+    state: State<AppState>,
+    space_id: String,
+    source_path: String,
+) -> Result<Option<crate::scanning_service::ScanResult>, String> {
+    let scanning_service = state.scanning_service.lock().map_err(|e| e.to_string())?;
+    Ok(scanning_service.get_last_scan_result(&space_id, &source_path))
+}
+

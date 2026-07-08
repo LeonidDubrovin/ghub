@@ -99,6 +99,7 @@ pub fn run() {
             commands::start_source_scan,
             commands::get_source_scan_status,
             commands::cancel_source_scan,
+            commands::get_last_scan_result,
             commands::get_all_games,
             commands::get_games_by_space,
             commands::get_games_by_source,

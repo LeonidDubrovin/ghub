@@ -5,6 +5,7 @@ use lazy_static::lazy_static;
 use log::{debug, error, info};
 use regex::Regex;
 use rusqlite::params;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -44,8 +45,17 @@ struct ScanHandle {
     cancel_flag: Arc<AtomicBool>,
 }
 
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct ScanResult {
+    pub new_games: usize,
+    pub modified_games: usize,
+    pub missing_games: usize,
+    pub total_games: usize,
+}
+
 pub struct ScanningService {
     active_scans: Arc<Mutex<HashMap<String, ScanHandle>>>,
+    last_results: Arc<Mutex<HashMap<String, ScanResult>>>,
 }
 
 impl ScanningService {
@@ -54,6 +64,7 @@ impl ScanningService {
     pub fn new() -> Self {
         Self {
             active_scans: Arc::new(Mutex::new(HashMap::new())),
+            last_results: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -70,6 +81,7 @@ impl ScanningService {
         let cancel_flag_clone = cancel_flag.clone();
         let db_clone = db.clone();
         let active_scans_clone = self.active_scans.clone();
+        let last_results_clone = self.last_results.clone();
         let space_id_clone = space_id.clone();
         let source_path_clone = source_path.clone();
         let key_for_cleanup = key.clone();
@@ -127,6 +139,7 @@ impl ScanningService {
                     space_id_for_scan,
                     source_path_for_scan,
                     cancel_flag_for_scan,
+                    last_results_clone,
                 )
             });
 
@@ -196,6 +209,13 @@ impl ScanningService {
             .map_err(|e| e.to_string())
     }
 
+    /// Get the last scan result for a source
+    pub fn get_last_scan_result(&self, space_id: &str, source_path: &str) -> Option<ScanResult> {
+        let key = format!("{}:{}", space_id, source_path);
+        let results = self.last_results.lock().unwrap();
+        results.get(&key).cloned()
+    }
+
     /// Check if a scan is currently active for the given source
     pub fn is_scan_active(&self, space_id: &str, source_path: &str) -> bool {
         let key = format!("{}:{}", space_id, source_path);
@@ -213,6 +233,7 @@ impl ScanningService {
         space_id: String,
         source_path: String,
         cancel_flag: Arc<AtomicBool>,
+        last_results: Arc<Mutex<HashMap<String, ScanResult>>>,
     ) {
         debug!("[SCAN_SOURCE] Entered scan_source for {}", source_path);
         
@@ -286,77 +307,10 @@ impl ScanningService {
                     debug!("[SCAN_SOURCE] Set initial total: {} games", total_games_i32);
                 }
 
-                // Mark all existing installs for this source as missing initially
-                // We'll unmark them as we find them
-                {
-                    let db_lock = db.lock().unwrap();
-                    
-                    // Delete any install that points exactly to the source directory itself
-                    // This cleans up false entries from previous scans where the source was treated as a game
-                    // We need to handle case-insensitivity and trailing separators for Windows
-                    let source_path_lower = source_path.to_lowercase();
-                    let source_normalized = source_path_lower.trim_end_matches(['\\', '/']).to_string();
-                    
-                    // Fetch all installs for this space to check manually (more reliable than prefix query)
-                    if let Ok(mut stmt) = db_lock.conn.prepare("SELECT id, install_path FROM installs WHERE space_id = ?") {
-                        if let Ok(mut rows) = stmt.query(params![space_id]) {
-                            let mut total_deleted = 0;
-                            loop {
-                                match rows.next() {
-                                    Ok(Some(row)) => {
-                                        // Get install_id and install_path from row
-                                        let install_id: String = row.get(0).unwrap_or_else(|_| String::new());
-                                        let install_path: String = row.get(1).unwrap_or_else(|_| String::new());
-                                        if !install_id.is_empty() {
-                                            let install_lower = install_path.to_lowercase();
-                                            let install_normalized = install_lower.trim_end_matches(['\\', '/']).to_string();
-                                            
-                                            // Check if this install's normalized path matches the source normalized path
-                                            if install_normalized == source_normalized {
-                                                debug!("[SCAN_SOURCE] Deleting false install: id={}, path={}", install_id, install_path);
-                                                if let Err(e) = db_lock.conn.execute("DELETE FROM installs WHERE id = ?", params![install_id]) {
-                                                    debug!("[SCAN_SOURCE] Failed to delete install {}: {}", install_id, e);
-                                                } else {
-                                                    total_deleted += 1;
-                                                }
-                                            }
-                                        }
-                                    }
-                                    Ok(None) => break,
-                                    Err(e) => {
-                                        debug!("[SCAN_SOURCE] Query error while scanning rows: {}", e);
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            if total_deleted > 0 {
-                                debug!("[SCAN_SOURCE] Deleted {} false install(s) with path equal to source", total_deleted);
-                                // Clean up orphaned games (those with no remaining installs)
-                                let _ = db_lock.conn.execute(
-                                    "DELETE FROM games WHERE id NOT IN (SELECT DISTINCT game_id FROM installs)",
-                                    [],
-                                );
-                            }
-                        }
-                    }
-
-                    // Now mark remaining installs for this source as missing
-                    // Use the prefix query which correctly finds subdirectory installs
-                    if let Ok(mut existing_installs) = db_lock.get_installs_for_source(&space_id, &source_path) {
-                        for (idx, install) in existing_installs.iter_mut().enumerate() {
-                            // Check cancellation periodically
-                            if idx % 100 == 0 && cancel_flag.load(Ordering::SeqCst) {
-                                info!("Scan cancelled during mark-missing loop for source: {}", source_path);
-                                return;
-                            }
-                            install.status = "missing".to_string();
-                            let _ = db_lock.update_install_status(&install.id, "missing");
-                        }
-                    }
-                    // Drop db_lock explicitly to release it before continuing
-                    drop(db_lock);
-                }
+                // Track which existing installs were found during the scan
+                let mut found_install_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+                let mut new_games = 0usize;
+                let mut modified_games = 0usize;
 
                 // Process each found game
                 for (idx, scanned_game) in games.iter().enumerate() {
@@ -400,6 +354,7 @@ impl ScanningService {
                                     "modified",
                                     Some(&new_fingerprint),
                                 );
+                                modified_games += 1;
                             } else {
                                 debug!("Game already installed, marking as installed: {}", scanned_game.title);
                                 let _ = db_lock.update_install(
@@ -408,6 +363,14 @@ impl ScanningService {
                                     Some(&new_fingerprint),
                                 );
                             }
+                            // Update executable_path if it changed
+                            if existing_install.executable_path.as_deref() != scanned_game.executable.as_deref() {
+                                let _ = db_lock.update_install_executable_path(
+                                    &existing_install.id,
+                                    scanned_game.executable.as_deref(),
+                                );
+                            }
+                            found_install_ids.insert(existing_install.id.clone());
                             // Return existing game_id, don't create new install
                             (existing_install.game_id.clone(), None, new_fingerprint)
                         } else {
@@ -435,6 +398,7 @@ impl ScanningService {
                                         fingerprint
                                     ]
                                 );
+                                new_games += 1;
                                 (game.id.clone(), Some(new_install_id), fingerprint)
                             } else {
                                 // No matching game - create new game and install
@@ -467,6 +431,7 @@ impl ScanningService {
                                         fingerprint
                                     ]
                                 );
+                                new_games += 1;
                                 (new_game_id.clone(), Some(new_install_id), fingerprint)
                             }
                         }
@@ -488,11 +453,14 @@ impl ScanningService {
                 }
 
                 // Mark remaining installs as missing (those not found in scan)
+                let mut missing_games = 0usize;
                 {
                     let db_lock = db.lock().unwrap();
                     if let Ok(installs) = db_lock.get_installs_for_source(&space_id, &source_path) {
                         for install in installs {
-                            if install.status == "missing" {
+                            if !found_install_ids.contains(&install.id) {
+                                let _ = db_lock.update_install_status(&install.id, "missing");
+                                missing_games += 1;
                                 debug!(
                                     "Game missing: {} at {}",
                                     db_lock
@@ -500,11 +468,25 @@ impl ScanningService {
                                         .ok()
                                         .map(|g| g.title)
                                         .unwrap_or_else(|| "Unknown".to_string()),
-                                        install.install_path
+                                    install.install_path
                                 );
                             }
                         }
                     }
+                }
+
+                // Store scan result
+                {
+                    let mut results = last_results.lock().unwrap();
+                    results.insert(
+                        format!("{}:{}", space_id, source_path),
+                        ScanResult {
+                            new_games,
+                            modified_games,
+                            missing_games,
+                            total_games,
+                        },
+                    );
                 }
 
                 // Complete scan
@@ -521,8 +503,8 @@ impl ScanningService {
                 }
 
                 info!(
-                    "Scan completed for source {}: {} games found",
-                    source_path, total_games
+                    "Scan completed for source {}: {} games found, {} new, {} modified, {} missing",
+                    source_path, total_games, new_games, modified_games, missing_games
                 );
             }
             Err(err_msg) => {

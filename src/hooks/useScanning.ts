@@ -55,6 +55,25 @@ export function useStartSourceScan() {
 }
 
 /**
+ * Hook to get the last scan result for a source
+ */
+export function useLastScanResult(spaceId: string, sourcePath: string) {
+  return useQuery({
+    queryKey: ['last_scan_result', spaceId, sourcePath],
+    queryFn: async () => {
+      return await invoke<{
+        new_games: number;
+        modified_games: number;
+        missing_games: number;
+        total_games: number;
+      } | null>('get_last_scan_result', { spaceId, sourcePath });
+    },
+    enabled: false, // Only fetch when explicitly called
+    staleTime: 0,
+  });
+}
+
+/**
  * Hook to cancel a running scan
  */
 export function useCancelSourceScan() {

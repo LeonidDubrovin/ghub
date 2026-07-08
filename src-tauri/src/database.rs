@@ -1928,6 +1928,19 @@ impl Database {
         Ok(())
     }
 
+    /// Update only the executable path of an install
+    pub fn update_install_executable_path(
+        &self,
+        install_id: &str,
+        executable_path: Option<&str>,
+    ) -> Result<()> {
+        self.conn.execute(
+            "UPDATE installs SET executable_path = ?, updated_at = datetime('now') WHERE id = ?",
+            params![executable_path, install_id],
+        )?;
+        Ok(())
+    }
+
     /// Get all installs for a specific source (by path prefix)
     /// This finds all installs where install_path starts with the source_path
     /// Uses range query (>= and <) for reliable prefix matching across platforms

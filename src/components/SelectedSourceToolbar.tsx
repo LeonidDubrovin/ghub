@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { invoke } from '@tauri-apps/api/core';
 import { useStartSourceScan, useCancelSourceScan, useSourceScanStatus } from '../hooks/useScanning';
 import { useSpaceSources } from '../hooks/useSpaces';
 import type { SelectedSource, SpaceSource } from '../types';
@@ -41,15 +42,38 @@ export default function SelectedSourceToolbar({ selectedSource, onClose }: Selec
   const isScanning = scanStatus?.scan_status === 'scanning';
   const isCompleted = scanStatus?.scan_status === 'completed';
   const isError = scanStatus?.scan_status === 'error';
+  const prevStatusRef = useRef<string | undefined>(undefined);
 
-  // Auto-refresh games list when scan completes
+  // Auto-refresh games list and show scan result when scan completes
   useEffect(() => {
-    if (scanStatus?.scan_status === 'completed') {
+    const prevStatus = prevStatusRef.current;
+    prevStatusRef.current = scanStatus?.scan_status;
+    if (scanStatus?.scan_status === 'completed' && prevStatus === 'scanning') {
       queryClient.invalidateQueries({ queryKey: ['games'] });
       queryClient.invalidateQueries({ queryKey: ['games', selectedSource.spaceId] });
       queryClient.invalidateQueries({ queryKey: ['games', selectedSource.spaceId, selectedSource.sourcePath] });
+      // Fetch and show scan result summary
+      invoke<{
+        new_games: number;
+        modified_games: number;
+        missing_games: number;
+        total_games: number;
+      } | null>('get_last_scan_result', {
+        spaceId: selectedSource.spaceId,
+        sourcePath: selectedSource.sourcePath,
+      }).then((result) => {
+        if (result) {
+          const msg = t('space.scanResultSummary', {
+            total: result.total_games,
+            new: result.new_games,
+            modified: result.modified_games,
+            missing: result.missing_games,
+          }) || `Scan complete: ${result.total_games} found, ${result.new_games} new, ${result.modified_games} modified, ${result.missing_games} missing`;
+          alert(msg);
+        }
+      }).catch(() => {});
     }
-  }, [scanStatus, queryClient, selectedSource.spaceId, selectedSource.sourcePath]);
+  }, [scanStatus, queryClient, selectedSource.spaceId, selectedSource.sourcePath, t]);
   
   logger.debug('render', {
     selectedSource,
