@@ -160,7 +160,7 @@ pub async fn fetch_metadata_by_url_command(
 
 /// Apply metadata to a game while respecting existing fields.
 /// When `source_url` is provided, the source link is added/updated in `game_links`.
-fn apply_metadata_internal(
+pub(crate) fn apply_metadata_internal(
     db: &crate::database::Database,
     game_id: &str,
     meta: &MetadataSearchResult,

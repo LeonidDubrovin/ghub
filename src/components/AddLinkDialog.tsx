@@ -68,12 +68,6 @@ export default function AddLinkDialog({ onClose, onAdd, onOpenGame }: AddLinkDia
         onAdd();
       }
 
-      const singleNewGame = singleUrl && newGames.length === 1 && duplicateGames.length === 0 && errors.length === 0;
-      if (singleNewGame) {
-        onClose();
-        return;
-      }
-
       if (newGames.length > 0 || duplicateGames.length > 0 || errors.length > 0) {
         setResult({ newGames, duplicateGames, duplicateLinks, errors });
       } else {

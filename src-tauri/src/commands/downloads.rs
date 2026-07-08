@@ -99,6 +99,12 @@ pub async fn create_game_from_link(
         )
         .map_err(|e| e.to_string())?;
 
+        // Apply full metadata (genres, tags, external links) when available.
+        if let (Some(st), Some(ref meta)) = (source_type, &best_match) {
+            crate::commands::metadata::apply_metadata_internal(&db, &game_id, meta, Some(st), Some(&url))
+                .map_err(|e| e.to_string())?;
+        }
+
         db.get_game_by_id(&game_id).map_err(|e| e.to_string())?
     };
 
