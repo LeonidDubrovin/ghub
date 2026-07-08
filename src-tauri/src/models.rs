@@ -154,6 +154,7 @@ pub struct GameLink {
     pub id: String,
     pub game_id: String,
     pub url: String,
+    pub canonical_url: Option<String>,
     pub title: Option<String>,
     pub source_type: Option<String>, // 'steam', 'itch', 'gog', etc.
     pub download_status: Option<String>, // pending, external, browser, downloaded, error

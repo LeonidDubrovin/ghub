@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
-import type { Game, MetadataSearchResult, ScannedGame, Install, GameLink } from '../types';
+import type { Game, MetadataSearchResult, ScannedGame, Install, GameLink, AddGameLinkResponse } from '../types';
 import { createLoggerForComponent } from '../lib/logger';
 
 type SourceStatus = 'idle' | 'loading' | 'done' | 'empty' | 'error';
@@ -11,6 +11,7 @@ interface MetadataSearchDialogProps {
   games: Game[];
   onClose: () => void;
   onSave: () => void;
+  onOpenGame?: (game: Game, link?: GameLink) => void;
   mode?: 'search' | 'update';
 }
 
@@ -42,6 +43,7 @@ export default function MetadataSearchDialog({
   games,
   onClose,
   onSave,
+  onOpenGame,
   mode = 'search',
 }: MetadataSearchDialogProps) {
   const logger = createLoggerForComponent('MetadataSearchDialog');
@@ -64,6 +66,7 @@ export default function MetadataSearchDialog({
   });
   const [results, setResults] = useState<MetadataSearchResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<MetadataSearchResult | null>(null);
+  const [duplicateLink, setDuplicateLink] = useState<{ game: Game; link: GameLink } | null>(null);
   const [fields, setFields] = useState<FieldSelection>({
     title: true,
     description: true,
@@ -319,6 +322,8 @@ export default function MetadataSearchDialog({
 
     setIsApplying(true);
     setError(null);
+    setDuplicateLink(null);
+    let linkDuplicate: { game: Game; link: GameLink } | null = null;
 
     try {
       await invoke('update_game', {
@@ -334,7 +339,7 @@ export default function MetadataSearchDialog({
 
       if (selectedResult.url) {
         try {
-          await invoke('add_game_link', {
+          const response = await invoke<AddGameLinkResponse>('add_game_link', {
             gameId: currentGame.id,
             url: selectedResult.url,
             title: selectedResult.name,
@@ -342,13 +347,19 @@ export default function MetadataSearchDialog({
             downloadStatus: null,
             queueSpace: null,
           });
+          if (response.is_duplicate && response.existing_game) {
+            linkDuplicate = { game: response.existing_game, link: response.link };
+            setDuplicateLink(linkDuplicate);
+          }
         } catch (linkErr) {
           logger.warn('Failed to add source link:', linkErr);
           // Do not fail the whole operation if only the link could not be added
         }
       }
 
-      onSave();
+      if (!linkDuplicate) {
+        onSave();
+      }
       return true;
     } catch (err) {
       logger.error('Failed to apply metadata:', err);
@@ -524,6 +535,25 @@ export default function MetadataSearchDialog({
         {error && (
           <div className="mx-6 mt-4 p-3 bg-danger/20 border border-danger/50 rounded-lg text-danger text-sm flex items-center gap-2">
             ⚠️ {error}
+          </div>
+        )}
+
+        {duplicateLink && (
+          <div className="mx-6 mt-4 p-3 bg-warning/20 border border-warning/50 rounded-lg text-warning text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span>{t('metadataSearch.duplicateLink', { title: duplicateLink.game.title })}</span>
+              {onOpenGame && (
+                <button
+                  onClick={() => {
+                    onOpenGame(duplicateLink.game, duplicateLink.link);
+                    onClose();
+                  }}
+                  className="btn btn-sm btn-primary"
+                >
+                  {t('dialog.addLinkResult.openCard')}
+                </button>
+              )}
+            </div>
           </div>
         )}
 

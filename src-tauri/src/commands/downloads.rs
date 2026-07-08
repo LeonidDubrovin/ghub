@@ -1,5 +1,5 @@
 ﻿use crate::download_service;
-use crate::models::Game;
+use crate::models::{Game, GameLink};
 use crate::AppState;
 use log::{error, info};
 use serde::Serialize;
@@ -12,6 +12,13 @@ pub struct DownloadGameLinkResponse {
     pub status: String,
 }
 
+#[derive(Serialize)]
+pub struct CreateGameFromLinkResponse {
+    pub game: Game,
+    pub is_duplicate: bool,
+    pub existing_link: Option<GameLink>,
+}
+
 #[tauri::command]
 pub fn get_download_games(state: State<AppState>) -> Result<Vec<Game>, String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
@@ -22,8 +29,24 @@ pub fn get_download_games(state: State<AppState>) -> Result<Vec<Game>, String> {
 pub async fn create_game_from_link(
     state: State<'_, AppState>,
     url: String,
-) -> Result<Game, String> {
+) -> Result<CreateGameFromLinkResponse, String> {
     let (source_type, query) = download_service::parse_link_url(&url);
+    let canonical_url = crate::url_utils::canonical_url(&url, source_type);
+
+    // Check whether the same link already points to an existing game card.
+    {
+        let db = state.db.lock().map_err(|e| e.to_string())?;
+        if let Some((existing_game, existing_link)) = db
+            .find_game_by_canonical_url(&canonical_url)
+            .map_err(|e| e.to_string())?
+        {
+            return Ok(CreateGameFromLinkResponse {
+                game: existing_game,
+                is_duplicate: true,
+                existing_link: Some(existing_link),
+            });
+        }
+    }
 
     // Fetch exact metadata from the source page when the source type is known.
     let best_match = if let Some(st) = source_type {
@@ -68,6 +91,7 @@ pub async fn create_game_from_link(
             &link_id,
             &game_id,
             &url,
+            Some(&canonical_url),
             Some(&title),
             source_type,
             Some(download_status),
@@ -78,7 +102,11 @@ pub async fn create_game_from_link(
         db.get_game_by_id(&game_id).map_err(|e| e.to_string())?
     };
 
-    Ok(game)
+    Ok(CreateGameFromLinkResponse {
+        game,
+        is_duplicate: false,
+        existing_link: None,
+    })
 }
 
 #[tauri::command]

@@ -1,9 +1,18 @@
 use crate::models::{Game, Install, CreateGameRequest, UpdateGameRequest, GameLink};
 use crate::AppState;
-use tauri::State;
+use serde::Serialize;
 use std::path::Path;
+use tauri::State;
+
+#[derive(Serialize)]
+pub struct AddGameLinkResponse {
+    pub link: GameLink,
+    pub is_duplicate: bool,
+    pub existing_game: Option<Game>,
+}
 
 #[tauri::command]
+
 pub fn get_all_games(state: State<AppState>) -> Result<Vec<Game>, String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.get_all_games().map_err(|e| e.to_string())
@@ -109,19 +118,48 @@ pub fn add_game_link(
     source_type: Option<String>,
     download_status: Option<String>,
     queue_space: Option<String>,
-) -> Result<GameLink, String> {
+) -> Result<AddGameLinkResponse, String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
+    let canonical_url = crate::url_utils::canonical_url(&url, source_type.as_deref());
+
+    if let Some((existing_game, existing_link)) = db
+        .find_game_by_canonical_url(&canonical_url)
+        .map_err(|e| e.to_string())?
+    {
+        if existing_game.id != game_id {
+            return Ok(AddGameLinkResponse {
+                link: existing_link,
+                is_duplicate: true,
+                existing_game: Some(existing_game),
+            });
+        }
+        // Same game already has this canonical URL; return the existing link.
+        return Ok(AddGameLinkResponse {
+            link: existing_link,
+            is_duplicate: false,
+            existing_game: None,
+        });
+    }
+
     let link_id = uuid::Uuid::new_v4().to_string();
-    db.create_game_link(
-        &link_id,
-        &game_id,
-        &url,
-        title.as_deref(),
-        source_type.as_deref(),
-        download_status.as_deref(),
-        queue_space.as_deref(),
-    )
-    .map_err(|e: rusqlite::Error| e.to_string())
+    let new_link = db
+        .create_game_link(
+            &link_id,
+            &game_id,
+            &url,
+            Some(&canonical_url),
+            title.as_deref(),
+            source_type.as_deref(),
+            download_status.as_deref(),
+            queue_space.as_deref(),
+        )
+        .map_err(|e: rusqlite::Error| e.to_string())?;
+
+    Ok(AddGameLinkResponse {
+        link: new_link,
+        is_duplicate: false,
+        existing_game: None,
+    })
 }
 
 // ============ INSTALLS ============

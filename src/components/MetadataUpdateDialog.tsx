@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
-import type { Game, MetadataSearchResult, ScannedGame, Install, GameLink } from '../types';
+import type { Game, MetadataSearchResult, ScannedGame, Install, GameLink, AddGameLinkResponse } from '../types';
 import { createLoggerForComponent } from '../lib/logger';
 
 interface MetadataUpdateDialogProps {
@@ -9,6 +9,7 @@ interface MetadataUpdateDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
+  onOpenGame?: (game: Game, link?: GameLink) => void;
 }
 
 type Section = 'local' | 'current' | 'find';
@@ -51,6 +52,7 @@ export default function MetadataUpdateDialog({
   isOpen,
   onClose,
   onSave,
+  onOpenGame,
 }: MetadataUpdateDialogProps) {
   const logger = useMemo(() => createLoggerForComponent('MetadataUpdateDialog'), []);
   const { t } = useTranslation();
@@ -59,6 +61,7 @@ export default function MetadataUpdateDialog({
   const [activeSection, setActiveSection] = useState<Section>('find');
   const [installs, setInstalls] = useState<Install[]>([]);
   const [gameLinks, setGameLinks] = useState<GameLink[]>([]);
+  const [duplicateLink, setDuplicateLink] = useState<{ game: Game; link: GameLink } | null>(null);
 
   // Local section
   const [localScanned, setLocalScanned] = useState<ScannedGame | null>(null);
@@ -96,6 +99,11 @@ export default function MetadataUpdateDialog({
 
   // Search by title section
   const [query, setQuery] = useState(game.title);
+  useEffect(() => {
+    if (isOpen) {
+      setQuery(game.title);
+    }
+  }, [isOpen, game.title]);
   const [includeSources, setIncludeSources] = useState<SourceState>({ steam: true, itch: true });
   const [sourceStatus, setSourceStatus] = useState<SourceStatusMap>({
     steam: 'idle',
@@ -143,7 +151,7 @@ export default function MetadataUpdateDialog({
 
     if (result.url) {
       try {
-        await invoke('add_game_link', {
+        const response = await invoke<AddGameLinkResponse>('add_game_link', {
           gameId: game.id,
           url: result.url,
           title: result.name,
@@ -151,6 +159,9 @@ export default function MetadataUpdateDialog({
           downloadStatus: null,
           queueSpace: null,
         });
+        if (response.is_duplicate && response.existing_game) {
+          setDuplicateLink({ game: response.existing_game, link: response.link });
+        }
       } catch (linkErr) {
         logger.warn('Failed to add source link:', linkErr);
       }
@@ -871,6 +882,24 @@ export default function MetadataUpdateDialog({
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">
+            {duplicateLink && (
+              <div className="mb-4 p-3 bg-warning/20 border border-warning/50 rounded-lg text-warning text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{t('metadataUpdate.duplicateLink', { title: duplicateLink.game.title })}</span>
+                  {onOpenGame && (
+                    <button
+                      onClick={() => {
+                        onOpenGame(duplicateLink.game, duplicateLink.link);
+                        onClose();
+                      }}
+                      className="btn btn-sm btn-primary"
+                    >
+                      {t('dialog.addLinkResult.openCard')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
             {isInitializing ? (
               <div className="h-full flex flex-col items-center justify-center text-gray-500">
                 <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin mb-3" />

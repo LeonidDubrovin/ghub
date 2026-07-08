@@ -13,7 +13,7 @@ import ContextMenu, { ContextMenuItem } from './components/ContextMenu';
 import ResizeHandle from './components/ResizeHandle';
 import { useSpaces, useDeleteSpace } from './hooks/useSpaces';
 import { useGames, useDeleteGame } from './hooks/useGames';
-import type { Game, Install, Space, SelectedSource, SortField, SortOrder } from './types';
+import type { Game, GameLink, Install, Space, SelectedSource, SortField, SortOrder } from './types';
 import { createLoggerForComponent } from './lib/logger';
 
 import BatchMetadataDialog from './components/BatchMetadataDialog';
@@ -290,7 +290,25 @@ function App() {
     clearSelection();
   };
 
+  const handleOpenGameCard = (game: Game, link?: GameLink) => {
+    setSelectedFilter('all');
+    if (link?.queue_space) {
+      setSelectedSpaceId(link.queue_space);
+      setSelectedSource(null);
+    } else if (game.space_id) {
+      setSelectedSpaceId(game.space_id);
+      setSelectedSource(null);
+    } else {
+      setSelectedSpaceId(null);
+      setSelectedSource(null);
+    }
+    clearSelection();
+    setSelectedGameForDetails(game);
+    setShowAddLink(false);
+  };
+
   const handleSortChange = (field: SortField) => {
+
     if (sortBy === field) {
       // Toggle direction if same field
       setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -548,9 +566,9 @@ function App() {
       </main>
 
       {showAddSpace && <AddSpaceDialog onClose={() => setShowAddSpace(false)} />}
-      {showAddLink && <AddLinkDialog onClose={() => setShowAddLink(false)} onAdd={() => { refetchGames(); }} />}
+      {showAddLink && <AddLinkDialog onClose={() => setShowAddLink(false)} onAdd={() => { refetchGames(); }} onOpenGame={handleOpenGameCard} />}
       {showScan && <ScanDialog spaces={spaces} onClose={() => setShowScan(false)} />}
-      {editingGame && <EditGameDialog game={editingGame} onClose={() => setEditingGame(null)} onSave={handleGameSaved} />}
+      {editingGame && <EditGameDialog game={editingGame} onClose={() => setEditingGame(null)} onSave={handleGameSaved} onOpenGame={handleOpenGameCard} />}
        {showBatchMetadata && (
          <BatchMetadataDialog
            games={games.filter(g => selectedGameIds.has(g.id))}
@@ -562,6 +580,7 @@ function App() {
              setSelectedGameIds(new Set());
              setLastSelectedGameId(null);
            }}
+           onOpenGame={handleOpenGameCard}
          />
        )}
 
@@ -578,6 +597,7 @@ function App() {
             setShowMetadataUpdateDialog(false);
             setSelectedGameForMetadataUpdate(null);
           }}
+          onOpenGame={handleOpenGameCard}
         />
       )}
 

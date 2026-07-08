@@ -173,7 +173,8 @@
     "favoriteOn": "Favorited",
     "favoriteOff": "Add to favorites",
     "confirmDelete": "Delete game?",
-    "noDescription": "No description"
+    "noDescription": "No description",
+    "duplicateLink": "This link already belongs to \"{{title}}\""
   },
   "links": {
     "title": "Downloads / Links",
@@ -199,6 +200,14 @@
       "placeholderMulti": "One URL per line...",
       "partialError": "Some links could not be added:",
       "autoMetadataHint": "Metadata will be fetched automatically"
+    },
+    "addLinkResult": {
+      "title": "Add link results",
+      "added": "Added ({{count}})",
+      "duplicates": "Already exists ({{count}})",
+      "errors": "Errors ({{count}})",
+      "openCard": "Open card",
+      "close": "Close"
     },
     "selectTargetSpace": {
       "title": "Select download target",
@@ -259,6 +268,7 @@
     "urlPlaceholder": "Paste a Steam or itch.io link...",
     "unknownUrl": "Could not recognize the link source. Use Steam or itch.io.",
     "noExactMetadata": "Could not fetch metadata from the link",
+    "duplicateLink": "This link already belongs to \"{{title}}\"",
     "executable": "Executable",
     "noDescription": "No description"
   },
@@ -296,7 +306,8 @@
     "searchPlaceholder": "Enter game name...",
     "applySearch": "Apply selected result",
     "unknownUrl": "Could not recognize the link source. Use Steam or itch.io links.",
-    "noExactMetadata": "Could not fetch metadata from the link. The page may be unavailable or the link may be wrong."
+    "noExactMetadata": "Could not fetch metadata from the link. The page may be unavailable or the link may be wrong.",
+    "duplicateLink": "This link already belongs to \"{{title}}\""
   },
   "metadataSelect": {
     "fields": "Fields to update",

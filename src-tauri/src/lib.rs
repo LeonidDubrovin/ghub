@@ -11,6 +11,7 @@ mod download_service;
 mod http_constants;
 mod crypto;
 mod itch_api;
+mod url_utils;
 
 use tauri::Manager;
 use std::path::PathBuf;

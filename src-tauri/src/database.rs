@@ -137,6 +137,7 @@ impl Database {
                 id              TEXT PRIMARY KEY,
                 game_id         TEXT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
                 url             TEXT NOT NULL,
+                canonical_url   TEXT,
                 title           TEXT,
                 source_type     TEXT, -- 'steam', 'itch', 'gog', 'epic', etc.
                 download_status TEXT,  -- pending, external, browser, downloaded, error
@@ -176,6 +177,12 @@ impl Database {
         self.add_column_if_missing("installs", "fingerprint TEXT")?;
         self.add_column_if_missing("game_links", "download_status TEXT")?;
         self.add_column_if_missing("game_links", "queue_space TEXT")?;
+        self.add_column_if_missing("game_links", "canonical_url TEXT")?;
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_game_links_canonical_url ON game_links(canonical_url)",
+            [],
+        )?;
+        self.migrate_game_links_canonical_url()?;
         self.add_column_if_missing("spaces", "is_system INTEGER DEFAULT 0")?;
 
         // Migration: Remove the old UNIQUE(game_id, space_id) constraint so a game can have multiple installs in one space.
@@ -220,6 +227,31 @@ impl Database {
             "UPDATE game_links SET queue_space = NULL WHERE queue_space IS NULL AND download_status = 'downloaded'",
             [],
         )?;
+        Ok(())
+    }
+
+    fn migrate_game_links_canonical_url(&self) -> Result<()> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, url, source_type FROM game_links WHERE canonical_url IS NULL"
+        )?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>>>()?;
+        drop(stmt);
+
+        for (id, url, source_type) in rows {
+            let canonical = crate::url_utils::canonical_url(&url, source_type.as_deref());
+            self.conn.execute(
+                "UPDATE game_links SET canonical_url = ? WHERE id = ?",
+                params![canonical, id],
+            )?;
+        }
         Ok(())
     }
 
@@ -1240,7 +1272,7 @@ impl Database {
 
     pub fn get_game_link_by_id(&self, id: &str) -> Result<GameLink> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, game_id, url, title, source_type, download_status, queue_space, created_at
+            "SELECT id, game_id, url, canonical_url, title, source_type, download_status, queue_space, created_at
              FROM game_links
              WHERE id = ?"
         )?;
@@ -1250,18 +1282,19 @@ impl Database {
                 id: row.get(0)?,
                 game_id: row.get(1)?,
                 url: row.get(2)?,
-                title: row.get(3)?,
-                source_type: row.get(4)?,
-                download_status: row.get(5)?,
-                queue_space: row.get(6)?,
-                created_at: row.get(7)?,
+                canonical_url: row.get(3)?,
+                title: row.get(4)?,
+                source_type: row.get(5)?,
+                download_status: row.get(6)?,
+                queue_space: row.get(7)?,
+                created_at: row.get(8)?,
             })
         })
     }
 
     pub fn get_game_links(&self, game_id: &str) -> Result<Vec<GameLink>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, game_id, url, title, source_type, download_status, queue_space, created_at
+            "SELECT id, game_id, url, canonical_url, title, source_type, download_status, queue_space, created_at
              FROM game_links
              WHERE game_id = ?
              ORDER BY created_at DESC"
@@ -1273,11 +1306,12 @@ impl Database {
                     id: row.get(0)?,
                     game_id: row.get(1)?,
                     url: row.get(2)?,
-                    title: row.get(3)?,
-                    source_type: row.get(4)?,
-                    download_status: row.get(5)?,
-                    queue_space: row.get(6)?,
-                    created_at: row.get(7)?,
+                    canonical_url: row.get(3)?,
+                    title: row.get(4)?,
+                    source_type: row.get(5)?,
+                    download_status: row.get(6)?,
+                    queue_space: row.get(7)?,
+                    created_at: row.get(8)?,
                 })
             })?
             .collect::<Result<Vec<_>>>()?;
@@ -1285,11 +1319,59 @@ impl Database {
         Ok(links)
     }
 
+    pub fn find_game_by_canonical_url(
+        &self,
+        canonical_url: &str,
+    ) -> Result<Option<(Game, GameLink)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT g.id, g.title, g.sort_title, g.description, g.release_date, g.developer, g.publisher,
+                    g.cover_image, g.background_image, g.total_playtime_seconds, g.last_played_at,
+                    g.times_launched, g.is_favorite, g.is_hidden, g.completion_status, g.user_rating,
+                    g.added_at, g.updated_at, g.external_link,
+                    l.id, l.game_id, l.url, l.canonical_url, l.title, l.source_type, l.download_status, l.queue_space, l.created_at
+             FROM games g
+             JOIN game_links l ON g.id = l.game_id
+             WHERE l.canonical_url = ?
+             LIMIT 1"
+        )?;
+
+        let result = stmt.query_row([canonical_url], |row| {
+            let mut game = Self::map_game_base(row)?;
+            // find_game_by_canonical_url returns a bare game row without install joins.
+            game.space_id = None;
+            game.space_name = None;
+            game.space_type = None;
+            game.install_path = None;
+            game.executable_path = None;
+            game.install_status = None;
+            game.install_fingerprint = None;
+            let link = GameLink {
+                id: row.get(19)?,
+                game_id: row.get(20)?,
+                url: row.get(21)?,
+                canonical_url: row.get(22)?,
+                title: row.get(23)?,
+                source_type: row.get(24)?,
+                download_status: row.get(25)?,
+                queue_space: row.get(26)?,
+                created_at: row.get(27)?,
+            };
+            Ok((game, link))
+        });
+
+        match result {
+            Ok(pair) => Ok(Some(pair)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
     pub fn create_game_link(
         &self,
         id: &str,
         game_id: &str,
         url: &str,
+        canonical_url: Option<&str>,
         title: Option<&str>,
         source_type: Option<&str>,
         download_status: Option<&str>,
@@ -1297,14 +1379,15 @@ impl Database {
     ) -> Result<GameLink> {
         let created_at = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         self.conn.execute(
-            "INSERT INTO game_links (id, game_id, url, title, source_type, download_status, queue_space, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            params![id, game_id, url, title, source_type, download_status, queue_space, &created_at],
+            "INSERT INTO game_links (id, game_id, url, canonical_url, title, source_type, download_status, queue_space, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            params![id, game_id, url, canonical_url, title, source_type, download_status, queue_space, &created_at],
         )?;
 
         Ok(GameLink {
             id: id.to_string(),
             game_id: game_id.to_string(),
             url: url.to_string(),
+            canonical_url: canonical_url.map(String::from),
             title: title.map(String::from),
             source_type: source_type.map(String::from),
             download_status: download_status.map(String::from),

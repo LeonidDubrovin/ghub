@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
-import type { Game, GameLink } from '../types';
+import type { Game, GameLink, AddGameLinkResponse } from '../types';
 import { createLoggerForComponent } from '../lib/logger';
 
 interface EditGameDialogProps {
@@ -9,11 +9,12 @@ interface EditGameDialogProps {
   onClose: () => void;
   onSave: () => void;
   onDelete?: () => void;
+  onOpenGame?: (game: Game, link?: GameLink) => void;
 }
 
 import MetadataSearchDialog from './MetadataSearchDialog';
 
-export default function EditGameDialog({ game, onClose, onSave, onDelete }: EditGameDialogProps) {
+export default function EditGameDialog({ game, onClose, onSave, onDelete, onOpenGame }: EditGameDialogProps) {
   const logger = createLoggerForComponent('EditGameDialog');
   const { t } = useTranslation();
    
@@ -36,9 +37,11 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
    const [newLinkUrl, setNewLinkUrl] = useState('');
    const [newLinkTitle, setNewLinkTitle] = useState('');
    const [newLinkSource, setNewLinkSource] = useState<string>('other');
-   const [isAddingLink, setIsAddingLink] = useState(false);
-   const [isDeletingLink, setIsDeletingLink] = useState<string | null>(null);
-   const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isAddingLink, setIsAddingLink] = useState(false);
+    const [isDeletingLink, setIsDeletingLink] = useState<string | null>(null);
+    const [duplicateLink, setDuplicateLink] = useState<{ game: Game; link: GameLink } | null>(null);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+
   
   const handleSave = async () => {
     setIsSaving(true);
@@ -104,14 +107,15 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
      fetchLinks();
    }, [game.id]);
 
-   const handleAddLink = async () => {
-     if (!newLinkUrl.trim()) return;
-     
-     setIsAddingLink(true);
-     setError(null);
-     
-     try {
-        await invoke('add_game_link', {
+    const handleAddLink = async () => {
+      if (!newLinkUrl.trim()) return;
+      
+      setIsAddingLink(true);
+      setError(null);
+      setDuplicateLink(null);
+      
+      try {
+        const response = await invoke<AddGameLinkResponse>('add_game_link', {
           gameId: game.id,
           url: newLinkUrl.trim(),
           title: newLinkTitle.trim() || null,
@@ -119,19 +123,24 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
           downloadStatus: null,
           queueSpace: null,
         });
-       setNewLinkUrl('');
-       setNewLinkTitle('');
-       setNewLinkSource('other');
-       // Refresh links
-       const links = await invoke<GameLink[]>('get_game_links', { gameId: game.id });
-       setGameLinks(links);
-     } catch (err) {
-       logger.error('Add link failed:', err);
-       setError(String(err));
-     } finally {
-       setIsAddingLink(false);
-     }
-   };
+        if (response.is_duplicate && response.existing_game) {
+          setDuplicateLink({ game: response.existing_game, link: response.link });
+        } else {
+          setNewLinkUrl('');
+          setNewLinkTitle('');
+          setNewLinkSource('other');
+          // Refresh links
+          const links = await invoke<GameLink[]>('get_game_links', { gameId: game.id });
+          setGameLinks(links);
+        }
+      } catch (err) {
+        logger.error('Add link failed:', err);
+        setError(String(err));
+      } finally {
+        setIsAddingLink(false);
+      }
+    };
+
 
    const handleDeleteLink = async (linkId: string) => {
      setIsDeletingLink(linkId);
@@ -175,6 +184,27 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
              {error && (
               <div className="mb-4 p-3 bg-danger/20 border border-danger/50 rounded-lg text-danger text-sm flex items-center gap-2">
                 ⚠️ {error}
+              </div>
+            )}
+            
+            {duplicateLink && (
+              <div className="mb-4 p-3 bg-warning/20 border border-warning/50 rounded-lg text-warning text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span>
+                    {t('edit.duplicateLink', { title: duplicateLink.game.title })}
+                  </span>
+                  {onOpenGame && (
+                    <button
+                      onClick={() => {
+                        onOpenGame(duplicateLink.game, duplicateLink.link);
+                        onClose();
+                      }}
+                      className="btn btn-sm btn-primary"
+                    >
+                      {t('dialog.addLinkResult.openCard')}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
             
@@ -360,6 +390,7 @@ export default function EditGameDialog({ game, onClose, onSave, onDelete }: Edit
          games={[game]}
          onClose={() => setIsSearchOpen(false)}
          onSave={handleSearchSave}
+         onOpenGame={onOpenGame}
        />
      </div>
    );

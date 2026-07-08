@@ -2,18 +2,27 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { invoke } from '@tauri-apps/api/core';
 import { createLoggerForComponent } from '../lib/logger';
+import AddLinkResultDialog from './AddLinkResultDialog';
+import type { Game, GameLink, CreateGameFromLinkResponse } from '../types';
 
 interface AddLinkDialogProps {
   onClose: () => void;
   onAdd: () => void;
+  onOpenGame: (game: Game, link?: GameLink) => void;
 }
 
-export default function AddLinkDialog({ onClose, onAdd }: AddLinkDialogProps) {
+export default function AddLinkDialog({ onClose, onAdd, onOpenGame }: AddLinkDialogProps) {
   const logger = createLoggerForComponent('AddLinkDialog');
   const { t } = useTranslation();
   const [urls, setUrls] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{
+    newGames: Game[];
+    duplicateGames: Game[];
+    duplicateLinks: GameLink[];
+    errors: { url: string; error: string }[];
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,34 +32,52 @@ export default function AddLinkDialog({ onClose, onAdd }: AddLinkDialogProps) {
     setError(null);
 
     const urlList = urls.split('\n').map(u => u.trim()).filter(u => u);
-    let successCount = 0;
-    let errors: string[] = [];
+    const newGames: Game[] = [];
+    const duplicateGames: Game[] = [];
+    const duplicateLinks: GameLink[] = [];
+    const errors: { url: string; error: string }[] = [];
 
     try {
-        // Process sequentially to avoid overwhelming backend/network
+      // Process sequentially to avoid overwhelming backend/network
       for (const url of urlList) {
         try {
-          await invoke('create_game_from_link', { url });
-          successCount++;
+          const response = await invoke<CreateGameFromLinkResponse>('create_game_from_link', { url });
+          if (response.is_duplicate) {
+            duplicateGames.push(response.game);
+            duplicateLinks.push(response.existing_link as GameLink);
+          } else {
+            newGames.push(response.game);
+          }
         } catch (err) {
           logger.error(`Failed to add link ${url}:`, err);
-          errors.push(`${url}: ${err}`);
+          errors.push({ url, error: String(err) });
         }
       }
 
-      
-      if (successCount > 0) {
+      const singleUrl = urlList.length === 1;
+      const singleDuplicate = singleUrl && duplicateGames.length === 1 && newGames.length === 0 && errors.length === 0;
+
+      if (singleDuplicate) {
+        onOpenGame(duplicateGames[0], duplicateLinks[0]);
         onAdd();
         onClose();
+        return;
       }
-      
-      if (errors.length > 0) {
-        setError(`${t('dialog.addLink.partialError')} ${errors.join('; ')}`);
-        // If some failed, keep dialog open with failed URLs? 
-        // For simplicity, just close if at least one succeeded, or show error if all failed.
-        if (successCount === 0) {
-           // Keep open
-        }
+
+      if (newGames.length > 0) {
+        onAdd();
+      }
+
+      const singleNewGame = singleUrl && newGames.length === 1 && duplicateGames.length === 0 && errors.length === 0;
+      if (singleNewGame) {
+        onClose();
+        return;
+      }
+
+      if (newGames.length > 0 || duplicateGames.length > 0 || errors.length > 0) {
+        setResult({ newGames, duplicateGames, duplicateLinks, errors });
+      } else {
+        onClose();
       }
     } catch (err) {
       logger.error('Failed to add links:', err);
@@ -59,6 +86,19 @@ export default function AddLinkDialog({ onClose, onAdd }: AddLinkDialogProps) {
       setIsSubmitting(false);
     }
   };
+
+  if (result) {
+    return (
+      <AddLinkResultDialog
+        newGames={result.newGames}
+        duplicateGames={result.duplicateGames}
+        duplicateLinks={result.duplicateLinks}
+        errors={result.errors}
+        onClose={onClose}
+        onOpenGame={onOpenGame}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">

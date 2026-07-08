@@ -167,6 +167,7 @@ export interface GameLink {
   id: string;
   game_id: string;
   url: string;
+  canonical_url?: string;
   title: string | null;
   source_type: string | null;
   download_status: DownloadStatus | null;
@@ -176,6 +177,18 @@ export interface GameLink {
 
 export interface CreateGameFromLinkRequest {
   url: string;
+}
+
+export interface CreateGameFromLinkResponse {
+  game: Game;
+  is_duplicate: boolean;
+  existing_link?: GameLink;
+}
+
+export interface AddGameLinkResponse {
+  link: GameLink;
+  is_duplicate: boolean;
+  existing_game?: Game;
 }
 
 export interface DownloadGameLinkRequest {
