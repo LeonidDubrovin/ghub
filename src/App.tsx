@@ -418,7 +418,13 @@ function App() {
     }
   };
 
-  const handleGameSaved = () => refetchGames();
+  const handleGameSaved = async () => {
+    const { data } = await refetchGames();
+    if (selectedGameForDetails && data) {
+      const updated = data.find((g: Game) => g.id === selectedGameForDetails.id);
+      if (updated) setSelectedGameForDetails(updated);
+    }
+  };
 
   const handleGameDownloaded = useCallback((game: Game, spaceId: string, sourcePath: string) => {
     // Switch to the target space/source where the game was installed.

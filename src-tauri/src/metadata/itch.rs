@@ -20,29 +20,44 @@ impl ItchStrategy {
         Self { enabled }
     }
 
-    fn extract_screenshots(&self, document: &Html) -> Vec<String> {
+    fn extract_screenshots(&self, document: &Html, cover_url: Option<&str>) -> Vec<String> {
+        let cover = cover_url.map(|s| s.to_lowercase()).unwrap_or_default();
+        // Prefer full-size links (href) over thumbnails (src)
         let selectors = [
-            ".screenshot_list a",
-            ".screenshot_list img",
-            ".game_media a",
-            ".game_media img",
-            ".gallery_item a",
-            ".gallery_item img",
+            (".screenshot_list a[href]", true),
+            (".screenshot_list img[src]", false),
+            (".game_media a[href]", true),
+            (".game_media img[src]", false),
+            (".gallery_item a[href]", true),
+            (".gallery_item img[src]", false),
         ];
         let mut urls = Vec::new();
-        for selector_str in &selectors {
+        for (selector_str, prefer_href) in &selectors {
             if let Ok(selector) = Selector::parse(selector_str) {
                 for el in document.select(&selector) {
-                    let url = el.value().attr("href")
-                        .or_else(|| el.value().attr("src"))
-                        .map(|s| s.to_string());
-                    if let Some(u) = url {
-                        if u.starts_with("http") && !urls.contains(&u) {
-                            urls.push(u);
-                            if urls.len() >= 3 {
-                                break;
-                            }
-                        }
+                    let raw = if *prefer_href {
+                        el.value().attr("href")
+                    } else {
+                        el.value().attr("src")
+                    };
+                    let raw = match raw {
+                        Some(s) => s.to_string(),
+                        None => continue,
+                    };
+                    let normalized = Self::normalize_image_url(&raw);
+                    if normalized.is_empty() {
+                        continue;
+                    }
+                    let lower = normalized.to_lowercase();
+                    if lower == cover {
+                        continue;
+                    }
+                    if urls.iter().any(|u: &String| u.to_lowercase() == lower) {
+                        continue;
+                    }
+                    urls.push(normalized);
+                    if urls.len() >= 3 {
+                        break;
                     }
                 }
             }
@@ -51,6 +66,17 @@ impl ItchStrategy {
             }
         }
         urls
+    }
+
+    fn normalize_image_url(url: &str) -> String {
+        let trimmed = url.trim();
+        if trimmed.starts_with("//") {
+            format!("https:{}", trimmed)
+        } else if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+            trimmed.to_string()
+        } else {
+            String::new()
+        }
     }
 }
 
@@ -290,7 +316,7 @@ impl MetadataStrategy for ItchStrategy {
             }
         }
         
-        let screenshots = self.extract_screenshots(&document);
+        let screenshots = self.extract_screenshots(&document, cover_url.as_deref());
 
         Ok(Some(MetadataSearchResult {
             id: url.to_string(),

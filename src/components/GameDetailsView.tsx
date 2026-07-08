@@ -179,7 +179,7 @@ export default function GameDetailsView({
         if (!cancelled) setFullGame(null);
       });
     return () => { cancelled = true; };
-  }, [selectedGame?.id]);
+  }, [selectedGame]);
 
   const bg = selectedGame?.cover_image ? coverUrl(selectedGame.cover_image) : null;
   const screenshots = fullGame?.screenshots ?? selectedGame?.screenshots;
